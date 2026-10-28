@@ -2,6 +2,14 @@ defmodule SketchWeb.BoardLive do
   use SketchWeb, :live_view
 
   @cascade_step 150
+  @max_x Sketch.Canvas.geometry().max_x
+  @max_y Sketch.Canvas.geometry().max_y
+
+  defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
+
+  defguardp is_position(x, y)
+            when is_integer(x) and x >= 0 and x <= @max_x and is_integer(y) and y >= 0 and
+                   y <= @max_y
 
   @impl true
   def mount(%{"board_id" => board_id}, _session, socket) do
@@ -21,6 +29,57 @@ defmodule SketchWeb.BoardLive do
     end
   end
 
+  def handle_event(
+        "preview",
+        %{
+          "rectangle_id" => rectangle_id,
+          "drag_id" => drag_id,
+          "seq" => seq,
+          "base_version" => base_version,
+          "x" => x,
+          "y" => y
+        },
+        socket
+      )
+      when is_uuid(rectangle_id) and is_uuid(drag_id) and is_integer(seq) and seq >= 0 and
+             is_integer(base_version) and base_version >= 0 and is_position(x, y) do
+    broadcast_preview(socket, "preview", %{
+      rectangle_id: rectangle_id,
+      drag_id: drag_id,
+      seq: seq,
+      base_version: base_version,
+      x: x,
+      y: y
+    })
+  end
+
+  def handle_event("drag_cancel", %{"rectangle_id" => rectangle_id, "drag_id" => drag_id}, socket)
+      when is_uuid(rectangle_id) and is_uuid(drag_id) do
+    broadcast_preview(socket, "drag_cancel", %{rectangle_id: rectangle_id, drag_id: drag_id})
+  end
+
+  def handle_event(
+        "commit",
+        %{"rectangle_id" => rectangle_id, "drag_id" => drag_id, "x" => x, "y" => y},
+        socket
+      )
+      when is_uuid(rectangle_id) and is_uuid(drag_id) and is_integer(x) and is_integer(y) do
+    case Sketch.Canvas.commit_position(rectangle_id, socket.assigns.board_id, %{x: x, y: y}) do
+      {:ok, _rectangle} ->
+        {:noreply, socket}
+
+      {:error, _error} ->
+        socket
+        |> put_flash(:error, "Could not move rectangle")
+        |> push_event("revert", %{rectangle_id: rectangle_id})
+        |> broadcast_preview("drag_cancel", %{rectangle_id: rectangle_id, drag_id: drag_id})
+    end
+  end
+
+  def handle_event(event, _params, socket) when event in ~w(preview drag_cancel commit) do
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: rectangle}, socket)
       when event in ~w(create commit_position) do
@@ -34,43 +93,67 @@ defmodule SketchWeb.BoardLive do
     end
   end
 
+  def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket)
+      when event in ~w(preview drag_cancel) do
+    {:noreply, push_event(socket, event, payload)}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <div class="flex flex-col gap-4 p-4">
-        <p>
-          Share this board:
-          <a id="board-url" class="link" href={~p"/b/#{@board_id}"}>{url(~p"/b/#{@board_id}")}</a>
-        </p>
-        <div>
+      <div class="flex h-screen flex-col">
+        <div class="flex flex-wrap items-center gap-4 p-4">
           <button id="add-rectangle" class="btn btn-primary" phx-click="add-rectangle">
             Add rectangle
           </button>
+          <p>
+            Share this board:
+            <a id="board-url" class="link" href={~p"/b/#{@board_id}"}>{url(~p"/b/#{@board_id}")}</a>
+          </p>
         </div>
-        <svg
-          id="canvas"
-          viewBox={"0 0 #{@geometry.canvas_width} #{@geometry.canvas_height}"}
-          class="w-full max-h-[80vh] border border-base-300 bg-base-100"
+        <div
+          id="canvas-viewport"
+          phx-hook="Canvas"
+          data-max-x={@geometry.max_x}
+          data-max-y={@geometry.max_y}
+          class="min-h-0 flex-1 overflow-auto border-t border-base-300"
         >
-          <g id="rectangles" phx-update="stream">
-            <rect
-              :for={{dom_id, rectangle} <- @streams.rectangles}
-              id={dom_id}
-              x={rectangle.x}
-              y={rectangle.y}
-              width={@geometry.rectangle_width}
-              height={@geometry.rectangle_height}
-              data-x={rectangle.x}
-              data-y={rectangle.y}
-              data-version={rectangle.version}
-              class="fill-primary"
-            />
-          </g>
-        </svg>
+          <svg
+            id="canvas"
+            width={@geometry.canvas_width}
+            height={@geometry.canvas_height}
+            viewBox={"0 0 #{@geometry.canvas_width} #{@geometry.canvas_height}"}
+            class="block select-none bg-base-100"
+          >
+            <g id="rectangles" phx-update="stream">
+              <rect
+                :for={{dom_id, rectangle} <- @streams.rectangles}
+                id={dom_id}
+                x={rectangle.x}
+                y={rectangle.y}
+                width={@geometry.rectangle_width}
+                height={@geometry.rectangle_height}
+                data-rect={rectangle.id}
+                data-x={rectangle.x}
+                data-y={rectangle.y}
+                data-version={rectangle.version}
+                stroke-width="2"
+                class="fill-primary stroke-base-content cursor-grab touch-none"
+              />
+            </g>
+          </svg>
+        </div>
       </div>
     </Layouts.app>
     """
+  end
+
+  defp broadcast_preview(socket, event, payload) do
+    topic = Sketch.Canvas.board_topic(socket.assigns.board_id)
+    :ok = SketchWeb.Endpoint.broadcast_from(self(), topic, event, payload)
+
+    {:noreply, socket}
   end
 
   defp load_board(socket, board_id) do

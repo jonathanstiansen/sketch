@@ -3,6 +3,7 @@ import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import { hooks as colocatedHooks } from "phoenix-colocated/sketch"
 import topbar from "../vendor/topbar"
+import { Canvas, keepDraggedPosition } from "./hooks/canvas"
 import type { LiveReloader } from "./env"
 
 function readCsrfToken(): string {
@@ -16,7 +17,8 @@ function readCsrfToken(): string {
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: readCsrfToken() },
-  hooks: { ...colocatedHooks },
+  hooks: { ...colocatedHooks, Canvas },
+  dom: { onBeforeElUpdated: keepDraggedPosition },
 })
 
 topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })

@@ -69,9 +69,10 @@
     %{
       id: "A10",
       rule: "Transient previews never trigger persistence",
-      status: {:pending, 3},
-      enforcement: "Instrumented integration test",
-      verified_by: []
+      status: :enforced,
+      enforcement:
+        "A telemetry handler on [:sketch, :repo, :query] records queries from the LiveView processes while previews and cancels are relayed; the test asserts none, and that a commit issues exactly one UPDATE",
+      verified_by: ["test/sketch_web/live/board_live_drag_test.exs", "e2e/tests/dragging.spec.ts"]
     },
     %{
       id: "A11",
@@ -93,7 +94,7 @@
       rule: "Client pointer behaviour lives in the designated hook",
       status: :enforced,
       enforcement:
-        "Pointer, mouse and touch event names appear only in assets/js/hooks/canvas.ts (scans assets/js and lib templates)",
+        "Pointer, mouse and touch event names appear only in assets/js/hooks/canvas.ts, the Canvas LiveView hook (scans assets/js and lib templates)",
       verified_by: ["test/architecture/source_policy_test.exs"]
     },
     %{
