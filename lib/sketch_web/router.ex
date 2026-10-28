@@ -17,7 +17,7 @@ defmodule SketchWeb.Router do
   scope "/", SketchWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", HomeLive
     live "/b/:board_id", BoardLive
   end
 
