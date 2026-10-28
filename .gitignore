@@ -35,3 +35,11 @@ sketch-*.tar
 npm-debug.log
 /assets/node_modules/
 
+
+# Dialyzer PLTs
+/priv/plts/
+
+# Playwright
+/e2e/node_modules/
+/e2e/test-results/
+/e2e/playwright-report/

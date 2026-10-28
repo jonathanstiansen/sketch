@@ -12,7 +12,9 @@ defmodule Sketch.MixProject do
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
-      consolidate_protocols: Mix.env() != :dev
+      consolidate_protocols: Mix.env() != :dev,
+      dialyzer: dialyzer(),
+      usage_rules: usage_rules()
     ]
   end
 
@@ -22,13 +24,16 @@ defmodule Sketch.MixProject do
   def application do
     [
       mod: {Sketch.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools] ++ extra_applications(Mix.env())
     ]
   end
 
+  defp extra_applications(:test), do: [:tools]
+  defp extra_applications(_env), do: []
+
   def cli do
     [
-      preferred_envs: [precommit: :test]
+      preferred_envs: [precommit: :test, ci: :test]
     ]
   end
 
@@ -42,6 +47,9 @@ defmodule Sketch.MixProject do
   defp deps do
     [
       {:sourceror, "~> 1.8", only: [:dev, :test]},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:usage_rules, "~> 1.0", only: [:dev]},
       {:ash_phoenix, "~> 2.0"},
       {:ash_postgres, "~> 2.0"},
       {:ash, "~> 3.0"},
@@ -99,7 +107,57 @@ defmodule Sketch.MixProject do
         "esbuild sketch --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],
+      "ts.check": [
+        "cmd --cd assets npm run typecheck",
+        "cmd --cd assets npm run lint",
+        "cmd --cd e2e npm run typecheck",
+        "cmd --cd e2e npm run lint"
+      ],
+      ci: [
+        "format --check-formatted",
+        "compile --warnings-as-errors --force",
+        "credo --strict",
+        "dialyzer",
+        "ts.check",
+        "ash.codegen --check",
+        "test --warnings-as-errors"
+      ]
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_local_path: "priv/plts",
+      plt_core_path: "priv/plts",
+      plt_add_apps: [:ex_unit, :mix, :tools],
+      flags: [:unmatched_returns, :error_handling, :extra_return, :missing_return]
+    ]
+  end
+
+  defp usage_rules do
+    [
+      file: "AGENTS.md",
+      usage_rules: [
+        :usage_rules,
+        {:ash, link: :markdown},
+        {~r/^ash_/, link: :markdown},
+        :igniter,
+        "phoenix:phoenix",
+        "phoenix:liveview",
+        "phoenix:html",
+        "phoenix:ecto",
+        "phoenix:elixir"
+      ],
+      skills: [
+        build: [
+          "ash-framework": [
+            description:
+              "Load before editing any module that uses Ash.Resource or Ash.Domain (lib/sketch/canvas*), adding actions, code interfaces, notifiers or migrations, or debugging Ash errors.",
+            usage_rules: [:ash, ~r/^ash_/]
+          ]
+        ]
+      ]
     ]
   end
 end
