@@ -69,9 +69,23 @@ defmodule Sketch.ArchitectureCheck do
     files = Path.wildcard(Path.join(fixture_dir, "**/*.ex"))
 
     {:ok, _modules, _diagnostics} =
-      Kernel.ParallelCompiler.compile_to_path(files, output_dir, return_diagnostics: true)
+      with_debug_info(fn ->
+        Kernel.ParallelCompiler.compile_to_path(files, output_dir, return_diagnostics: true)
+      end)
 
     load_beams(output_dir, fixture_dir)
+  end
+
+  # mix test compiles with debug_info disabled, and :xref reads call edges from it.
+  defp with_debug_info(compile) do
+    previous = Code.get_compiler_option(:debug_info)
+    Code.put_compiler_option(:debug_info, true)
+
+    try do
+      compile.()
+    after
+      Code.put_compiler_option(:debug_info, previous)
+    end
   end
 
   @spec load_beams(Path.t(), Path.t()) :: [beam_module()]
