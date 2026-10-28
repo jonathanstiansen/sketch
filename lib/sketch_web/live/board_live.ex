@@ -1,10 +1,6 @@
 defmodule SketchWeb.BoardLive do
   use SketchWeb, :live_view
 
-  @rectangle_width 120
-  @rectangle_height 80
-  @max_x 3880
-  @max_y 3920
   @cascade_step 150
 
   @impl true
@@ -45,7 +41,7 @@ defmodule SketchWeb.BoardLive do
       </div>
       <svg
         id="canvas"
-        viewBox="0 0 4000 4000"
+        viewBox={"0 0 #{@geometry.canvas_width} #{@geometry.canvas_height}"}
         class="w-full max-h-[80vh] border border-base-300 bg-base-100"
       >
         <g id="rectangles" phx-update="stream">
@@ -54,8 +50,8 @@ defmodule SketchWeb.BoardLive do
             id={dom_id}
             x={rectangle.x}
             y={rectangle.y}
-            width={rectangle_width()}
-            height={rectangle_height()}
+            width={@geometry.rectangle_width}
+            height={@geometry.rectangle_height}
             data-x={rectangle.x}
             data-y={rectangle.y}
             data-version={rectangle.version}
@@ -67,25 +63,24 @@ defmodule SketchWeb.BoardLive do
     """
   end
 
-  defp rectangle_width, do: @rectangle_width
-  defp rectangle_height, do: @rectangle_height
-
   defp load_board(socket, board_id) do
-    if connected?(socket), do: :ok = SketchWeb.Endpoint.subscribe("board:#{board_id}")
+    if connected?(socket),
+      do: :ok = SketchWeb.Endpoint.subscribe(Sketch.Canvas.board_topic(board_id))
 
     rectangles =
       board_id
       |> Sketch.Canvas.list_rectangles_for_board!()
-      |> Enum.map(&Map.take(&1, [:id, :board_id, :x, :y, :version]))
+      |> Enum.map(&Sketch.Canvas.rectangle_event/1)
 
     socket
     |> assign(:board_id, board_id)
+    |> assign(:geometry, Sketch.Canvas.geometry())
     |> assign(:rectangle_count, length(rectangles))
     |> stream(:rectangles, rectangles, dom_id: &"rect-#{&1.id}")
   end
 
   defp next_position(count) do
     offset = rem(count, 20) * @cascade_step
-    {min(100 + offset, @max_x), min(100 + offset, @max_y)}
+    {100 + offset, 100 + offset}
   end
 end

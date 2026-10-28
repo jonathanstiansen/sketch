@@ -78,6 +78,20 @@ defmodule Sketch.Canvas.RectangleTest do
   end
 
   describe "notifications (A11)" do
+    test "board_topic matches the Rectangle pub_sub topic", %{board: board} do
+      topic = Canvas.board_topic(board.id)
+
+      assert topic ==
+               Enum.join(
+                 [Ash.Notifier.PubSub.Info.prefix(Rectangle), board.id],
+                 Ash.Notifier.PubSub.Info.delimiter(Rectangle)
+               )
+
+      SketchWeb.Endpoint.subscribe(topic)
+      Canvas.create_rectangle!(%{x: 10, y: 20, board_id: board.id})
+      assert_receive %Phoenix.Socket.Broadcast{topic: ^topic, event: "create"}
+    end
+
     test "a successful create broadcasts after commit", %{board: board} do
       SketchWeb.Endpoint.subscribe("board:#{board.id}")
       rectangle = Canvas.create_rectangle!(%{x: 10, y: 20, board_id: board.id})
