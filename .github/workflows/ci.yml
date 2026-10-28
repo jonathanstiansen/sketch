@@ -163,7 +163,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       E2E_BASE_URL: http://127.0.0.1:4000
-      DEPLOY_STATE_FILE: ${{ runner.temp }}/deploy-state.json
+      DEPLOY_STATE_FILE: /tmp/deploy-state.json
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
