@@ -192,7 +192,6 @@ jobs:
           curl --fail --silent "$E2E_BASE_URL/healthz"
       - name: PostgreSQL is not published and the app is bound to loopback
         run: |
-          if docker compose port db 5432; then echo "db publishes a host port"; exit 1; fi
           test "$(docker inspect --format '{{json .HostConfig.PortBindings}}' "$(docker compose ps -q db)")" = "{}"
           test "$(docker compose port app 4000)" = "127.0.0.1:4000"
       - name: Two-browser E2E against the container
