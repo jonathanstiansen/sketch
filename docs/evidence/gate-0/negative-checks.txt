@@ -1,0 +1,166 @@
+Gate 0 negative checks: real violations introduced in the working tree, checked, then reverted.
+Recorded 2026-10-28 on macOS (Elixir 1.20.4, OTP 29.1.2, Node 24).
+
+Note: PostgreSQL was unavailable on this machine during the run (disk full, Docker
+Desktop down), so `mix test` could not run through its alias (which first runs
+`ash.setup`). The architecture tests do not need a database and were run with ExUnit
+directly on the same test files. CI runs them through `mix test` with a postgres:18
+service.
+
+================================================================
+1. Web module calls Sketch.Repo (A02)
+================================================================
++ lib/sketch_web/repo_leak.ex: def rectangles, do: Sketch.Repo.all("rectangles")
+$ mix test test/architecture/web_boundary_test.exs   (run via ExUnit directly; see note)
+  1) test application web modules respect the domain boundary (A01, A02, A03) (Sketch.Architecture.WebBoundaryTest)
+     A02 SketchWeb.RepoLeak: references Sketch.Repo
+     A02 SketchWeb.RepoLeak: calls Sketch.Repo.all/1
+     code: assert violations == [], ArchitectureCheck.format_violations(violations)
+Result: 5/6 passed
+Failed: 1 test
+--> exit status 1
+
+================================================================
+2. use GenServer module in lib (A12)
+================================================================
++ lib/sketch/coordinator.ex: use GenServer
+$ mix test test/architecture/process_policy_test.exs   (run via ExUnit directly; see note)
+  1) test application has no custom GenServer, broker or repository layer (A12) (Sketch.Architecture.ProcessPolicyTest)
+     A12 Sketch.Coordinator: implements GenServer
+     code: assert violations == [], ArchitectureCheck.format_violations(violations)
+Result: 3/4 passed
+Failed: 1 test
+--> exit status 1
+
+================================================================
+3. any in TypeScript (A14)
+================================================================
++ assets/js/app.ts: export function parsePayload(payload: any): number
+$ npm --prefix assets run -s lint
+
+/Users/jono/projects/sketch/assets/js/app.ts
+  69:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 1 problem (1 error, 0 warnings)
+
+--> exit status 1
+
+================================================================
+4. @ts-ignore in TypeScript (A14, A21)
+================================================================
++ assets/js/app.ts: // @ts-ignore above a type error
+$ npm --prefix assets run -s lint
+
+/Users/jono/projects/sketch/assets/js/app.ts
+  69:1  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+✖ 1 problem (1 error, 0 warnings)
+
+--> exit status 1
+$ mix test test/architecture/source_policy_test.exs   (run via ExUnit directly; see note)
+  1) test no suppression directives (A21) application (Sketch.Architecture.SourcePolicyTest)
+     A21 assets/js/app.ts:69: TypeScript suppression comment: // @ts-ignore
+     code: assert violations == [], ArchitectureCheck.format_violations(violations)
+Result: 6/7 passed
+Failed: 1 test
+--> exit status 1
+
+================================================================
+5. Format violation
+================================================================
++ lib/sketch/badly_formatted.ex: defmodule Sketch.Badly   do / def value(  ),do: :ok
+$ mix format --check-formatted
+** (Mix) mix format failed due to --check-formatted.
+The following files are not formatted:
+
+/Users/jono/projects/sketch/lib/sketch/badly_formatted.ex
+
+1   -|defmodule Sketch.Badly   do
+2   -|  def value(  ),do: :ok
+  1 +|defmodule Sketch.Badly do
+  2 +|  def value(), do: :ok
+3 3  |end
+4 4  |
+
+
+
+--> exit status 1
+
+================================================================
+6. Compile warning
+================================================================
++ lib/sketch/warning.ex: def value(unused), do: :ok
+$ env MIX_ENV=test mix compile --warnings-as-errors
+Compiling 1 file (.ex)
+    warning: variable "unused" is unused (if the variable is not meant to be used, prefix it with an underscore)
+    │
+  4 │   def value(unused), do: :ok
+    │             ~~~~~~
+    │
+    └─ lib/sketch/warning.ex:4:13: Sketch.Warning.value/1
+
+Compilation failed due to warnings while using the --warnings-as-errors option
+--> exit status 1
+
+================================================================
+7. Resource/migration drift (A17): new Postgres extension without a migration
+================================================================
++ lib/sketch/repo.ex: installed_extensions adds "citext" without generating a migration
+$ env MIX_ENV=test mix ash.codegen --check
+Compiling 1 file (.ex)
+Getting extensions in current project...
+Running codegen for AshPostgres.DataLayer...
+** (Mix) Pending Code Generation Detected for 2 files
+
+
+Run with --dry-run to view pending changes
+--> exit status 1
+
+================================================================
+8. Credo strict violation
+================================================================
++ lib/sketch/debug.ex: IO.inspect(term)
+$ env MIX_ENV=test mix credo --strict
+Checking 41 source files ...
+
+  Warnings - please take a look                                                 
+┃ 
+┃ [W] ↗ There should be no calls to `IO.inspect/1`.
+┃       lib/sketch/debug.ex:4:24 #(Sketch.Debug.value)
+
+Please report incorrect results: https://github.com/rrrene/credo/issues
+
+Analysis took 0.04 seconds (0.00s to load, 0.04s running 69 checks on 41 files)
+152 mods/funs, found 1 warning.
+
+Use `mix credo explain` to explain issues, `mix credo --help` for options.
+--> exit status 16
+
+================================================================
+9. Pointer events outside the canvas hook (A13) and fixed sleep in E2E (A20)
+================================================================
++ assets/js/app.ts: addEventListener("pointerdown", ...)
++ e2e/tests/sleep.spec.ts: page.waitForTimeout(500)
+$ mix test test/architecture/source_policy_test.exs   (run via ExUnit directly; see note)
+  1) test E2E tests use the real stack without fixed sleeps (A18, A20) application (Sketch.Architecture.SourcePolicyTest)
+     A20 e2e/tests/sleep.spec.ts:4: fixed sleep: await page.waitForTimeout(500)
+     code: assert violations == [], ArchitectureCheck.format_violations(violations)
+  2) test pointer behaviour lives in the canvas hook (A13) application (Sketch.Architecture.SourcePolicyTest)
+     A13 assets/js/app.ts:69: pointer event: document.addEventListener("pointerdown", () => undefined)
+     code: assert violations == [], ArchitectureCheck.format_violations(violations)
+Result: 5/7 passed
+Failed: 2 tests
+--> exit status 1
+
+================================================================
+After reverting all violations
+================================================================
+$ mix format --check-formatted
+--> exit status 0
+$ env MIX_ENV=test mix compile --warnings-as-errors
+--> exit status 0
+$ mix test    (run via ExUnit directly; see note)
+Result: 30 passed
+--> exit status 0
+ M test/support/architecture_check.ex
+?? docs/evidence/

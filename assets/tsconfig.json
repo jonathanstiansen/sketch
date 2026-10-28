@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowJs": false,
+    "types": [],
+    "paths": {
+      "phoenix_live_view": [
+        "../deps/phoenix_live_view"
+      ],
+      "phoenix_html": [
+        "../deps/phoenix_html/priv/static/phoenix_html.js"
+      ]
+    }
+  },
+  "include": [
+    "js/**/*.ts",
+    "vendor/**/*.d.ts"
+  ]
+}
