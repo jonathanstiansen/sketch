@@ -36,34 +36,35 @@ defmodule SketchWeb.BoardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.flash_group flash={@flash} />
-    <div class="flex flex-col gap-4 p-4">
-      <div>
-        <button id="add-rectangle" class="btn btn-primary" phx-click="add-rectangle">
-          Add rectangle
-        </button>
+    <Layouts.app flash={@flash}>
+      <div class="flex flex-col gap-4 p-4">
+        <div>
+          <button id="add-rectangle" class="btn btn-primary" phx-click="add-rectangle">
+            Add rectangle
+          </button>
+        </div>
+        <svg
+          id="canvas"
+          viewBox={"0 0 #{@geometry.canvas_width} #{@geometry.canvas_height}"}
+          class="w-full max-h-[80vh] border border-base-300 bg-base-100"
+        >
+          <g id="rectangles" phx-update="stream">
+            <rect
+              :for={{dom_id, rectangle} <- @streams.rectangles}
+              id={dom_id}
+              x={rectangle.x}
+              y={rectangle.y}
+              width={@geometry.rectangle_width}
+              height={@geometry.rectangle_height}
+              data-x={rectangle.x}
+              data-y={rectangle.y}
+              data-version={rectangle.version}
+              class="fill-primary"
+            />
+          </g>
+        </svg>
       </div>
-      <svg
-        id="canvas"
-        viewBox={"0 0 #{@geometry.canvas_width} #{@geometry.canvas_height}"}
-        class="w-full max-h-[80vh] border border-base-300 bg-base-100"
-      >
-        <g id="rectangles" phx-update="stream">
-          <rect
-            :for={{dom_id, rectangle} <- @streams.rectangles}
-            id={dom_id}
-            x={rectangle.x}
-            y={rectangle.y}
-            width={@geometry.rectangle_width}
-            height={@geometry.rectangle_height}
-            data-x={rectangle.x}
-            data-y={rectangle.y}
-            data-version={rectangle.version}
-            class="fill-primary"
-          />
-        </g>
-      </svg>
-    </div>
+    </Layouts.app>
     """
   end
 
