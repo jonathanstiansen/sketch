@@ -62,9 +62,10 @@
     %{
       id: "A09",
       rule: "Durable movement increments version atomically",
-      status: {:pending, 4},
-      enforcement: "Concurrent integration test (ADR 0001)",
-      verified_by: []
+      status: :enforced,
+      enforcement:
+        "The commit_position action uses atomic_update(:version, expr(version + 1)); a test runs 50 commits over real concurrent connections and asserts versions 1..50 with no duplicates and last-writer-wins state (ADR 0001)",
+      verified_by: ["test/sketch/canvas/concurrent_commits_test.exs"]
     },
     %{
       id: "A10",

@@ -42,7 +42,7 @@ the only path excluded from the A21 scan.
 | A06 | Board membership is immutable. | Enforced |
 | A07 | Queries and events are scoped to the selected board. | Enforced |
 | A08 | Invalid coordinates cannot be persisted (addendum D1). | Enforced |
-| A09 | Durable movement increments `version` atomically (ADR 0001). | Pending, Gate 4 |
+| A09 | Durable movement increments `version` atomically (ADR 0001). `commit_position` uses `atomic_update(:version, expr(version + 1))`; a non-sandboxed test runs 50 commits across 25 concurrent connections and requires versions `1..50` with no duplicates and stored x/y equal to the commit that returned version 50. | Enforced |
 | A10 | Transient previews never trigger persistence. Previews and cancels are relayed with `SketchWeb.Endpoint.broadcast_from/4`; an instrumented LiveView test asserts they cause zero Repo queries. | Enforced |
 | A11 | Durable events originate from successful Ash changes. | Enforced |
 | A12 | No custom GenServer, event broker or repository layer: no `lib` module implements GenServer, `:gen_server`, `:gen_statem`, `:gen_event` or GenStage, uses Agent, Registry or `:pg`, or is named `*Repository*`. | Enforced |
@@ -71,5 +71,15 @@ the only path excluded from the A21 scan.
 - The A10 test watches Repo queries issued by the LiveView processes that handle previews. A
   preview handler that delegated persistence to another process (for example `Task.start/1`)
   would not be seen by it. The E2E reload checks and code review cover that case.
+- The A09 test must not use the SQL sandbox, which serialises everything through one connection.
+  It runs `async: false`, uses `Ecto.Adapters.SQL.Sandbox.unboxed_run/2` in every task and deletes
+  its board in `on_exit`. The test pool is `System.schedulers_online() * 2` connections (20 here),
+  so the 25 concurrent tasks do contend for connections.
+- E2E runs with one worker. The restart test spawns a second dev server, whose asset watchers
+  rewrite `priv/static` and trigger LiveReload in every open browser page; parallel workers made
+  that reload land mid-drag. The restart test also waits for the spawned server's asset watchers to
+  finish before opening a page.
+- Simultaneous drags of one rectangle can show different positions in different browsers until
+  both commits land. See [docs/LIMITATIONS.md](docs/LIMITATIONS.md) for the measurements.
 - SPEC section 8 item 7 (Docker Compose deployment smoke test) is pending until Gate 5; the
   registry lists it under `ci_requirements`.

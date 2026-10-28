@@ -135,6 +135,27 @@ defmodule SketchWeb.BoardLiveDragTest do
     assert [%{version: 0}] = Canvas.list_rectangles_for_board!(rectangle.board_id)
   end
 
+  test "an older committed notification cannot overwrite newer state", ctx do
+    %{board: board, rectangle: rectangle, watcher: watcher} = ctx
+
+    committed = fn version, x ->
+      %Phoenix.Socket.Broadcast{
+        topic: "board:#{board.id}",
+        event: "commit_position",
+        payload: %{id: rectangle.id, board_id: board.id, x: x, y: 50, version: version}
+      }
+    end
+
+    send(watcher.pid, committed.(3, 300))
+    assert render(watcher) =~ ~s(data-version="3")
+
+    send(watcher.pid, committed.(2, 200))
+    render(watcher)
+
+    assert has_element?(watcher, "#rect-#{rectangle.id}[data-version='3'][data-x='300']")
+    refute has_element?(watcher, "#rect-#{rectangle.id}[data-version='2']")
+  end
+
   test "a failed commit flashes an error and asks the client to revert", ctx do
     %{dragger: dragger} = ctx
     other_board = Canvas.create_board!()
