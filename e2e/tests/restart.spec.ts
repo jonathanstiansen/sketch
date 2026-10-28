@@ -21,7 +21,8 @@ function startServer(): ChildProcess {
 async function stopServer(): Promise<void> {
   const running = server
   server = undefined
-  if (running === undefined || running.exitCode !== null || running.signalCode !== null) return
+  if (running === undefined) return
+  if (running.exitCode !== null || running.signalCode !== null) return
   const exited = once(running, "exit")
   running.kill("SIGTERM")
   await exited
