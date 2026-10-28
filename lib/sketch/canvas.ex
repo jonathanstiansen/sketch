@@ -10,6 +10,7 @@ defmodule Sketch.Canvas do
     resource Sketch.Canvas.Board do
       define :create_board, action: :create
       define :get_board, action: :read, get_by: [:id]
+      define :database_reachable, action: :database_reachable
     end
 
     resource Sketch.Canvas.Rectangle do

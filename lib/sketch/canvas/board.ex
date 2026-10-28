@@ -16,6 +16,12 @@ defmodule Sketch.Canvas.Board do
     defaults [:read]
 
     create :create
+
+    action :database_reachable, :boolean do
+      run fn _input, _context ->
+        with {:ok, _exists} <- Ash.exists(__MODULE__), do: {:ok, true}
+      end
+    end
   end
 
   attributes do
