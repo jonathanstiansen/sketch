@@ -144,13 +144,8 @@ defmodule SketchWeb.BoardLive do
   end
 
   defp broadcast_preview(socket, event, payload) do
-    :ok =
-      SketchWeb.Endpoint.broadcast_from(
-        self(),
-        "board:#{socket.assigns.board_id}",
-        event,
-        payload
-      )
+    topic = Sketch.Canvas.board_topic(socket.assigns.board_id)
+    :ok = SketchWeb.Endpoint.broadcast_from(self(), topic, event, payload)
 
     {:noreply, socket}
   end
