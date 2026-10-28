@@ -43,10 +43,10 @@ the only path excluded from the A21 scan.
 | A07 | Queries and events are scoped to the selected board. | Enforced |
 | A08 | Invalid coordinates cannot be persisted (addendum D1). | Enforced |
 | A09 | Durable movement increments `version` atomically (ADR 0001). | Pending, Gate 4 |
-| A10 | Transient previews never trigger persistence. | Pending, Gate 3 |
+| A10 | Transient previews never trigger persistence. Previews and cancels are relayed with `SketchWeb.Endpoint.broadcast_from/4`; an instrumented LiveView test asserts they cause zero Repo queries. | Enforced |
 | A11 | Durable events originate from successful Ash changes. | Enforced |
 | A12 | No custom GenServer, event broker or repository layer: no `lib` module implements GenServer, `:gen_server`, `:gen_statem`, `:gen_event` or GenStage, uses Agent, Registry or `:pg`, or is named `*Repository*`. | Enforced |
-| A13 | Pointer, mouse and touch event names appear only in `assets/js/hooks/canvas.ts`. The scan covers `assets/js` and `lib` (colocated hooks and templates). | Enforced |
+| A13 | Pointer, mouse and touch event names appear only in `assets/js/hooks/canvas.ts`, the `Canvas` LiveView hook. The scan covers `assets/js` and `lib` (colocated hooks and templates). | Enforced |
 | A14 | TypeScript strict mode with `noUncheckedIndexedAccess`; ESLint bans `any` and TS suppression comments and disables inline config. | Enforced |
 | A15 | Production runtime deps equal the allowlist (addendum D4). | Enforced |
 | A16 | Enforcement code and CI changes need review. | Unverified (addendum D6) |
@@ -68,5 +68,8 @@ the only path excluded from the A21 scan.
   looks the record up through it. A07 still holds: no code interface exposes that read and web
   modules can only call `Sketch.Canvas`. A follow-up will add an actor and Ash policies so the
   scoping no longer depends on the code interface alone.
+- The A10 test watches Repo queries issued by the LiveView processes that handle previews. A
+  preview handler that delegated persistence to another process (for example `Task.start/1`)
+  would not be seen by it. The E2E reload checks and code review cover that case.
 - SPEC section 8 item 7 (Docker Compose deployment smoke test) is pending until Gate 5; the
   registry lists it under `ci_requirements`.
