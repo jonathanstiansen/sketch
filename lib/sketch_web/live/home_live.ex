@@ -15,11 +15,12 @@ defmodule SketchWeb.HomeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.flash_group flash={@flash} />
-    <div class="flex flex-col items-center gap-4 p-16">
-      <h1 class="text-3xl font-semibold">Sketch</h1>
-      <button id="new-board" class="btn btn-primary" phx-click="new-board">New board</button>
-    </div>
+    <Layouts.app flash={@flash}>
+      <div class="flex flex-col items-center gap-4 p-16">
+        <h1 class="text-3xl font-semibold">Sketch</h1>
+        <button id="new-board" class="btn btn-primary" phx-click="new-board">New board</button>
+      </div>
+    </Layouts.app>
     """
   end
 end
