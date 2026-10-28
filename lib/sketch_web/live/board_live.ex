@@ -115,6 +115,8 @@ defmodule SketchWeb.BoardLive do
         <div
           id="canvas-viewport"
           phx-hook="Canvas"
+          data-max-x={@geometry.max_x}
+          data-max-y={@geometry.max_y}
           class="min-h-0 flex-1 overflow-auto border-t border-base-300"
         >
           <svg

@@ -1,7 +1,5 @@
 import { ViewHook } from "phoenix_live_view"
 
-const MAX_X = 3880
-const MAX_Y = 3920
 const PREVIEW_INTERVAL_MS = 50
 const STALE_PREVIEW_MS = 2000
 const DRAGGING = "data-dragging"
@@ -20,6 +18,7 @@ interface LocalDrag {
   grab: Point
   origin: Point
   position: Point
+  max: Point
   seq: number
   lastSentAt: number
   previewTimer: number | undefined
@@ -72,6 +71,18 @@ function clamp(value: number, max: number): number {
 
 function numberAttribute(el: Element, name: string): number {
   return Number(el.getAttribute(name))
+}
+
+function integerAttribute(el: Element, name: string): number {
+  const value = Number(el.getAttribute(name))
+  if (!el.hasAttribute(name) || !Number.isInteger(value)) {
+    throw new Error(`${name} must be an integer`)
+  }
+  return value
+}
+
+function maxPosition(el: Element): Point {
+  return { x: integerAttribute(el, "data-max-x"), y: integerAttribute(el, "data-max-y") }
 }
 
 function committedPosition(rect: Element): Point {
@@ -152,6 +163,7 @@ export class Canvas extends ViewHook {
       grab: { x: pointer.x - position.x, y: pointer.y - position.y },
       origin: position,
       position,
+      max: maxPosition(this.el),
       seq: 0,
       lastSentAt: -Infinity,
       previewTimer: undefined,
@@ -163,8 +175,8 @@ export class Canvas extends ViewHook {
     if (drag?.pointerId !== event.pointerId) return
     const pointer = this.canvasPoint(event)
     drag.position = {
-      x: clamp(pointer.x - drag.grab.x, MAX_X),
-      y: clamp(pointer.y - drag.grab.y, MAX_Y),
+      x: clamp(pointer.x - drag.grab.x, drag.max.x),
+      y: clamp(pointer.y - drag.grab.y, drag.max.y),
     }
     moveRect(drag.rect, drag.position)
     this.schedulePreview(drag)

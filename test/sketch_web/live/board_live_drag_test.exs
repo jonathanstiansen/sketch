@@ -171,4 +171,9 @@ defmodule SketchWeb.BoardLiveDragTest do
     assert rectangle_id == rectangle.id
     assert [%{x: 100, version: 0}] = Canvas.list_rectangles_for_board!(rectangle.board_id)
   end
+
+  test "the canvas hook gets the position bounds from the server", %{dragger: dragger} do
+    %{max_x: max_x, max_y: max_y} = Canvas.geometry()
+    assert has_element?(dragger, "#canvas-viewport[data-max-x='#{max_x}'][data-max-y='#{max_y}']")
+  end
 end
