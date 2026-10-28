@@ -13,7 +13,7 @@ defmodule SketchWeb.BoardLive do
 
   @impl true
   def handle_event("add-rectangle", _params, socket) do
-    {x, y} = next_position(socket.assigns.rectangle_count)
+    {x, y} = next_position(MapSet.size(socket.assigns.rectangle_ids))
 
     case Sketch.Canvas.create_rectangle(%{board_id: socket.assigns.board_id, x: x, y: y}) do
       {:ok, _rectangle} -> {:noreply, socket}
@@ -23,10 +23,14 @@ defmodule SketchWeb.BoardLive do
 
   @impl true
   def handle_info(%Phoenix.Socket.Broadcast{event: "create", payload: rectangle}, socket) do
-    {:noreply,
-     socket
-     |> update(:rectangle_count, &(&1 + 1))
-     |> stream_insert(:rectangles, rectangle)}
+    if MapSet.member?(socket.assigns.rectangle_ids, rectangle.id) do
+      {:noreply, socket}
+    else
+      {:noreply,
+       socket
+       |> update(:rectangle_ids, &MapSet.put(&1, rectangle.id))
+       |> stream_insert(:rectangles, rectangle)}
+    end
   end
 
   @impl true
@@ -75,7 +79,7 @@ defmodule SketchWeb.BoardLive do
     socket
     |> assign(:board_id, board_id)
     |> assign(:geometry, Sketch.Canvas.geometry())
-    |> assign(:rectangle_count, length(rectangles))
+    |> assign(:rectangle_ids, MapSet.new(rectangles, & &1.id))
     |> stream(:rectangles, rectangles, dom_id: &"rect-#{&1.id}")
   end
 

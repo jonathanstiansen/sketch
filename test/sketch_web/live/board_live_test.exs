@@ -33,6 +33,24 @@ defmodule SketchWeb.BoardLiveTest do
     assert has_element?(view, "#rect-#{rectangle.id}")
   end
 
+  test "a create broadcast for an already loaded rectangle is not counted twice", %{
+    conn: conn,
+    board: board
+  } do
+    existing = Canvas.create_rectangle!(%{x: 100, y: 100, board_id: board.id})
+    {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+
+    send(view.pid, %Phoenix.Socket.Broadcast{
+      event: "create",
+      payload: Canvas.rectangle_event(existing)
+    })
+
+    view |> element("#add-rectangle") |> render_click()
+
+    assert [_existing, added] = Canvas.list_rectangles_for_board!(board.id)
+    assert {added.x, added.y} == {250, 250}
+  end
+
   test "unknown and malformed ids redirect without creating a board", %{conn: conn} do
     boards_before = Ash.count!(Sketch.Canvas.Board)
 
