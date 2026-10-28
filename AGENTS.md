@@ -1,9 +1,22 @@
-This is a web application written using the Phoenix web framework.
+# Sketch agent guide
+
+Sketch is a small collaborative canvas built with Ash, Phoenix LiveView and PostgreSQL.
+
+## Source of truth
+
+- [docs/SPEC.md](docs/SPEC.md) is the specification.
+- [docs/SPEC-ADDENDUM.md](docs/SPEC-ADDENDUM.md) overrides the spec where they conflict.
+- [ARCHITECTURE.md](ARCHITECTURE.md) explains the architecture rules A01-A21; [architecture/rules.exs](architecture/rules.exs) is the machine-readable registry.
+- Architecture decisions are recorded in [docs/adr/](docs/adr/) using the format of [ADR 0001](docs/adr/0001-ash-atomic-lww-consistency.md): YAML front matter (`type`, `id`, `title`, `status`, `date`) followed by Context, Decision, Alternatives considered and Consequences.
 
 ## Project guidelines
 
-- Use `mix precommit` alias when you are done with all changes and fix any pending issues
-- Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
+- Never weaken, bypass, suppress or remove an architecture rule, CI step, compiler setting or dependency policy without explicit human approval (SPEC section 1 and 9). When blocked, report the failing rule, cause and alternatives.
+- Prefer the simple, idiomatic Ash/Phoenix solution. Look for an Ash-native mechanism before writing custom code.
+- Run `mix ci` before declaring work done; it runs every local check in CI order. Run `npm --prefix e2e test` for browser tests.
+- Start PostgreSQL with `docker compose -f compose.dev.yaml up -d`.
+- Default to no code comments; extract well-named functions instead.
+- After changing usage rules config or deps, run `mix usage_rules.sync`. Everything between the `usage-rules` markers below is generated.
 
 ### Phoenix v1.8 guidelines
 
@@ -45,65 +58,319 @@ custom classes must fully style the input
 
 
 <!-- usage-rules-start -->
+<!-- usage_rules-start -->
+## usage_rules usage
+_A config-driven dev tool for Elixir projects to manage AGENTS.md files and agent skills from dependencies_
 
-<!-- phoenix:elixir-start -->
-## Elixir guidelines
+## Using Usage Rules
 
-- Elixir lists **do not support index based access via the access syntax**
+Many packages have usage rules, which you should *thoroughly* consult before taking any
+action. These usage rules contain guidelines and rules *directly from the package authors*.
+They are your best source of knowledge for making decisions.
 
-  **Never do this (invalid)**:
+## Modules & functions in the current app and dependencies
 
-      i = 0
-      mylist = ["blue", "green"]
-      mylist[i]
+When looking for docs for modules & functions that are dependencies of the current project,
+or for Elixir itself, use `mix usage_rules.docs`
 
-  Instead, **always** use `Enum.at`, pattern matching, or `List` for index based list access, ie:
+```
+# Search a whole module
+mix usage_rules.docs Enum
 
-      i = 0
-      mylist = ["blue", "green"]
-      Enum.at(mylist, i)
+# Search a specific function
+mix usage_rules.docs Enum.zip
 
-- Elixir variables are immutable, but can be rebound, so for block expressions like `if`, `case`, `cond`, etc
-  you *must* bind the result of the expression to a variable if you want to use it and you CANNOT rebind the result inside the expression, ie:
+# Search a specific function & arity
+mix usage_rules.docs Enum.zip/1
+```
 
-      # INVALID: we are rebinding inside the `if` and the result never gets assigned
-      if connected?(socket) do
-        socket = assign(socket, :val, val)
-      end
 
-      # VALID: we rebind the result of the `if` to a new variable
-      socket =
-        if connected?(socket) do
-          assign(socket, :val, val)
-        end
+## Searching Documentation
 
-- **Never** nest multiple modules in the same file as it can cause cyclic dependencies and compilation errors
-- **Never** use map access syntax (`changeset[:field]`) on structs as they do not implement the Access behaviour by default. For regular structs, you **must** access the fields directly, such as `my_struct.field` or use higher level APIs that are available on the struct if they exist, `Ecto.Changeset.get_field/2` for changesets
-- Elixir's standard library has everything necessary for date and time manipulation. Familiarize yourself with the common `Time`, `Date`, `DateTime`, and `Calendar` interfaces by accessing their documentation as necessary. **Never** install additional dependencies unless asked or for date/time parsing (which you can use the `date_time_parser` package)
+You should also consult the documentation of any tools you are using, early and often. The best 
+way to accomplish this is to use the `usage_rules.search_docs` mix task. Once you have
+found what you are looking for, use the links in the search results to get more detail. For example:
+
+```
+# Search docs for all packages in the current application, including Elixir
+mix usage_rules.search_docs Enum.zip
+
+# Search docs for specific packages
+mix usage_rules.search_docs Req.get -p req
+
+# Search docs for multi-word queries
+mix usage_rules.search_docs "making requests" -p req
+
+# Search only in titles (useful for finding specific functions/modules)
+mix usage_rules.search_docs "Enum.zip" --query-by title
+```
+
+
+<!-- usage_rules-end -->
+<!-- usage_rules:elixir-start -->
+## usage_rules:elixir usage
+# Elixir Core Usage Rules
+
+## Pattern Matching
+- Use pattern matching over conditional logic when possible
+- Prefer to match on function heads instead of using `if`/`else` or `case` in function bodies
+- `%{}` matches ANY map, not just empty maps. Use `map_size(map) == 0` guard to check for truly empty maps
+
+## Error Handling
+- Use `{:ok, result}` and `{:error, reason}` tuples for operations that can fail
+- Avoid raising exceptions for control flow
+- Use `with` for chaining operations that return `{:ok, _}` or `{:error, _}`
+
+## Common Mistakes to Avoid
+- Elixir has no `return` statement, nor early returns. The last expression in a block is always returned.
+- Don't use `Enum` functions on large collections when `Stream` is more appropriate
+- Avoid nested `case` statements - refactor to a single `case`, `with` or separate functions
 - Don't use `String.to_atom/1` on user input (memory leak risk)
-- Predicate function names should not start with `is_` and should end in a question mark. Names like `is_thing` should be reserved for guards
-- Elixir's builtin OTP primitives like `DynamicSupervisor` and `Registry`, require names in the child spec, such as `{DynamicSupervisor, name: MyApp.MyDynamicSup}`, then you can use `DynamicSupervisor.start_child(MyApp.MyDynamicSup, child_spec)`
-- Use `Task.async_stream(collection, callback, options)` for concurrent enumeration with back-pressure. The majority of times you will want to pass `timeout: :infinity` as option
+- Lists and enumerables cannot be indexed with brackets. Use pattern matching or `Enum` functions
+- Prefer `Enum` functions like `Enum.reduce` over recursion
+- When recursion is necessary, prefer to use pattern matching in function heads for base case detection
+- Using the process dictionary is typically a sign of unidiomatic code
+- Only use macros if explicitly requested
+- There are many useful standard library functions, prefer to use them where possible
 
-## Mix guidelines
+## Function Design
+- Use guard clauses: `when is_binary(name) and byte_size(name) > 0`
+- Prefer multiple function clauses over complex conditional logic
+- Name functions descriptively: `calculate_total_price/2` not `calc/2`
+- Predicate function names should not start with `is` and should end in a question mark.
+- Names like `is_thing` should be reserved for guards
 
-- Read the docs and options before using tasks (by using `mix help task_name`)
-- To debug test failures, run tests in a specific file with `mix test test/my_test.exs` or run all previously failed tests with `mix test --failed`
-- `mix deps.clean --all` is **almost never needed**. **Avoid** using it unless you have good reason
+## Data Structures
+- Use structs over maps when the shape is known: `defstruct [:name, :age]`
+- Prefer keyword lists for options: `[timeout: 5000, retries: 3]`
+- Use maps for dynamic key-value data
+- Prefer to prepend to lists `[new | list]` not `list ++ [new]`
 
-## Test guidelines
+## Mix Tasks
 
-- **Always use `start_supervised!/1`** to start processes in tests as it guarantees cleanup between tests
-- **Avoid** `Process.sleep/1` and `Process.alive?/1` in tests
-  - Instead of sleeping to wait for a process to finish, **always** use `Process.monitor/1` and assert on the DOWN message:
+- Use `mix help` to list available mix tasks
+- Use `mix help task_name` to get docs for an individual task
+- Read the docs and options fully before using tasks
 
-      ref = Process.monitor(pid)
-      assert_receive {:DOWN, ^ref, :process, ^pid, :normal}
+## Testing
+- Run tests in a specific file with `mix test test/my_test.exs` and a specific test with the line number `mix test path/to/test.exs:123`
+- Limit the number of failed tests with `mix test --max-failures n`
+- Use `@tag` to tag specific tests, and `mix test --only tag` to run only those tests
+- Use `assert_raise` for testing expected exceptions: `assert_raise ArgumentError, fn -> invalid_function() end`
+- Use `mix help test` to for full documentation on running tests
 
-   - Instead of sleeping to synchronize before the next call, **always** use `_ = :sys.get_state/1` to ensure the process has handled prior messages
-<!-- phoenix:elixir-end -->
+## Debugging
 
+- Use `dbg/1` to print values while debugging. This will display the formatted value and other relevant information in the console.
+
+<!-- usage_rules:elixir-end -->
+<!-- usage_rules:otp-start -->
+## usage_rules:otp usage
+# OTP Usage Rules
+
+## GenServer Best Practices
+- Keep state simple and serializable
+- Handle all expected messages explicitly
+- Use `handle_continue/2` for post-init work
+- Implement proper cleanup in `terminate/2` when necessary
+
+## Process Communication
+- Use `GenServer.call/3` for synchronous requests expecting replies
+- Use `GenServer.cast/2` for fire-and-forget messages.
+- When in doubt, use `call` over `cast`, to ensure back-pressure
+- Set appropriate timeouts for `call/3` operations
+
+## Fault Tolerance
+- Set up processes such that they can handle crashing and being restarted by supervisors
+- Use `:max_restarts` and `:max_seconds` to prevent restart loops
+
+## Task and Async
+- Use `Task.Supervisor` for better fault tolerance
+- Handle task failures with `Task.yield/2` or `Task.shutdown/2`
+- Set appropriate task timeouts
+- Use `Task.async_stream/3` for concurrent enumeration with back-pressure
+
+<!-- usage_rules:otp-end -->
+<!-- ash-start -->
+## ash usage
+_A declarative, extensible framework for building Elixir applications._
+
+[ash usage rules](deps/ash/usage-rules.md)
+<!-- ash-end -->
+<!-- ash:actions-start -->
+## ash:actions usage
+[ash:actions usage rules](deps/ash/usage-rules/actions.md)
+<!-- ash:actions-end -->
+<!-- ash:aggregates-start -->
+## ash:aggregates usage
+[ash:aggregates usage rules](deps/ash/usage-rules/aggregates.md)
+<!-- ash:aggregates-end -->
+<!-- ash:authorization-start -->
+## ash:authorization usage
+[ash:authorization usage rules](deps/ash/usage-rules/authorization.md)
+<!-- ash:authorization-end -->
+<!-- ash:calculations-start -->
+## ash:calculations usage
+[ash:calculations usage rules](deps/ash/usage-rules/calculations.md)
+<!-- ash:calculations-end -->
+<!-- ash:code_interfaces-start -->
+## ash:code_interfaces usage
+[ash:code_interfaces usage rules](deps/ash/usage-rules/code_interfaces.md)
+<!-- ash:code_interfaces-end -->
+<!-- ash:code_structure-start -->
+## ash:code_structure usage
+[ash:code_structure usage rules](deps/ash/usage-rules/code_structure.md)
+<!-- ash:code_structure-end -->
+<!-- ash:data_layers-start -->
+## ash:data_layers usage
+[ash:data_layers usage rules](deps/ash/usage-rules/data_layers.md)
+<!-- ash:data_layers-end -->
+<!-- ash:exist_expressions-start -->
+## ash:exist_expressions usage
+[ash:exist_expressions usage rules](deps/ash/usage-rules/exist_expressions.md)
+<!-- ash:exist_expressions-end -->
+<!-- ash:generating_code-start -->
+## ash:generating_code usage
+[ash:generating_code usage rules](deps/ash/usage-rules/generating_code.md)
+<!-- ash:generating_code-end -->
+<!-- ash:migrations-start -->
+## ash:migrations usage
+[ash:migrations usage rules](deps/ash/usage-rules/migrations.md)
+<!-- ash:migrations-end -->
+<!-- ash:query_filter-start -->
+## ash:query_filter usage
+[ash:query_filter usage rules](deps/ash/usage-rules/query_filter.md)
+<!-- ash:query_filter-end -->
+<!-- ash:querying_data-start -->
+## ash:querying_data usage
+[ash:querying_data usage rules](deps/ash/usage-rules/querying_data.md)
+<!-- ash:querying_data-end -->
+<!-- ash:relationships-start -->
+## ash:relationships usage
+[ash:relationships usage rules](deps/ash/usage-rules/relationships.md)
+<!-- ash:relationships-end -->
+<!-- ash:signals-start -->
+## ash:signals usage
+[ash:signals usage rules](deps/ash/usage-rules/signals.md)
+<!-- ash:signals-end -->
+<!-- ash:temporal-start -->
+## ash:temporal usage
+[ash:temporal usage rules](deps/ash/usage-rules/temporal.md)
+<!-- ash:temporal-end -->
+<!-- ash:testing-start -->
+## ash:testing usage
+[ash:testing usage rules](deps/ash/usage-rules/testing.md)
+<!-- ash:testing-end -->
+<!-- ash_phoenix-start -->
+## ash_phoenix usage
+_Utilities for integrating Ash and Phoenix_
+
+[ash_phoenix usage rules](deps/ash_phoenix/usage-rules.md)
+<!-- ash_phoenix-end -->
+<!-- ash_phoenix:best_practices-start -->
+## ash_phoenix:best_practices usage
+[ash_phoenix:best_practices usage rules](deps/ash_phoenix/usage-rules/best_practices.md)
+<!-- ash_phoenix:best_practices-end -->
+<!-- ash_phoenix:debugging_form_submissions-start -->
+## ash_phoenix:debugging_form_submissions usage
+[ash_phoenix:debugging_form_submissions usage rules](deps/ash_phoenix/usage-rules/debugging_form_submissions.md)
+<!-- ash_phoenix:debugging_form_submissions-end -->
+<!-- ash_phoenix:error_handling-start -->
+## ash_phoenix:error_handling usage
+[ash_phoenix:error_handling usage rules](deps/ash_phoenix/usage-rules/error_handling.md)
+<!-- ash_phoenix:error_handling-end -->
+<!-- ash_phoenix:form_integration-start -->
+## ash_phoenix:form_integration usage
+[ash_phoenix:form_integration usage rules](deps/ash_phoenix/usage-rules/form_integration.md)
+<!-- ash_phoenix:form_integration-end -->
+<!-- ash_phoenix:nested_forms-start -->
+## ash_phoenix:nested_forms usage
+[ash_phoenix:nested_forms usage rules](deps/ash_phoenix/usage-rules/nested_forms.md)
+<!-- ash_phoenix:nested_forms-end -->
+<!-- ash_phoenix:union_forms-start -->
+## ash_phoenix:union_forms usage
+[ash_phoenix:union_forms usage rules](deps/ash_phoenix/usage-rules/union_forms.md)
+<!-- ash_phoenix:union_forms-end -->
+<!-- ash_postgres-start -->
+## ash_postgres usage
+_The PostgreSQL data layer for Ash Framework_
+
+[ash_postgres usage rules](deps/ash_postgres/usage-rules.md)
+<!-- ash_postgres-end -->
+<!-- ash_postgres:advanced_features-start -->
+## ash_postgres:advanced_features usage
+[ash_postgres:advanced_features usage rules](deps/ash_postgres/usage-rules/advanced_features.md)
+<!-- ash_postgres:advanced_features-end -->
+<!-- ash_postgres:best_practices-start -->
+## ash_postgres:best_practices usage
+[ash_postgres:best_practices usage rules](deps/ash_postgres/usage-rules/best_practices.md)
+<!-- ash_postgres:best_practices-end -->
+<!-- ash_postgres:check_constraints-start -->
+## ash_postgres:check_constraints usage
+[ash_postgres:check_constraints usage rules](deps/ash_postgres/usage-rules/check_constraints.md)
+<!-- ash_postgres:check_constraints-end -->
+<!-- ash_postgres:configuration-start -->
+## ash_postgres:configuration usage
+[ash_postgres:configuration usage rules](deps/ash_postgres/usage-rules/configuration.md)
+<!-- ash_postgres:configuration-end -->
+<!-- ash_postgres:custom_indexes-start -->
+## ash_postgres:custom_indexes usage
+[ash_postgres:custom_indexes usage rules](deps/ash_postgres/usage-rules/custom_indexes.md)
+<!-- ash_postgres:custom_indexes-end -->
+<!-- ash_postgres:custom_sql_statements-start -->
+## ash_postgres:custom_sql_statements usage
+[ash_postgres:custom_sql_statements usage rules](deps/ash_postgres/usage-rules/custom_sql_statements.md)
+<!-- ash_postgres:custom_sql_statements-end -->
+<!-- ash_postgres:foreign_keys-start -->
+## ash_postgres:foreign_keys usage
+[ash_postgres:foreign_keys usage rules](deps/ash_postgres/usage-rules/foreign_keys.md)
+<!-- ash_postgres:foreign_keys-end -->
+<!-- ash_postgres:migrations-start -->
+## ash_postgres:migrations usage
+[ash_postgres:migrations usage rules](deps/ash_postgres/usage-rules/migrations.md)
+<!-- ash_postgres:migrations-end -->
+<!-- ash_postgres:multitenancy-start -->
+## ash_postgres:multitenancy usage
+[ash_postgres:multitenancy usage rules](deps/ash_postgres/usage-rules/multitenancy.md)
+<!-- ash_postgres:multitenancy-end -->
+<!-- igniter-start -->
+## igniter usage
+_A code generation and project patching framework_
+
+# Rules for working with Igniter
+
+## Understanding Igniter
+
+Igniter is a code generation and project patching framework that enables semantic manipulation of Elixir codebases. It provides tools for creating intelligent generators that can both create new files and modify existing ones safely. Igniter works with AST (Abstract Syntax Trees) through Sourceror.Zipper to make precise, context-aware changes to your code.
+
+## Available Modules
+
+### Project-Level Modules (`Igniter.Project.*`)
+
+- **`Igniter.Project.Application`** - Working with Application modules and application configuration
+- **`Igniter.Project.Config`** - Modifying Elixir config files (config.exs, runtime.exs, etc.)
+- **`Igniter.Project.Deps`** - Managing dependencies declared in mix.exs
+- **`Igniter.Project.Formatter`** - Interacting with .formatter.exs files
+- **`Igniter.Project.IgniterConfig`** - Managing .igniter.exs configuration files
+- **`Igniter.Project.MixProject`** - Updating project configuration in mix.exs
+- **`Igniter.Project.Module`** - Creating and managing modules with proper file placement
+- **`Igniter.Project.TaskAliases`** - Managing task aliases in mix.exs
+- **`Igniter.Project.Test`** - Working with test and test support files
+
+### Code-Level Modules (`Igniter.Code.*`)
+
+- **`Igniter.Code.Common`** - General purpose utilities for working with Sourceror.Zipper
+- **`Igniter.Code.Function`** - Working with function definitions and calls
+- **`Igniter.Code.Keyword`** - Manipulating keyword lists
+- **`Igniter.Code.List`** - Working with lists in AST
+- **`Igniter.Code.Map`** - Manipulating maps
+- **`Igniter.Code.Module`** - Working with module definitions and usage
+- **`Igniter.Code.String`** - Utilities for string literals
+- **`Igniter.Code.Tuple`** - Working with tuples
+
+<!-- igniter-end -->
 <!-- phoenix:phoenix-start -->
+## phoenix:phoenix usage
 ## Phoenix guidelines
 
 - Remember Phoenix router `scope` blocks include an optional alias which is prefixed for all routes within the scope. **Always** be mindful of this when creating routes within a scope to avoid duplicate module prefixes.
@@ -119,89 +386,10 @@ custom classes must fully style the input
   the UserLive route would point to the `AppWeb.Admin.UserLive` module
 
 - `Phoenix.View` no longer is needed or included with Phoenix, don't use it
+
 <!-- phoenix:phoenix-end -->
-
-
-<!-- phoenix:html-start -->
-## Phoenix HTML guidelines
-
-- Phoenix templates **always** use `~H` or .html.heex files (known as HEEx), **never** use `~E`
-- **Always** use the imported `Phoenix.Component.form/1` and `Phoenix.Component.inputs_for/1` function to build forms. **Never** use `Phoenix.HTML.form_for` or `Phoenix.HTML.inputs_for` as they are outdated
-- When building forms **always** use the already imported `Phoenix.Component.to_form/2` (`assign(socket, form: to_form(...))` and `<.form for={@form} id="msg-form">`), then access those forms in the template via `@form[:field]`
-- **Always** add unique DOM IDs to key elements (like forms, buttons, etc) when writing templates, these IDs can later be used in tests (`<.form for={@form} id="product-form">`)
-- For "app wide" template imports, you can import/alias into the `my_app_web.ex`'s `html_helpers` block, so they will be available to all LiveViews, LiveComponent's, and all modules that do `use MyAppWeb, :html` (replace "my_app" by the actual app name)
-
-- Elixir supports `if/else` but **does NOT support `if/else if` or `if/elsif`**. **Never use `else if` or `elseif` in Elixir**, **always** use `cond` or `case` for multiple conditionals.
-
-  **Never do this (invalid)**:
-
-      <%= if condition do %>
-        ...
-      <% else if other_condition %>
-        ...
-      <% end %>
-
-  Instead **always** do this:
-
-      <%= cond do %>
-        <% condition -> %>
-          ...
-        <% condition2 -> %>
-          ...
-        <% true -> %>
-          ...
-      <% end %>
-
-- HEEx require special tag annotation if you want to insert literal curly's like `{` or `}`. If you want to show a textual code snippet on the page in a `<pre>` or `<code>` block you *must* annotate the parent tag with `phx-no-curly-interpolation`:
-
-      <code phx-no-curly-interpolation>
-        let obj = {key: "val"}
-      </code>
-
-  Within `phx-no-curly-interpolation` annotated tags, you can use `{` and `}` without escaping them, and dynamic Elixir expressions can still be used with `<%= ... %>` syntax
-
-- HEEx class attrs support lists, but you must **always** use list `[...]` syntax. You can use the class list syntax to conditionally add classes, **always do this for multiple class values**:
-
-      <a class={[
-        "px-2 text-white",
-        @some_flag && "py-5",
-        if(@other_condition, do: "border-red-500", else: "border-blue-100"),
-        ...
-      ]}>Text</a>
-
-  and **always** wrap `if`'s inside `{...}` expressions with parens, like done above (`if(@other_condition, do: "...", else: "...")`)
-
-  and **never** do this, since it's invalid (note the missing `[` and `]`):
-
-      <a class={
-        "px-2 text-white",
-        @some_flag && "py-5"
-      }> ...
-      => Raises compile syntax error on invalid HEEx attr syntax
-
-- **Never** use `<% Enum.each %>` or non-for comprehensions for generating template content, instead **always** use `<%= for item <- @collection do %>`
-- HEEx HTML comments use `<%!-- comment --%>`. **Always** use the HEEx HTML comment syntax for template comments (`<%!-- comment --%>`)
-- HEEx allows interpolation via `{...}` and `<%= ... %>`, but the `<%= %>` **only** works within tag bodies. **Always** use the `{...}` syntax for interpolation within tag attributes, and for interpolation of values within tag bodies. **Always** interpolate block constructs (if, cond, case, for) within tag bodies using `<%= ... %>`.
-
-  **Always** do this:
-
-      <div id={@id}>
-        {@my_assign}
-        <%= if @some_block_condition do %>
-          {@another_assign}
-        <% end %>
-      </div>
-
-  and **Never** do this – the program will terminate with a syntax error:
-
-      <%!-- THIS IS INVALID NEVER EVER DO THIS --%>
-      <div id="<%= @invalid_interpolation %>">
-        {if @invalid_block_construct do}
-        {end}
-      </div>
-<!-- phoenix:html-end -->
-
 <!-- phoenix:liveview-start -->
+## phoenix:liveview usage
 ## Phoenix LiveView guidelines
 
 - **Never** use the deprecated `live_redirect` and `live_patch` functions, instead **always** use the `<.link navigate={href}>` and  `<.link patch={href}>` in templates, and `push_navigate` and `push_patch` functions LiveViews
@@ -371,3 +559,220 @@ Where the server handled it via:
       document = LazyHTML.from_fragment(html)
       matches = LazyHTML.filter(document, "your-complex-selector")
       IO.inspect(matches, label: "Matches")
+
+### Form handling
+
+#### Creating a form from params
+
+If you want to create a form based on `handle_event` params:
+
+    def handle_event("submitted", params, socket) do
+      {:noreply, assign(socket, form: to_form(params))}
+    end
+
+When you pass a map to `to_form/1`, it assumes said map contains the form params, which are expected to have string keys.
+
+You can also specify a name to nest the params:
+
+    def handle_event("submitted", %{"user" => user_params}, socket) do
+      {:noreply, assign(socket, form: to_form(user_params, as: :user))}
+    end
+
+#### Creating a form from changesets
+
+When using changesets, the underlying data, form params, and errors are retrieved from it. The `:as` option is automatically computed too. E.g. if you have a user schema:
+
+    defmodule MyApp.Users.User do
+      use Ecto.Schema
+      ...
+    end
+
+And then you create a changeset that you pass to `to_form`:
+
+    %MyApp.Users.User{}
+    |> Ecto.Changeset.change()
+    |> to_form()
+
+Once the form is submitted, the params will be available under `%{"user" => user_params}`.
+
+In the template, the form form assign can be passed to the `<.form>` function component:
+
+    <.form for={@form} id="todo-form" phx-change="validate" phx-submit="save">
+      <.input field={@form[:field]} type="text" />
+    </.form>
+
+Always give the form an explicit, unique DOM ID, like `id="todo-form"`.
+
+#### Avoiding form errors
+
+**Always** use a form assigned via `to_form/2` in the LiveView, and the `<.input>` component in the template. In the template **always access forms this**:
+
+    <%!-- ALWAYS do this (valid) --%>
+    <.form for={@form} id="my-form">
+      <.input field={@form[:field]} type="text" />
+    </.form>
+
+And **never** do this:
+
+    <%!-- NEVER do this (invalid) --%>
+    <.form for={@changeset} id="my-form">
+      <.input field={@changeset[:field]} type="text" />
+    </.form>
+
+- You are FORBIDDEN from accessing the changeset in the template as it will cause errors
+- **Never** use `<.form let={f} ...>` in the template, instead **always use `<.form for={@form} ...>`**, then drive all form references from the form assign as in `@form[:field]`. The UI should **always** be driven by a `to_form/2` assigned in the LiveView module that is derived from a changeset
+
+<!-- phoenix:liveview-end -->
+<!-- phoenix:html-start -->
+## phoenix:html usage
+## Phoenix HTML guidelines
+
+- Phoenix templates **always** use `~H` or .html.heex files (known as HEEx), **never** use `~E`
+- **Always** use the imported `Phoenix.Component.form/1` and `Phoenix.Component.inputs_for/1` function to build forms. **Never** use `Phoenix.HTML.form_for` or `Phoenix.HTML.inputs_for` as they are outdated
+- When building forms **always** use the already imported `Phoenix.Component.to_form/2` (`assign(socket, form: to_form(...))` and `<.form for={@form} id="msg-form">`), then access those forms in the template via `@form[:field]`
+- **Always** add unique DOM IDs to key elements (like forms, buttons, etc) when writing templates, these IDs can later be used in tests (`<.form for={@form} id="product-form">`)
+- For "app wide" template imports, you can import/alias into the `my_app_web.ex`'s `html_helpers` block, so they will be available to all LiveViews, LiveComponent's, and all modules that do `use MyAppWeb, :html` (replace "my_app" by the actual app name)
+
+- Elixir supports `if/else` but **does NOT support `if/else if` or `if/elsif`**. **Never use `else if` or `elseif` in Elixir**, **always** use `cond` or `case` for multiple conditionals.
+
+  **Never do this (invalid)**:
+
+      <%= if condition do %>
+        ...
+      <% else if other_condition %>
+        ...
+      <% end %>
+
+  Instead **always** do this:
+
+      <%= cond do %>
+        <% condition -> %>
+          ...
+        <% condition2 -> %>
+          ...
+        <% true -> %>
+          ...
+      <% end %>
+
+- HEEx require special tag annotation if you want to insert literal curly's like `{` or `}`. If you want to show a textual code snippet on the page in a `<pre>` or `<code>` block you *must* annotate the parent tag with `phx-no-curly-interpolation`:
+
+      <code phx-no-curly-interpolation>
+        let obj = {key: "val"}
+      </code>
+
+  Within `phx-no-curly-interpolation` annotated tags, you can use `{` and `}` without escaping them, and dynamic Elixir expressions can still be used with `<%= ... %>` syntax
+
+- HEEx class attrs support lists, but you must **always** use list `[...]` syntax. You can use the class list syntax to conditionally add classes, **always do this for multiple class values**:
+
+      <a class={[
+        "px-2 text-white",
+        @some_flag && "py-5",
+        if(@other_condition, do: "border-red-500", else: "border-blue-100"),
+        ...
+      ]}>Text</a>
+
+  and **always** wrap `if`'s inside `{...}` expressions with parens, like done above (`if(@other_condition, do: "...", else: "...")`)
+
+  and **never** do this, since it's invalid (note the missing `[` and `]`):
+
+      <a class={
+        "px-2 text-white",
+        @some_flag && "py-5"
+      }> ...
+      => Raises compile syntax error on invalid HEEx attr syntax
+
+- **Never** use `<% Enum.each %>` or non-for comprehensions for generating template content, instead **always** use `<%= for item <- @collection do %>`
+- HEEx HTML comments use `<%!-- comment --%>`. **Always** use the HEEx HTML comment syntax for template comments (`<%!-- comment --%>`)
+- HEEx allows interpolation via `{...}` and `<%= ... %>`, but the `<%= %>` **only** works within tag bodies. **Always** use the `{...}` syntax for interpolation within tag attributes, and for interpolation of values within tag bodies. **Always** interpolate block constructs (if, cond, case, for) within tag bodies using `<%= ... %>`.
+
+  **Always** do this:
+
+      <div id={@id}>
+        {@my_assign}
+        <%= if @some_block_condition do %>
+          {@another_assign}
+        <% end %>
+      </div>
+
+  and **Never** do this – the program will terminate with a syntax error:
+
+      <%!-- THIS IS INVALID NEVER EVER DO THIS --%>
+      <div id="<%= @invalid_interpolation %>">
+        {if @invalid_block_construct do}
+        {end}
+      </div>
+
+<!-- phoenix:html-end -->
+<!-- phoenix:ecto-start -->
+## phoenix:ecto usage
+## Ecto Guidelines
+
+- **Always** preload Ecto associations in queries when they'll be accessed in templates, ie a message that needs to reference the `message.user.email`
+- Remember `import Ecto.Query` and other supporting modules when you write `seeds.exs`
+- `Ecto.Schema` fields always use the `:string` type, even for `:text`, columns, ie: `field :name, :string`
+- `Ecto.Changeset.validate_number/2` **DOES NOT SUPPORT the `:allow_nil` option**. By default, Ecto validations only run if a change for the given field exists and the change value is not nil, so such as option is never needed
+- You **must** use `Ecto.Changeset.get_field(changeset, :field)` to access changeset fields
+- Fields which are set programmatically, such as `user_id`, must not be listed in `cast` calls or similar for security purposes. Instead they must be explicitly set when creating the struct
+- **Always** invoke `mix ecto.gen.migration migration_name_using_underscores` when generating migration files, so the correct timestamp and conventions are applied
+
+<!-- phoenix:ecto-end -->
+<!-- phoenix:elixir-start -->
+## phoenix:elixir usage
+## Elixir guidelines
+
+- Elixir lists **do not support index based access via the access syntax**
+
+  **Never do this (invalid)**:
+
+      i = 0
+      mylist = ["blue", "green"]
+      mylist[i]
+
+  Instead, **always** use `Enum.at`, pattern matching, or `List` for index based list access, ie:
+
+      i = 0
+      mylist = ["blue", "green"]
+      Enum.at(mylist, i)
+
+- Elixir variables are immutable, but can be rebound, so for block expressions like `if`, `case`, `cond`, etc
+  you *must* bind the result of the expression to a variable if you want to use it and you CANNOT rebind the result inside the expression, ie:
+
+      # INVALID: we are rebinding inside the `if` and the result never gets assigned
+      if connected?(socket) do
+        socket = assign(socket, :val, val)
+      end
+
+      # VALID: we rebind the result of the `if` to a new variable
+      socket =
+        if connected?(socket) do
+          assign(socket, :val, val)
+        end
+
+- **Never** nest multiple modules in the same file as it can cause cyclic dependencies and compilation errors
+- **Never** use map access syntax (`changeset[:field]`) on structs as they do not implement the Access behaviour by default. For regular structs, you **must** access the fields directly, such as `my_struct.field` or use higher level APIs that are available on the struct if they exist, `Ecto.Changeset.get_field/2` for changesets
+- Elixir's standard library has everything necessary for date and time manipulation. Familiarize yourself with the common `Time`, `Date`, `DateTime`, and `Calendar` interfaces by accessing their documentation as necessary. **Never** install additional dependencies unless asked or for date/time parsing (which you can use the `date_time_parser` package)
+- Don't use `String.to_atom/1` on user input (memory leak risk)
+- Predicate function names should not start with `is_` and should end in a question mark. Names like `is_thing` should be reserved for guards
+- Elixir's builtin OTP primitives like `DynamicSupervisor` and `Registry`, require names in the child spec, such as `{DynamicSupervisor, name: MyApp.MyDynamicSup}`, then you can use `DynamicSupervisor.start_child(MyApp.MyDynamicSup, child_spec)`
+- Use `Task.async_stream(collection, callback, options)` for concurrent enumeration with back-pressure. The majority of times you will want to pass `timeout: :infinity` as option
+
+## Mix guidelines
+
+- Read the docs and options before using tasks (by using `mix help task_name`)
+- To debug test failures, run tests in a specific file with `mix test test/my_test.exs` or run all previously failed tests with `mix test --failed`
+- `mix deps.clean --all` is **almost never needed**. **Avoid** using it unless you have good reason
+
+## Test guidelines
+
+- **Always use `start_supervised!/1`** to start processes in tests as it guarantees cleanup between tests
+- **Avoid** `Process.sleep/1` and `Process.alive?/1` in tests
+  - Instead of sleeping to wait for a process to finish, **always** use `Process.monitor/1` and assert on the DOWN message:
+
+      ref = Process.monitor(pid)
+      assert_receive {:DOWN, ^ref, :process, ^pid, :normal}
+
+   - Instead of sleeping to synchronize before the next call, **always** use `_ = :sys.get_state/1` to ensure the process has handled prior messages
+
+
+<!-- phoenix:elixir-end -->
+<!-- usage-rules-end -->
