@@ -1,5 +1,5 @@
 defmodule Sketch.Architecture.ProcessPolicyTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Sketch.ArchitectureCheck
 
