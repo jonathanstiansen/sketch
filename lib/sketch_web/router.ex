@@ -14,6 +14,8 @@ defmodule SketchWeb.Router do
     plug :accepts, ["json"]
   end
 
+  get "/healthz", SketchWeb.HealthController, :show
+
   scope "/", SketchWeb do
     pipe_through :browser
 

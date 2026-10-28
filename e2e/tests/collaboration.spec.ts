@@ -1,12 +1,15 @@
 import { execFileSync } from "node:child_process"
 import { mkdirSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
+import { createBoard } from "./support/board"
 
 const repoRoot = new URL("../..", import.meta.url).pathname
 const recordingDir = process.env.E2E_RECORD_DIR
 const videoSize = { width: 640, height: 400 }
 
-function createBoard(): string {
+const deployed = process.env.E2E_BASE_URL !== undefined
+
+function createBoardWithMix(): string {
   const output = execFileSync(
     "mix",
     ["run", "-e", "IO.puts(Sketch.Canvas.create_board!().id)"],
@@ -17,16 +20,14 @@ function createBoard(): string {
   return id
 }
 
-async function openBoard(page: Page, boardId: string) {
-  await page.goto(`/b/${boardId}`)
+async function openBoard(page: Page, path: string) {
+  await page.goto(path)
   await expect(page.locator("#add-rectangle")).toBeVisible()
 }
 
 test("a rectangle added in one browser appears live in another and survives reload", async ({
   browser,
 }) => {
-  const boardId = createBoard()
-  const otherBoardId = createBoard()
   const recording =
     recordingDir === undefined
       ? {}
@@ -43,9 +44,12 @@ test("a rectangle added in one browser appears live in another and survives relo
       contextB.newPage(),
       contextC.newPage(),
     ])
-    await openBoard(pageA, boardId)
-    await openBoard(pageB, boardId)
-    await openBoard(pageC, otherBoardId)
+    const [boardPath, otherBoardPath] = deployed
+      ? [await createBoard(pageA), await createBoard(pageC)]
+      : [`/b/${createBoardWithMix()}`, `/b/${createBoardWithMix()}`]
+    await openBoard(pageA, boardPath)
+    await openBoard(pageB, boardPath)
+    await openBoard(pageC, otherBoardPath)
 
     await pageA.locator("#add-rectangle").click()
     await expect(pageA.locator("rect[id^='rect-']")).toHaveCount(1)

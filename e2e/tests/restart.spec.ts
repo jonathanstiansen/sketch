@@ -41,6 +41,8 @@ test.afterAll(async () => {
   await stopServer()
 })
 
+test.skip(process.env.E2E_BASE_URL !== undefined, "starts its own server; deployment persistence is covered by deploy-persistence.spec.ts")
+
 test("completed positions survive a server restart", async ({ browser, request }, testInfo) => {
   const serverUp = async (): Promise<number> => {
     try {

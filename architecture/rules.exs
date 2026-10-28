@@ -168,7 +168,13 @@
     %{item: 4, check: "Ash migration consistency", status: :enforced},
     %{item: 5, check: "Unit and PostgreSQL integration tests", status: :enforced},
     %{item: 6, check: "Real two-browser Playwright tests", status: :enforced},
-    %{item: 7, check: "Docker Compose production-build/deployment smoke tests", status: {:pending, 5}}
+    %{
+      item: 7,
+      check: "Docker Compose production-build/deployment smoke tests",
+      status: :enforced,
+      verified_by: [".github/workflows/ci.yml", "compose.yaml", "e2e/tests/deploy-persistence.spec.ts"],
+      note: "Container steps run only in the compose-smoke CI job; they were not run locally because Docker was unavailable"
+    }
   ],
   allowlists: %{
     web_forbidden_reference_exceptions: [],
