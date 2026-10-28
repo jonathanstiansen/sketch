@@ -1,7 +1,6 @@
 {
   "name": "sketch-assets",
   "private": true,
-  "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint --max-warnings 0 ."
