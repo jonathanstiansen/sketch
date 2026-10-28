@@ -1,0 +1,82 @@
+## Negative check: make handle_event("preview") call Sketch.Canvas.commit_position (A10)
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index 794c50a..b9573ca 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -45,6 +45,8 @@ defmodule SketchWeb.BoardLive do
+       )
+       when is_uuid(rectangle_id) and is_uuid(drag_id) and is_integer(seq) and seq >= 0 and
+              is_integer(base_version) and base_version >= 0 and is_position(x, y) do
++    _ = Sketch.Canvas.commit_position(rectangle_id, socket.assigns.board_id, %{x: x, y: y})
++
+     broadcast_preview(socket, "preview", %{
+       rectangle_id: rectangle_id,
+       drag_id: drag_id,
+$ mix test test/sketch_web/live/board_live_drag_test.exs
+Getting extensions in current project...
+Compiling 1 file (.ex)
+Running setup for AshPostgres.DataLayer...
+Running ExUnit with seed: 937469, max_cases: 20
+
+....
+
+  1) test transient previews never trigger persistence (A10) previews and cancels reach other views without any database query (SketchWeb.BoardLiveDragTest)
+     test/sketch_web/live/board_live_drag_test.exs:42
+     Unexpectedly received message {:repo_query, #PID<0.2432.0>, "UPDATE \"rectangles\" AS r0 SET \"version\" = ash_required((CASE WHEN ((r0.\"version\" + $1)::bigint < $2) THEN ash_raise_error($3::jsonb, NULL::bigint) ELSE (r0.\"version\" + $4) END)::bigint::bigint, $5::jsonb), \"x\" = $6, \"y\" = $7 WHERE (r0.\"id\"::uuid = $8::uuid) AND (r0.\"board_id\"::uuid = $9::uuid) RETURNING r0.\"id\", r0.\"x\", r0.\"y\", r0.\"version\", r0.\"inserted_at\", r0.\"board_id\""} (which matched {:repo_query, _pid, _query})
+     code: refute_received {:repo_query, _pid, _query}
+     stacktrace:
+       test/sketch_web/live/board_live_drag_test.exs:62: (test)
+
+
+Finished in 0.5 seconds (0.00s async, 0.5s sync)
+
+Result: 4/5 passed
+Failed: 1 test
+exit: 2
+
+$ restored; mix test test/sketch_web/live/board_live_drag_test.exs
+Finished in 0.6 seconds (0.00s async, 0.6s sync)
+
+Result: 5 passed
+
+## Negative check: add a pointermove listener in assets/js/app.ts (A13)
+diff --git a/assets/js/app.ts b/assets/js/app.ts
+index 95f8473..6269773 100644
+--- a/assets/js/app.ts
++++ b/assets/js/app.ts
+@@ -31,6 +31,10 @@ window.addEventListener("phx:page-loading-stop", () => {
+ 
+ liveSocket.connect()
+ 
++window.addEventListener("pointermove", () => {
++  topbar.hide()
++})
++
+ window.liveSocket = liveSocket
+ 
+ function enableLiveReloadEditorShortcuts(reloader: LiveReloader): void {
+$ mix test test/architecture/source_policy_test.exs
+Getting extensions in current project...
+Running setup for AshPostgres.DataLayer...
+Running ExUnit with seed: 432669, max_cases: 20
+
+......
+
+  1) test pointer behaviour lives in the canvas hook (A13) application (Sketch.Architecture.SourcePolicyTest)
+     test/architecture/source_policy_test.exs:9
+     A13 assets/js/app.ts:34: pointer event: window.addEventListener("pointermove", () => {
+     code: assert violations == [], ArchitectureCheck.format_violations(violations)
+     stacktrace:
+       test/architecture/source_policy_test.exs:12: (test)
+
+
+Finished in 0.05 seconds (0.05s async, 0.00s sync)
+
+Result: 6/7 passed
+Failed: 1 test
+exit: 2
+
+$ restored; mix test test/architecture/source_policy_test.exs
+Finished in 0.06 seconds (0.06s async, 0.00s sync)
+
+Result: 7 passed
