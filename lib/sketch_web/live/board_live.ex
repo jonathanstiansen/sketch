@@ -58,17 +58,21 @@ defmodule SketchWeb.BoardLive do
     broadcast_preview(socket, "drag_cancel", %{rectangle_id: rectangle_id, drag_id: drag_id})
   end
 
-  def handle_event("commit", %{"rectangle_id" => rectangle_id, "x" => x, "y" => y}, socket)
-      when is_uuid(rectangle_id) and is_integer(x) and is_integer(y) do
+  def handle_event(
+        "commit",
+        %{"rectangle_id" => rectangle_id, "drag_id" => drag_id, "x" => x, "y" => y},
+        socket
+      )
+      when is_uuid(rectangle_id) and is_uuid(drag_id) and is_integer(x) and is_integer(y) do
     case Sketch.Canvas.commit_position(rectangle_id, socket.assigns.board_id, %{x: x, y: y}) do
       {:ok, _rectangle} ->
         {:noreply, socket}
 
       {:error, _error} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Could not move rectangle")
-         |> push_event("revert", %{rectangle_id: rectangle_id})}
+        socket
+        |> put_flash(:error, "Could not move rectangle")
+        |> push_event("revert", %{rectangle_id: rectangle_id})
+        |> broadcast_preview("drag_cancel", %{rectangle_id: rectangle_id, drag_id: drag_id})
     end
   end
 

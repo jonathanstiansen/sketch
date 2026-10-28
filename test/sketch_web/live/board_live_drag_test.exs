@@ -6,6 +6,7 @@ defmodule SketchWeb.BoardLiveDragTest do
   alias Sketch.Canvas
 
   @query_event [:sketch, :repo, :query]
+  @drag_id "11111111-2222-4333-8444-555555555555"
 
   setup %{conn: conn} do
     board = Canvas.create_board!()
@@ -30,7 +31,7 @@ defmodule SketchWeb.BoardLiveDragTest do
   defp preview(rectangle, seq, x) do
     %{
       "rectangle_id" => rectangle.id,
-      "drag_id" => "11111111-2222-4333-8444-555555555555",
+      "drag_id" => @drag_id,
       "seq" => seq,
       "base_version" => rectangle.version,
       "x" => x,
@@ -49,7 +50,7 @@ defmodule SketchWeb.BoardLiveDragTest do
 
       render_hook(dragger, "drag_cancel", %{
         "rectangle_id" => rectangle.id,
-        "drag_id" => "11111111-2222-4333-8444-555555555555"
+        "drag_id" => @drag_id
       })
 
       assert_push_event(watcher, "preview", %{seq: 1, x: 101, y: 200, base_version: 0})
@@ -71,7 +72,12 @@ defmodule SketchWeb.BoardLiveDragTest do
       :ok = SketchWeb.Endpoint.subscribe("board:#{board.id}")
       record_queries([dragger, watcher])
 
-      render_hook(dragger, "commit", %{"rectangle_id" => rectangle.id, "x" => 640, "y" => 200})
+      render_hook(dragger, "commit", %{
+        "drag_id" => @drag_id,
+        "rectangle_id" => rectangle.id,
+        "x" => 640,
+        "y" => 200
+      })
 
       assert_receive {:repo_query, pid, "UPDATE" <> _query}
       assert pid == dragger.pid
@@ -114,7 +120,13 @@ defmodule SketchWeb.BoardLiveDragTest do
     end
 
     render_hook(dragger, "drag_cancel", %{"rectangle_id" => 1})
-    render_hook(dragger, "commit", %{"rectangle_id" => rectangle.id, "x" => 1.5, "y" => 2})
+
+    render_hook(dragger, "commit", %{
+      "drag_id" => @drag_id,
+      "rectangle_id" => rectangle.id,
+      "x" => 1.5,
+      "y" => 2
+    })
 
     assert render(dragger) =~ "rect-#{rectangle.id}"
     render(watcher)
@@ -128,11 +140,35 @@ defmodule SketchWeb.BoardLiveDragTest do
     other_board = Canvas.create_board!()
     foreign = Canvas.create_rectangle!(%{x: 10, y: 10, board_id: other_board.id})
 
-    render_hook(dragger, "commit", %{"rectangle_id" => foreign.id, "x" => 500, "y" => 500})
+    render_hook(dragger, "commit", %{
+      "drag_id" => @drag_id,
+      "rectangle_id" => foreign.id,
+      "x" => 500,
+      "y" => 500
+    })
 
     assert_push_event(dragger, "revert", %{rectangle_id: rectangle_id})
     assert rectangle_id == foreign.id
     assert render(dragger) =~ "Could not move rectangle"
     assert [%{x: 10, version: 0}] = Canvas.list_rectangles_for_board!(other_board.id)
+  end
+
+  test "a failed commit cancels the drag preview in other views", ctx do
+    %{rectangle: rectangle, dragger: dragger, watcher: watcher} = ctx
+
+    render_hook(dragger, "preview", preview(rectangle, 1, 300))
+    assert_push_event(watcher, "preview", %{drag_id: @drag_id})
+
+    render_hook(dragger, "commit", %{
+      "rectangle_id" => rectangle.id,
+      "drag_id" => @drag_id,
+      "x" => 5000,
+      "y" => 200
+    })
+
+    assert_push_event(dragger, "revert", %{})
+    assert_push_event(watcher, "drag_cancel", %{rectangle_id: rectangle_id, drag_id: @drag_id})
+    assert rectangle_id == rectangle.id
+    assert [%{x: 100, version: 0}] = Canvas.list_rectangles_for_board!(rectangle.board_id)
   end
 end

@@ -176,7 +176,12 @@ export class Canvas extends ViewHook {
     this.endDrag(drag)
     const { x, y } = drag.position
     if (x === drag.origin.x && y === drag.origin.y) return
-    void this.pushEvent("commit", { rectangle_id: drag.rectangleId, x, y })
+    void this.pushEvent("commit", {
+      rectangle_id: drag.rectangleId,
+      drag_id: drag.dragId,
+      x,
+      y,
+    })
   }
 
   private onPointerCancel = (): void => {
