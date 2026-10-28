@@ -39,8 +39,8 @@ the only path excluded from the A21 scan.
 | A03 | No resource mutation outside Ash actions. Web modules do not call the `Ash` API or build `Ash.Changeset`/`Ash.Query`/`Ash.ActionInput`; no `lib` module except `Sketch.Repo` calls the Repo, Ecto or Postgrex directly. Action-level tests come with the resources. | Enforced (static) |
 | A04 | Board and Rectangle use AshPostgres. | Enforced |
 | A05 | Every Rectangle belongs to exactly one Board. | Enforced |
-| A06 | Board membership is immutable. | Pending, Gate 2 |
-| A07 | Queries and events are scoped to the selected board. | Pending, Gate 2 |
+| A06 | Board membership is immutable. | Enforced |
+| A07 | Queries and events are scoped to the selected board. | Enforced |
 | A08 | Invalid coordinates cannot be persisted (addendum D1). | Enforced |
 | A09 | Durable movement increments `version` atomically (ADR 0001). | Pending, Gate 4 |
 | A10 | Transient previews never trigger persistence. | Pending, Gate 3 |

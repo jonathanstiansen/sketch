@@ -9,7 +9,7 @@ test("two browser contexts open the home page", async ({ browser }) => {
 
     for (const page of [firstPage, secondPage]) {
       await page.goto("/")
-      await expect(page.getByText("Peace of mind from prototype to production.")).toBeVisible()
+      await expect(page.locator("#new-board")).toBeVisible()
     }
 
     await firstPage.screenshot({ path: "test-results/home.png" })

@@ -41,16 +41,16 @@
     %{
       id: "A06",
       rule: "Board membership is immutable",
-      status: {:pending, 2},
+      status: :enforced,
       enforcement: "Action restrictions and cross-board update tests",
-      verified_by: []
+      verified_by: ["test/sketch/canvas/sessions_test.exs"]
     },
     %{
       id: "A07",
       rule: "All board queries and events are scoped to the selected board",
-      status: {:pending, 2},
+      status: :enforced,
       enforcement: "Integration and two-board E2E tests",
-      verified_by: []
+      verified_by: ["test/sketch/canvas/sessions_test.exs", "e2e/tests/sessions.spec.ts"]
     },
     %{
       id: "A08",
