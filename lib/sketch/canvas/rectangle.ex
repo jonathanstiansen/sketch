@@ -30,8 +30,15 @@ defmodule Sketch.Canvas.Rectangle do
   end
 
   actions do
+    defaults [:read]
+
     create :create do
       accept [:x, :y, :board_id]
+    end
+
+    update :commit_position do
+      accept [:x, :y]
+      change atomic_update(:version, expr(version + 1))
     end
 
     read :list_for_board do
@@ -46,6 +53,7 @@ defmodule Sketch.Canvas.Rectangle do
     prefix "board"
 
     publish :create, [:board_id], transform: &__MODULE__.event_payload/1
+    publish :commit_position, [:board_id], transform: &__MODULE__.event_payload/1
   end
 
   attributes do

@@ -14,6 +14,7 @@ defmodule Sketch.Canvas do
 
     resource Sketch.Canvas.Rectangle do
       define :create_rectangle, action: :create
+      define :commit_position, action: :commit_position, get_by: [:id, :board_id]
       define :list_rectangles_for_board, action: :list_for_board, args: [:board_id]
     end
   end
