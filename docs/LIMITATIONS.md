@@ -7,8 +7,7 @@ SPEC section 5 permits in-progress drag visuals to disagree. This records what a
 **What disagrees while both mouse buttons are down**
 
 - A and B never see each other's drag. A browser ignores remote previews for the rectangle it is dragging itself, so A always shows the rectangle on its own path and B on its own. They disagree in every one of the 40 samples in every run.
-- C receives both previews and applies whichever arrives last (previews from different `drag_id`s are not ordered against each other). C flips between A's path and B's path, and also lags the sender by up to one 50 ms preview interval. Per run, C matched A exactly in 5 to 26 of 40 samples and B exactly in 2 to 30 (for example 12/28, 10/30, 26/6, 15/24, 16/16, 5/7). The remaining samples sat at an intermediate, older preview position.
-- No run showed a committed value being overwritten by a preview: every `data-version` stayed 0 until release.
+- C receives both previews and applies whichever arrives last (previews from different `drag_id`s are not ordered against each other). C flips between A's path and B's path, and also lags the sender by up to one 50 ms preview interval. Per run, C matched A exactly in 5 to 26 of 40 samples and B exactly in 2 to 30 (for example 12/28, 10/30, 26/6, 15/24, 16/16, 5/7). The other samples were on neither path at that instant, typically a slightly older position of one drag (for example C at x=441 while A was at x=450).
 
 **How it converges**
 
