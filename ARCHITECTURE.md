@@ -81,5 +81,10 @@ the only path excluded from the A21 scan.
   finish before opening a page.
 - Simultaneous drags of one rectangle can show different positions in different browsers until
   both commits land. See [docs/LIMITATIONS.md](docs/LIMITATIONS.md) for the measurements.
-- SPEC section 8 item 7 (Docker Compose deployment smoke test) is pending until Gate 5; the
-  registry lists it under `ci_requirements`.
+- SPEC section 8 item 7 (Docker Compose deployment smoke test) is the `compose-smoke` job in
+  `.github/workflows/ci.yml`; the registry lists it under `ci_requirements`. It builds the image,
+  starts `compose.yaml`, checks health, that PostgreSQL publishes no host port, runs the E2E
+  suite against the container and checks persistence across restart, recreation and `down`/`up`.
+  It is `:enforced` by CI only. The container steps have not been run locally (Docker was not
+  available when Gate 5 was written); the release, migration, health check, binding and E2E were
+  verified against a native `mix release`.
