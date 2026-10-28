@@ -61,4 +61,46 @@ defmodule SketchWeb.BoardLiveTest do
 
     assert Ash.count!(Sketch.Canvas.Board) == boards_before
   end
+
+  test "shows the shareable board url", %{conn: conn, board: board} do
+    {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+    assert render(view) =~ "/b/#{board.id}"
+    assert has_element?(view, "#board-url")
+  end
+
+  test "a committed position updates the rectangle, ignoring stale versions", %{
+    conn: conn,
+    board: board
+  } do
+    rectangle = Canvas.create_rectangle!(%{x: 5, y: 6, board_id: board.id})
+    {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+
+    Canvas.commit_position!(rectangle.id, board.id, %{x: 70, y: 80})
+    assert render(view) =~ "data-version=\"1\""
+    assert has_element?(view, "#rect-#{rectangle.id}[data-x='70'][data-version='1']")
+
+    send(view.pid, %Phoenix.Socket.Broadcast{
+      event: "commit_position",
+      payload: %{id: rectangle.id, board_id: board.id, x: 1, y: 1, version: 0}
+    })
+
+    assert has_element?(view, "#rect-#{rectangle.id}[data-x='70'][data-version='1']")
+  end
+
+  test "a create arriving after a newer commit_position does not undo it", %{
+    conn: conn,
+    board: board
+  } do
+    {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+    id = Ash.UUID.generate()
+
+    for {event, x, version} <- [{"commit_position", 70, 1}, {"create", 5, 0}] do
+      send(view.pid, %Phoenix.Socket.Broadcast{
+        event: event,
+        payload: %{id: id, board_id: board.id, x: x, y: x, version: version}
+      })
+    end
+
+    assert has_element?(view, "#rect-#{id}[data-x='70'][data-version='1']")
+  end
 end

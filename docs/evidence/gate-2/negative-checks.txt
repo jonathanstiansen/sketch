@@ -1,0 +1,35 @@
+## Negative check: make commit_position accept :board_id (A06)
+$ mix test test/sketch/canvas/sessions_test.exs
+Getting extensions in current project...
+Compiling 2 files (.ex)
+Running setup for AshPostgres.DataLayer...
+Running ExUnit with seed: 244945, max_cases: 20
+.....
+  1) test board membership is immutable (A06) commit_position rejects board_id input (Sketch.Canvas.SessionsTest)
+     test/sketch/canvas/sessions_test.exs:44
+     match (=) failed
+     code:  assert {:error, _} =
+              Canvas.commit_position(rectangle.id, board_a.id, %{x: 1, y: 1, board_id: board_b.id})
+     left:  {:error, _}
+     right: {:ok,
+             %Sketch.Canvas.Rectangle{
+               id: "ed8b38d3-6dc7-4ff9-9fe2-2424637f9100",
+               x: 1,
+               y: 1,
+               version: 1,
+               inserted_at: ~U[2026-10-28 20:12:47.544326Z],
+               board_id: "80e6a5a0-9f9e-4194-a8c2-1aaf22fa2f10",
+               board: #Ash.NotLoaded<:relationship, field: :board>,
+               __meta__: #Ecto.Schema.Metadata<:loaded, "rectangles">
+             }}
+     stacktrace:
+       test/sketch/canvas/sessions_test.exs:49: (test)
+Finished in 0.2 seconds (0.00s async, 0.2s sync)
+Result: 5/6 passed
+Failed: 1 test
+exit: 
+
+$ restored; mix test test/sketch/canvas/sessions_test.exs
+Finished in 0.2 seconds (0.00s async, 0.2s sync)
+
+Result: 6 passed

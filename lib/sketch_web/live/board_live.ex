@@ -13,7 +13,7 @@ defmodule SketchWeb.BoardLive do
 
   @impl true
   def handle_event("add-rectangle", _params, socket) do
-    {x, y} = next_position(MapSet.size(socket.assigns.rectangle_ids))
+    {x, y} = next_position(map_size(socket.assigns.versions))
 
     case Sketch.Canvas.create_rectangle(%{board_id: socket.assigns.board_id, x: x, y: y}) do
       {:ok, _rectangle} -> {:noreply, socket}
@@ -22,14 +22,15 @@ defmodule SketchWeb.BoardLive do
   end
 
   @impl true
-  def handle_info(%Phoenix.Socket.Broadcast{event: "create", payload: rectangle}, socket) do
-    if MapSet.member?(socket.assigns.rectangle_ids, rectangle.id) do
-      {:noreply, socket}
-    else
+  def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: rectangle}, socket)
+      when event in ~w(create commit_position) do
+    if rectangle.version > Map.get(socket.assigns.versions, rectangle.id, -1) do
       {:noreply,
        socket
-       |> update(:rectangle_ids, &MapSet.put(&1, rectangle.id))
+       |> update(:versions, &Map.put(&1, rectangle.id, rectangle.version))
        |> stream_insert(:rectangles, rectangle)}
+    else
+      {:noreply, socket}
     end
   end
 
@@ -38,6 +39,10 @@ defmodule SketchWeb.BoardLive do
     ~H"""
     <Layouts.app flash={@flash}>
       <div class="flex flex-col gap-4 p-4">
+        <p>
+          Share this board:
+          <a id="board-url" class="link" href={~p"/b/#{@board_id}"}>{url(~p"/b/#{@board_id}")}</a>
+        </p>
         <div>
           <button id="add-rectangle" class="btn btn-primary" phx-click="add-rectangle">
             Add rectangle
@@ -80,7 +85,7 @@ defmodule SketchWeb.BoardLive do
     socket
     |> assign(:board_id, board_id)
     |> assign(:geometry, Sketch.Canvas.geometry())
-    |> assign(:rectangle_ids, MapSet.new(rectangles, & &1.id))
+    |> assign(:versions, Map.new(rectangles, &{&1.id, &1.version}))
     |> stream(:rectangles, rectangles, dom_id: &"rect-#{&1.id}")
   end
 
