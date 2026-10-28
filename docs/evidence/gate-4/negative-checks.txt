@@ -1,0 +1,36 @@
+## Negative check: replace the atomic increment with a read-modify-write on the loaded record (A09)
+
+--- lib/sketch/canvas/rectangle.ex (temporary)
+-      change atomic_update(:version, expr(version + 1))
++      require_atomic? false
++      change fn changeset, _context ->
++        Ash.Changeset.force_change_attribute(changeset, :version, changeset.data.version + 1)
++      end
+
+$ mix test test/sketch/canvas/concurrent_commits_test.exs
+Compiling 2 files (.ex)
+Running ExUnit with seed: 554012, max_cases: 20
+
+
+
+  1) test concurrent commits never lose a version increment (A09) (Sketch.Canvas.ConcurrentCommitsTest)
+     test/sketch/canvas/concurrent_commits_test.exs:26
+     Assertion with == failed
+     code:  assert results |> Enum.map(& &1.version) |> Enum.sort() == Enum.to_list(1..@commits)
+     left:  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
+             2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3,
+             3, 3, 3, 3, 3, 4, 4, 4, 4, 4]
+     right: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+             20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
+             34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+             48, 49, 50]
+     stacktrace:
+       test/sketch/canvas/concurrent_commits_test.exs:46: (test)
+
+
+Finished in 0.04 seconds (0.00s async, 0.04s sync)
+
+Result: 0/1 passed
+Failed: 1 test
+
+Restored the atomic_update; the test passes again (1 passed).

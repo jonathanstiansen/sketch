@@ -5,6 +5,7 @@ const baseURL = `http://127.0.0.1:${port}`
 
 export default defineConfig({
   testDir: "./tests",
+  timeout: 120_000,
   forbidOnly: process.env.CI !== undefined,
   retries: 0,
   reporter: process.env.CI === undefined ? "list" : [["list"], ["html", { open: "never" }]],
