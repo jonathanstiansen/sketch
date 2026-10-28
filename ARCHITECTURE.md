@@ -37,20 +37,20 @@ the only path excluded from the A21 scan.
 | A01 | Domain operations go through `Sketch.Canvas` code interfaces. Web modules may call no application module in the `Sketch` namespace other than `Sketch.Canvas`. | Enforced |
 | A02 | Web modules do not call or reference `Sketch.Repo`, Ecto, Postgrex, AshPostgres or Ash data layers. | Enforced |
 | A03 | No resource mutation outside Ash actions. Web modules do not call the `Ash` API or build `Ash.Changeset`/`Ash.Query`/`Ash.ActionInput`; no `lib` module except `Sketch.Repo` calls the Repo, Ecto or Postgrex directly. Action-level tests come with the resources. | Enforced (static) |
-| A04 | Board and Rectangle use AshPostgres. | Pending, Gate 1 |
-| A05 | Every Rectangle belongs to exactly one Board. | Pending, Gate 1 |
+| A04 | Board and Rectangle use AshPostgres. | Enforced |
+| A05 | Every Rectangle belongs to exactly one Board. | Enforced |
 | A06 | Board membership is immutable. | Pending, Gate 2 |
 | A07 | Queries and events are scoped to the selected board. | Pending, Gate 2 |
-| A08 | Invalid coordinates cannot be persisted (addendum D1). | Pending, Gate 1 |
+| A08 | Invalid coordinates cannot be persisted (addendum D1). | Enforced |
 | A09 | Durable movement increments `version` atomically (ADR 0001). | Pending, Gate 4 |
 | A10 | Transient previews never trigger persistence. | Pending, Gate 3 |
-| A11 | Durable events originate from successful Ash changes. | Pending, Gate 1 |
+| A11 | Durable events originate from successful Ash changes. | Enforced |
 | A12 | No custom GenServer, event broker or repository layer: no `lib` module implements GenServer, `:gen_server`, `:gen_statem`, `:gen_event` or GenStage, uses Agent, Registry or `:pg`, or is named `*Repository*`. | Enforced |
 | A13 | Pointer, mouse and touch event names appear only in `assets/js/hooks/canvas.ts`. The scan covers `assets/js` and `lib` (colocated hooks and templates). | Enforced |
 | A14 | TypeScript strict mode with `noUncheckedIndexedAccess`; ESLint bans `any` and TS suppression comments and disables inline config. | Enforced |
 | A15 | Production runtime deps equal the allowlist (addendum D4). | Enforced |
 | A16 | Enforcement code and CI changes need review. | Unverified (addendum D6) |
-| A17 | Resource definitions match generated migrations (`mix ash.codegen --check`). | Pending, Gate 1 (the check already runs) |
+| A17 | Resource definitions match generated migrations (`mix ash.codegen --check`). | Enforced |
 | A18 | E2E tests use no request interception or mock libraries. | Enforced |
 | A19 | Accepted rules stay active until explicitly changed. The registry test requires A01-A21 exactly once with valid statuses and existing verification files. | Unverified (addendum D6) |
 | A20 | E2E tests contain no fixed sleeps (`waitForTimeout`, `setTimeout`, `sleep(`). | Enforced |
