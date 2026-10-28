@@ -169,7 +169,11 @@ defmodule Sketch.ArchitectureCheck do
   defp web_call_rule(@domain_module), do: nil
 
   defp web_call_rule(callee) do
-    if application_module?(callee) and not web_module?(callee), do: "A01"
+    cond do
+      within_any?(callee, @data_access_modules) -> "A02"
+      application_module?(callee) and not web_module?(callee) -> "A01"
+      true -> nil
+    end
   end
 
   @spec process_violations([beam_module()], [module()]) :: [violation()]
