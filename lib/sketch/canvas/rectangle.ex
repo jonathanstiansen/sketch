@@ -13,7 +13,7 @@ defmodule Sketch.Canvas.Rectangle do
     repo Sketch.Repo
 
     references do
-      reference :board, on_delete: :delete
+      reference :board, on_delete: :delete, index?: true
     end
 
     check_constraints do
