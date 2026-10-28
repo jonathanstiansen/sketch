@@ -1,0 +1,68 @@
+import { execFileSync } from "node:child_process"
+import { mkdirSync } from "node:fs"
+import { expect, test, type Page } from "@playwright/test"
+
+const repoRoot = new URL("../..", import.meta.url).pathname
+const recordingDir = process.env.E2E_RECORD_DIR
+const videoSize = { width: 640, height: 400 }
+
+function createBoard(): string {
+  const output = execFileSync(
+    "mix",
+    ["run", "-e", "IO.puts(Sketch.Canvas.create_board!().id)"],
+    { cwd: repoRoot, encoding: "utf8", env: { ...process.env, MIX_ENV: "dev" } },
+  )
+  const id = output.trim().split("\n").at(-1)
+  if (id === undefined || id === "") throw new Error("board id was not printed")
+  return id
+}
+
+async function openBoard(page: Page, boardId: string) {
+  await page.goto(`/b/${boardId}`)
+  await expect(page.locator("#add-rectangle")).toBeVisible()
+}
+
+test("a rectangle added in one browser appears live in another and survives reload", async ({
+  browser,
+}) => {
+  const boardId = createBoard()
+  const otherBoardId = createBoard()
+  const recording =
+    recordingDir === undefined
+      ? {}
+      : { recordVideo: { dir: recordingDir, size: videoSize }, viewport: videoSize }
+  if (recordingDir !== undefined) mkdirSync(recordingDir, { recursive: true })
+
+  const contextA = await browser.newContext(recording)
+  const contextB = await browser.newContext(recording)
+  const contextC = await browser.newContext()
+
+  try {
+    const [pageA, pageB, pageC] = await Promise.all([
+      contextA.newPage(),
+      contextB.newPage(),
+      contextC.newPage(),
+    ])
+    await openBoard(pageA, boardId)
+    await openBoard(pageB, boardId)
+    await openBoard(pageC, otherBoardId)
+
+    await pageA.locator("#add-rectangle").click()
+    await expect(pageA.locator("rect[id^='rect-']")).toHaveCount(1)
+    await pageA.locator("#add-rectangle").click()
+
+    await expect(pageA.locator("rect[id^='rect-']")).toHaveCount(2)
+    await expect(pageB.locator("rect[id^='rect-']")).toHaveCount(2)
+    await expect(pageB.locator("rect[id^='rect-'][data-version='0']")).toHaveCount(2)
+
+    await pageB.reload()
+    await expect(pageB.locator("rect[id^='rect-']")).toHaveCount(2)
+    await pageB.screenshot({ path: process.env.E2E_RELOAD_SHOT ?? "test-results/after-reload.png" })
+
+    await expect(pageC.locator("rect[id^='rect-']")).toHaveCount(0)
+  } finally {
+    await contextA.close()
+    await contextB.close()
+    await contextC.close()
+  }
+})

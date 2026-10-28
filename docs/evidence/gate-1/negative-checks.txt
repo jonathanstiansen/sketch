@@ -1,0 +1,11 @@
+## Negative check: remove the x bounds check_constraint from Sketch.Canvas.Rectangle (A08, A17)
+$ mix ash.codegen --check
+Compiling 3 files (.ex)
+Getting extensions in current project...
+Running codegen for AshPostgres.DataLayer...
+** (Mix) Pending Code Generation Detected for 2 files
+
+
+Run with --dry-run to view pending changes
+exit: 
+result: mix task aborted with a Mix error (non-zero exit); resource restored and the check passes again

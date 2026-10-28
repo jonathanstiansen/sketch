@@ -27,16 +27,16 @@
     %{
       id: "A04",
       rule: "Board and Rectangle use AshPostgres",
-      status: {:pending, 1},
-      enforcement: "Resource configuration test, added with the resources",
-      verified_by: []
+      status: :enforced,
+      enforcement: "Resource configuration test asserts both resources use AshPostgres and Sketch.Repo",
+      verified_by: ["test/sketch/canvas/rectangle_test.exs"]
     },
     %{
       id: "A05",
       rule: "Every Rectangle belongs to exactly one Board",
-      status: {:pending, 1},
-      enforcement: "Ash validation and database foreign key",
-      verified_by: []
+      status: :enforced,
+      enforcement: "Ash allow_nil? false validation and the rectangles.board_id foreign key; tests cover a nil board and an unknown board id",
+      verified_by: ["test/sketch/canvas/rectangle_test.exs"]
     },
     %{
       id: "A06",
@@ -55,9 +55,9 @@
     %{
       id: "A08",
       rule: "Invalid coordinates cannot be persisted",
-      status: {:pending, 1},
-      enforcement: "Ash attribute constraints and PostgreSQL CHECK constraint (addendum D1)",
-      verified_by: []
+      status: :enforced,
+      enforcement: "Ash attribute constraints plus PostgreSQL CHECK constraints (addendum D1); tests insert out-of-bounds rows with raw SQL",
+      verified_by: ["test/sketch/canvas/rectangle_test.exs"]
     },
     %{
       id: "A09",
@@ -76,9 +76,9 @@
     %{
       id: "A11",
       rule: "Durable events originate from successful Ash changes",
-      status: {:pending, 1},
-      enforcement: "Action notification tests; failed-commit cases in Gate 4",
-      verified_by: []
+      status: :enforced,
+      enforcement: "Ash.Notifier.PubSub on Rectangle publishes after commit; tests cover a successful create, a failed create and a rolled-back transaction",
+      verified_by: ["test/sketch/canvas/rectangle_test.exs", "e2e/tests/collaboration.spec.ts"]
     },
     %{
       id: "A12",
@@ -123,9 +123,8 @@
     %{
       id: "A17",
       rule: "Database resource definitions match generated migrations",
-      status: {:pending, 1},
-      enforcement:
-        "mix ash.codegen --check runs in mix ci and CI now; it only compares real resource data once Board and Rectangle exist",
+      status: :enforced,
+      enforcement: "mix ash.codegen --check runs in mix ci and CI against the real Board and Rectangle resources",
       verified_by: [".github/workflows/ci.yml"]
     },
     %{
