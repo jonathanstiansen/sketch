@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs"
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test"
 
 const recordingDir = process.env.E2E_RECORD_DIR
-const videoSize = { width: 640, height: 400 }
+const videoSize = { width: 640, height: 480 }
 const boardPath = /\/b\/[0-9a-f-]{36}$/
 const rectangle = "rect[data-rect]"
 const origin = { x: "100", y: "100" }
