@@ -22,18 +22,8 @@ defmodule SketchWeb.BoardLive do
   end
 
   @impl true
-  def handle_info(%Phoenix.Socket.Broadcast{event: "create", payload: rectangle}, socket) do
-    if Map.has_key?(socket.assigns.versions, rectangle.id) do
-      {:noreply, socket}
-    else
-      {:noreply,
-       socket
-       |> update(:versions, &Map.put(&1, rectangle.id, rectangle.version))
-       |> stream_insert(:rectangles, rectangle)}
-    end
-  end
-
-  def handle_info(%Phoenix.Socket.Broadcast{event: "commit_position", payload: rectangle}, socket) do
+  def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: rectangle}, socket)
+      when event in ~w(create commit_position) do
     if rectangle.version > Map.get(socket.assigns.versions, rectangle.id, -1) do
       {:noreply,
        socket

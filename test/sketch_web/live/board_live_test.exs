@@ -86,4 +86,21 @@ defmodule SketchWeb.BoardLiveTest do
 
     assert has_element?(view, "#rect-#{rectangle.id}[data-x='70'][data-version='1']")
   end
+
+  test "a create arriving after a newer commit_position does not undo it", %{
+    conn: conn,
+    board: board
+  } do
+    {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+    id = Ash.UUID.generate()
+
+    for {event, x, version} <- [{"commit_position", 70, 1}, {"create", 5, 0}] do
+      send(view.pid, %Phoenix.Socket.Broadcast{
+        event: event,
+        payload: %{id: id, board_id: board.id, x: x, y: x, version: version}
+      })
+    end
+
+    assert has_element?(view, "#rect-#{id}[data-x='70'][data-version='1']")
+  end
 end
