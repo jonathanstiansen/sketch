@@ -75,6 +75,10 @@ the only path excluded from the A21 scan.
   It runs `async: false`, uses `Ecto.Adapters.SQL.Sandbox.unboxed_run/2` in every task and deletes
   its board in `on_exit`. The test pool is `System.schedulers_online() * 2` connections (20 here),
   so the 25 concurrent tasks do contend for connections.
+- E2E runs with one worker. The restart test spawns a second dev server, whose asset watchers
+  rewrite `priv/static` and trigger LiveReload in every open browser page; parallel workers made
+  that reload land mid-drag. The restart test also waits for the spawned server's asset watchers to
+  finish before opening a page.
 - Simultaneous drags of one rectangle can show different positions in different browsers until
   both commits land. See [docs/LIMITATIONS.md](docs/LIMITATIONS.md) for the measurements.
 - SPEC section 8 item 7 (Docker Compose deployment smoke test) is pending until Gate 5; the
