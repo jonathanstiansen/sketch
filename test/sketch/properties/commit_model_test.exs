@@ -7,9 +7,10 @@ defmodule Sketch.Properties.CommitModelTest do
   alias Sketch.Canvas.Geometry
 
   @kinds Canvas.element_kinds()
-  @element_count length(@kinds)
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
+  @max_text_length Geometry.max_text_length()
+  @shape_fields [:kind, :x, :y, :width, :height, :points, :text, :version]
 
   defp coordinate(limit), do: one_of([integer(0..limit), member_of([-1, 0, limit - 1, limit])])
 
@@ -33,7 +34,7 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp shape do
     bind(box(), fn box ->
-      bind(member_of([0, 1, 2, 2, 2, 3]), fn count ->
+      bind(member_of([0, 0, 1, 2, 2, 2, 3]), fn count ->
         map(
           list_of(point_within(box.width, box.height), length: count),
           &Map.put(box, :points, &1)
@@ -53,27 +54,57 @@ defmodule Sketch.Properties.CommitModelTest do
     end)
   end
 
+  defp text do
+    one_of([
+      constant(""),
+      member_of([" ", "\n\t", "hi", "a\nb", "<b>x</b>", "é😀", "a\u0000"]),
+      string(:printable, max_length: 20),
+      member_of([@max_text_length, @max_text_length + 1]) |> map(&String.duplicate("a", &1))
+    ])
+  end
+
+  defp with_text(shape), do: one_of([shape, map(tuple({shape, text()}), &put_text/1)])
+
+  defp put_text({shape, text}), do: Map.put(shape, :text, text)
+
+  defp text_edit do
+    text_box =
+      fixed_map(%{
+        x: integer(0..3500),
+        y: integer(0..3500),
+        width: integer(1..500),
+        height: integer(1..500)
+      })
+
+    map(tuple({one_of([text_box, box()]), text()}), fn {box, text} ->
+      Map.merge(box, %{points: [], text: text})
+    end)
+  end
+
   defp op do
-    index = integer(0..(@element_count - 1))
+    index = integer(0..100)
 
     one_of([
+      tuple({constant(:create), member_of(@kinds), with_text(shape())}),
       tuple(
         {member_of([:commit_position, :commit_position_wrong_board]), index,
          fixed_map(%{x: coordinate(@canvas_width), y: coordinate(@canvas_height)})}
       ),
       tuple(
         {member_of([:commit_shape, :commit_shape_wrong_board]), index,
-         one_of([shape(), line_between_points()])}
-      )
+         with_text(one_of([shape(), line_between_points()]))}
+      ),
+      tuple({member_of([:edit_text, :edit_text_wrong_board]), index, text_edit()})
     ])
   end
 
-  defp valid_shape?(%{kind: kind, x: x, y: y, width: width, height: height, points: points}) do
+  defp valid_shape?(%{kind: kind, x: x, y: y, width: width, height: height} = shape) do
     min_size = min_size(kind)
 
     x >= 0 and y >= 0 and width >= min_size and height >= min_size and
       x + width <= @canvas_width and y + height <= @canvas_height and
-      length(points) in point_count(kind) and inside?(points, width, height)
+      length(shape.points) in point_count(kind) and
+      inside?(shape.points, width, height) and text_fits?(kind, shape.text)
   end
 
   defp min_size(kind) when kind in [:arrow, :freedraw, :line], do: 0
@@ -86,6 +117,13 @@ defmodule Sketch.Properties.CommitModelTest do
   defp inside?(points, width, height),
     do: Enum.all?(points, &(&1.x in 0..width//1 and &1.y in 0..height//1))
 
+  defp text_fits?(:text, text) do
+    length(String.codepoints(text)) <= @max_text_length and not String.contains?(text, "\u0000") and
+      String.replace(text, [" ", "\t", "\n", "\r"], "") != ""
+  end
+
+  defp text_fits?(_kind, text), do: text == ""
+
   defp initial_shape(kind, box) when kind in [:arrow, :freedraw, :line],
     do: %{points: [%{x: 0, y: 0}, %{x: box.width, y: box.height}]}
 
@@ -94,7 +132,6 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp seed_board do
     board = Canvas.create_board!()
-    other_board = Canvas.create_board!()
 
     elements =
       for {kind, index} <- Enum.with_index(@kinds) do
@@ -106,61 +143,75 @@ defmodule Sketch.Properties.CommitModelTest do
         |> Canvas.create_element!()
       end
 
-    model = Map.new(Enum.with_index(elements), fn {element, i} -> {i, stored_box(element)} end)
-    {board, other_board, elements, model}
+    {board, Enum.map(elements, &{&1.id, stored_shape(&1)})}
   end
 
-  defp stored_box(element) do
+  defp stored_shape(element) do
     element
     |> Canvas.element_event()
-    |> Map.take([:kind, :x, :y, :width, :height, :points, :version])
+    |> Map.take(@shape_fields)
   end
 
-  defp run({action, index, input} = op, ctx, model) do
-    element = Enum.at(ctx.elements, index)
+  defp run({:create, kind, input}, ctx, model) do
+    attrs = Map.merge(input, %{board_id: ctx.board.id, kind: kind})
+    created = Map.merge(%{points: [], text: "", version: 0}, Map.put(input, :kind, kind))
+
+    case Canvas.create_element(attrs) do
+      {:ok, element} -> {:ok, model ++ [{element.id, created}], {"create", element.id, created}}
+      {:error, _error} -> {:error, model, nil}
+    end
+  end
+
+  defp run({action, index, input}, ctx, model) do
+    candidates =
+      if action in [:edit_text, :edit_text_wrong_board], do: text_elements(model), else: model
+
+    {id, shape} = Enum.at(candidates, rem(index, length(candidates)))
     {interface, board} = target(action, ctx)
-    result = apply(Canvas, interface, [element.id, board.id, input])
-    {result, next_model(op, model)}
+    next = next_shape(action, Map.merge(shape, input))
+
+    case {apply(Canvas, interface, [id, board.id, input]), next} do
+      {{:ok, _element}, {:ok, moved}} ->
+        {:ok, List.keyreplace(model, id, 0, {id, moved}), {Atom.to_string(interface), id, moved}}
+
+      {{:error, _error}, :rejected} ->
+        {:error, model, nil}
+
+      {result, expected} ->
+        flunk("#{inspect(action)} returned #{inspect(result)}, the model #{inspect(expected)}")
+    end
   end
 
   defp target(:commit_position, ctx), do: {:commit_position, ctx.board}
   defp target(:commit_position_wrong_board, ctx), do: {:commit_position, ctx.other_board}
   defp target(:commit_shape, ctx), do: {:commit_shape, ctx.board}
   defp target(:commit_shape_wrong_board, ctx), do: {:commit_shape, ctx.other_board}
+  defp target(:edit_text, ctx), do: {:commit_shape, ctx.board}
+  defp target(:edit_text_wrong_board, ctx), do: {:commit_shape, ctx.other_board}
 
-  defp next_model({action, index, input}, model)
-       when action in [:commit_position, :commit_shape] do
-    moved = Map.merge(model[index], input)
+  defp text_elements(model), do: Enum.filter(model, fn {_id, shape} -> shape.kind == :text end)
 
-    if valid_shape?(moved),
-      do: Map.put(model, index, %{moved | version: moved.version + 1}),
-      else: model
+  defp next_shape(action, moved) when action in [:commit_position, :commit_shape, :edit_text] do
+    if valid_shape?(moved), do: {:ok, %{moved | version: moved.version + 1}}, else: :rejected
   end
 
-  defp next_model(_wrong_board, model), do: model
+  defp next_shape(_wrong_board, _moved), do: :rejected
 
-  defp expected_broadcast({action, index, _input}, model, true),
-    do: [{Atom.to_string(action), index, model[index]}]
+  defp expected_create?({:create, kind, input}),
+    do: valid_shape?(Map.merge(%{points: [], text: ""}, Map.put(input, :kind, kind)))
 
-  defp expected_broadcast(_op, _model, false), do: []
-
-  defp stored(ctx) do
-    by_id = Map.new(Canvas.list_elements_for_board!(ctx.board.id), &{&1.id, &1})
-
-    ctx.elements
-    |> Enum.with_index()
-    |> Map.new(fn {element, i} -> {i, stored_box(by_id[element.id])} end)
+  defp stored(board) do
+    board.id
+    |> Canvas.list_elements_for_board!()
+    |> Enum.map(&{&1.id, stored_shape(&1)})
   end
 
-  defp received_commits(ctx, board) do
+  defp received(board) do
     topic = Canvas.board_topic(board.id)
 
     receive do
-      %Broadcast{topic: ^topic, event: event, payload: payload}
-      when event in ["commit_position", "commit_shape"] ->
-        index = Enum.find_index(ctx.elements, &(&1.id == payload.id))
-        shape = Map.take(payload, [:kind, :x, :y, :width, :height, :points, :version])
-        [{event, index, shape} | received_commits(ctx, board)]
+      %Broadcast{topic: ^topic, event: event, payload: payload} ->
+        [{event, payload.id, Map.take(payload, @shape_fields)} | received(board)]
     after
       0 -> []
     end
@@ -168,28 +219,31 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp subscribe(board), do: :ok = SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
 
-  property "the database and the broadcasts follow a model of successful commits (A08, A09, A11)" do
+  property "the database and the broadcasts follow a model of creates, moves, shape and text edits, and wrong-board edits (A08, A09, A11)" do
     check all ops <- list_of(op(), max_length: 20), max_runs: 75 do
-      {board, other_board, elements, initial} = seed_board()
-      ctx = %{board: board, other_board: other_board, elements: elements}
+      {board, initial} = seed_board()
+      ctx = %{board: board, other_board: Canvas.create_board!()}
       subscribe(board)
-      subscribe(other_board)
+      subscribe(ctx.other_board)
+      _seeded = received(board)
 
-      {_model, expected_broadcasts} =
-        Enum.reduce(ops, {initial, []}, fn op, {model, broadcasts} ->
-          {result, next} = run(op, ctx, model)
-          committed? = next != model
+      expected =
+        ops
+        |> Enum.reduce({initial, []}, fn op, {model, broadcasts} ->
+          {result, next, broadcast} = run(op, ctx, model)
 
-          assert match?({:ok, _element}, result) == committed?, inspect(op)
-          assert stored(ctx) == next
+          if elem(op, 0) == :create,
+            do: assert(result == :ok == expected_create?(op), inspect(op))
 
-          {next, broadcasts ++ expected_broadcast(op, next, committed?)}
+          assert Map.new(stored(board)) == Map.new(next), inspect(op)
+          {next, [broadcast | broadcasts]}
         end)
+        |> elem(1)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.reverse()
 
-      received = received_commits(ctx, board)
-      assert length(received) == length(expected_broadcasts)
-      assert received == expected_broadcasts
-      assert received_commits(ctx, other_board) == []
+      assert received(board) == expected
+      assert received(ctx.other_board) == []
     end
   end
 end

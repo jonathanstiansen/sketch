@@ -22,7 +22,8 @@ defmodule Sketch.Properties.LwwMergeTest do
         y: integer(0..(Geometry.canvas_height() - height)),
         width: constant(width),
         height: constant(height),
-        points: list_of(point, max_length: Geometry.max_points())
+        points: list_of(point, max_length: Geometry.max_points()),
+        text: string(:utf8, max_length: 40)
       })
     end)
   end

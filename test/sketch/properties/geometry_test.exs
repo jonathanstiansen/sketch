@@ -116,8 +116,8 @@ defmodule Sketch.Properties.GeometryTest do
     "a é 😀\n\t\r\u0301\u00a0<>&"
     |> String.codepoints()
     |> member_of()
-    |> list_of(length: count)
-    |> map(&Enum.join/1)
+    |> list_of(max_length: 40)
+    |> map(&(String.duplicate("a", count - length(&1)) <> Enum.join(&1)))
   end
 
   defp combining_text(graphemes),
