@@ -10,20 +10,25 @@ defmodule Sketch.Canvas.Element do
     data_layer: AshPostgres.DataLayer,
     notifiers: [Ash.Notifier.PubSub]
 
-  alias Sketch.Canvas.Geometry
+  alias Sketch.Canvas.{Geometry, Kinds}
   alias Sketch.Canvas.Validations.{FitsCanvas, PointsFitShape, TextFitsKind}
 
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
-  @kinds [:rectangle, :diamond, :ellipse, :arrow, :freedraw, :line, :text, :note]
+  @kinds Kinds.ids()
   @point_kinds Geometry.point_kinds()
   @box_kinds @kinds -- @point_kinds
-  @box_min_size Geometry.min_size(:rectangle)
+  @box_min_size Geometry.dimensions().min_size
   @max_text_length Geometry.max_text_length()
   @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :text, :version]
 
-  @sql_point_kinds Enum.map_join(@point_kinds, ", ", &"'#{&1}'")
-  @sql_point_counts Enum.map_join(@point_kinds, " ", fn kind ->
+  # The CHECK constraints were generated with the point kinds in this order; listing them in
+  # registry order would change the SQL text, and so the migrations, without changing the rule.
+  @migrated_point_kind_order [:line, :arrow, :freedraw]
+  @sql_point_kind_order Enum.filter(@migrated_point_kind_order, &(&1 in @point_kinds)) ++
+                          (@point_kinds -- @migrated_point_kind_order)
+  @sql_point_kinds Enum.map_join(@sql_point_kind_order, ", ", &"'#{&1}'")
+  @sql_point_counts Enum.map_join(@sql_point_kind_order, " ", fn kind ->
                       range = Geometry.point_count(kind)
 
                       "WHEN kind = '#{kind}' THEN cardinality(points) BETWEEN #{range.first} AND #{range.last}"
@@ -133,10 +138,9 @@ defmodule Sketch.Canvas.Element do
   attributes do
     uuid_primary_key :id
 
-    attribute :kind, :atom,
+    attribute :kind, Sketch.Canvas.ElementKind,
       allow_nil?: false,
-      public?: true,
-      constraints: [one_of: @kinds]
+      public?: true
 
     attribute :x, :integer,
       allow_nil?: false,

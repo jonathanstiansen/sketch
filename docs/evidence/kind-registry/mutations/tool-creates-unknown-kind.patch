@@ -1,0 +1,12 @@
+diff --git a/lib/sketch_web/tools.ex b/lib/sketch_web/tools.ex
+index d06cc66..0cfb5df 100644
+--- a/lib/sketch_web/tools.ex
++++ b/lib/sketch_web/tools.ex
+@@ -65,6 +65,7 @@ defmodule SketchWeb.Tools do
+       icon: ["M5 19L19 5", "M9 5h10v10"]
+     },
+     %{id: "line", label: "Line", keys: ["L", "6"], creates: :line, icon: ["M5 19L19 5"]},
++    %{id: "star", label: "Star", keys: ["S"], creates: :star, icon: ["M12 3l3 6 6 1-4 4 1 7-6-3-6 3 1-7-4-4 6-1z"]},
+     %{
+       id: "draw",
+       label: "Draw",

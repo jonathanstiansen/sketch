@@ -179,6 +179,17 @@
       enforcement:
         "Source files may not contain ESLint disable directives, TypeScript ignore/expect-error/nocheck comments, Credo disable comments or Dialyzer attributes, and no Dialyzer ignore file may exist (addendum D5)",
       verified_by: ["test/architecture/source_policy_test.exs"]
+    },
+    %{
+      id: "A22",
+      rule: "Kind-specific branching lives only in kind modules, element renderers and generated files",
+      status: :enforced,
+      enforcement:
+        "lib and assets/js may not compare kind with a literal element kind (kind == :x or kind === \"x\", in either order or negated), use kind in [, match kind: :x, select data-kind=\"x\" or compare dataset.kind outside kind_branching_paths. legacy_kind_files lists the old code paths of kinds still in Sketch.Canvas.Kinds.Legacy; every entry must still match and the list must be empty exactly when Legacy has no kinds (ADR 0004). SketchWeb.Tools fails to compile if a tool creates an unknown kind, and mix sketch.gen.manifest --check fails in mix ci and CI if the client manifest is stale",
+      verified_by: [
+        "test/architecture/source_policy_test.exs",
+        "test/sketch/canvas/kind_contract_test.exs"
+      ]
     }
   ],
   ci_requirements: [
@@ -201,6 +212,17 @@
     process_behaviour_exceptions: [],
     pointer_event_files: [
       {"assets/js/hooks/canvas.ts", "The designated canvas hook (A13)"}
+    ],
+    kind_branching_paths: [
+      {"lib/sketch/canvas/kinds/", "Kind modules (A22, ADR 0004)"},
+      {"lib/sketch_web/elements/", "Server element renderers (A22, ADR 0004)"},
+      {"assets/js/elements/", "Client element renderers (A22, ADR 0004)"},
+      {"assets/js/generated/", "Files written by mix tasks, never edited by hand (A22, ADR 0004)"}
+    ],
+    legacy_kind_files: [
+      {"lib/sketch_web/live/board_live.ex", "Legacy kinds: element_shape clauses for diamond, ellipse, line, arrow, freedraw, text and note"},
+      {"assets/js/hooks/canvas.ts", "Legacy kinds: freedraw strokes, text and note editing and the note default size"},
+      {"assets/js/hooks/selection.ts", "Legacy kinds: draw previews for note, arrow and text"}
     ],
     production_mix_deps: [
       {:ash, "Core framework (SPEC section 3)"},

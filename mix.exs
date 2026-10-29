@@ -121,6 +121,7 @@ defmodule Sketch.MixProject do
         "compile --warnings-as-errors --force",
         "credo --strict",
         "dialyzer",
+        "sketch.gen.manifest --check",
         "ts.check",
         "ash.codegen --check",
         "test --warnings-as-errors"

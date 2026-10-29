@@ -1,0 +1,13 @@
+diff --git a/lib/sketch/canvas/element.ex b/lib/sketch/canvas/element.ex
+index a5d9335..378e2c1 100644
+--- a/lib/sketch/canvas/element.ex
++++ b/lib/sketch/canvas/element.ex
+@@ -24,7 +24,7 @@ defmodule Sketch.Canvas.Element do
+ 
+   # The CHECK constraints were generated with the point kinds in this order; listing them in
+   # registry order would change the SQL text, and so the migrations, without changing the rule.
+-  @migrated_point_kind_order [:line, :arrow, :freedraw]
++  @migrated_point_kind_order []
+   @sql_point_kind_order Enum.filter(@migrated_point_kind_order, &(&1 in @point_kinds)) ++
+                           (@point_kinds -- @migrated_point_kind_order)
+   @sql_point_kinds Enum.map_join(@sql_point_kind_order, ", ", &"'#{&1}'")

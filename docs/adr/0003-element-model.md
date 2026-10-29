@@ -92,3 +92,6 @@ CHECK constraints. Points and text make rows larger. Erasing is permanent: a
 hard delete leaves no row to restore, which is acceptable while undo and
 history stay excluded. Revisit when an element
 needs relationships (bound arrows, grouping) or styling.
+
+The kinds are now declared once in a registry and checked everywhere else
+(ADR 0004).

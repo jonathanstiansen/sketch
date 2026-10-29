@@ -1,0 +1,13 @@
+diff --git a/assets/js/generated/manifest.ts b/assets/js/generated/manifest.ts
+index 774811c..9893a43 100644
+--- a/assets/js/generated/manifest.ts
++++ b/assets/js/generated/manifest.ts
+@@ -53,7 +53,7 @@ export const TOOLS = [
+   { id: "draw", label: "Draw", keys: ["P", "7"], creates: "freedraw", enabled: true },
+   { id: "text", label: "Text", keys: ["T", "8"], creates: "text", enabled: true },
+   { id: "note", label: "Note", keys: ["N", "9"], creates: "note", enabled: true },
+-  { id: "eraser", label: "Eraser", keys: ["E", "0"], creates: null, enabled: true },
++  { id: "eraser", label: "Eraser", keys: ["E", "X"], creates: null, enabled: true },
+ ] as const satisfies readonly ToolSpec[]
+ 
+ export type ToolId = (typeof TOOLS)[number]["id"]

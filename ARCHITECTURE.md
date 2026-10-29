@@ -19,7 +19,7 @@ All architecture checks are ExUnit tests in `test/architecture/`, run by `mix te
 - **Compiled code (A01, A02, A03, A12)**: reads the BEAM files of modules whose source is in `lib/`.
   OTP `:xref` gives remote call edges; the BEAM atom table catches references that are not calls
   (for example passing `Sketch.Repo` around as a value); module attributes give declared behaviours.
-- **Source files (A13, A18, A20, A21)**: line-based scans of the relevant source trees.
+- **Source files (A13, A18, A20, A21, A22)**: line-based scans of the relevant source trees.
 - **Dependencies (A15)**: the production deps from `mix.exs` and the `dependencies` of
   `assets/package.json` and `e2e/package.json` must equal the allowlist exactly.
 - **TypeScript (A14)**: `tsc` and ESLint run in CI; a test asserts the resolved compiler and ESLint
@@ -52,11 +52,19 @@ the only path excluded from the A21 scan.
 | A16 | Enforcement code and CI changes need review. | Unverified (addendum D6) |
 | A17 | Resource definitions match generated migrations (`mix ash.codegen --check`). | Enforced |
 | A18 | E2E tests use no request interception or mock libraries. | Enforced |
-| A19 | Accepted rules stay active until explicitly changed. The registry test requires A01-A21 exactly once with valid statuses and existing verification files. | Unverified (addendum D6) |
+| A19 | Accepted rules stay active until explicitly changed. The registry test requires A01-A22 exactly once with valid statuses and existing verification files. | Unverified (addendum D6) |
 | A20 | E2E tests contain no fixed sleeps (`waitForTimeout`, `setTimeout`, `sleep(`). | Enforced |
 | A21 | No suppression directives for ESLint, TypeScript, Credo or Dialyzer and no Dialyzer ignore file (addendum D5). | Enforced |
+| A22 | Kind-specific branching lives only in kind modules (`lib/sketch/canvas/kinds/`), element renderers (`lib/sketch_web/elements/`, `assets/js/elements/`) and generated files (`assets/js/generated/`) (ADR 0004). The scan of `lib` and `assets/js` rejects `kind == :x` and `kind === "x"` (either order, negated), `kind in [`, `kind: :x`, `data-kind="x"` and `dataset.kind` comparisons for any element kind. Files of kinds still in `Sketch.Canvas.Kinds.Legacy` are listed in `legacy_kind_files`; each entry must still match, and the list must be empty exactly when `Legacy` is. Element kinds are declared once in `Sketch.Canvas.Kinds`; `SketchWeb.Tools` fails to compile if a tool creates an unknown kind, and `mix sketch.gen.manifest --check` fails `mix ci` and CI if `assets/js/generated/manifest.ts` is stale. | Enforced |
 
 ## Known limits
+
+- A22 is a line-based scan of direct forms. A kind compared through a variable built at runtime, a
+  `case` on the kind or a kind name split across lines is not seen; code review covers those, and
+  the negative fixture covers each direct form.
+- The `elements` CHECK constraints list point kinds in the order the existing migration was
+  generated with (`line`, `arrow`, `freedraw`), not registry order. `Element` keeps that order so the
+  SQL text, and therefore `ash.codegen --check`, does not change; a new point kind is appended.
 
 - The BEAM checks see static calls and module references. A module name built at runtime (for
   example with `Module.concat/1` or `String.to_existing_atom/1`) would not be seen. Code review

@@ -4,6 +4,7 @@ defmodule Sketch.Properties.GeometryTest do
 
   alias Sketch.Canvas
   alias Sketch.Canvas.{Element, Geometry}
+  alias Sketch.CanvasFixtures
 
   @raw_insert """
   INSERT INTO elements (id, board_id, kind, x, y, width, height, points, text)
@@ -14,7 +15,7 @@ defmodule Sketch.Properties.GeometryTest do
   @canvas_height Geometry.canvas_height()
   @max_text_length Geometry.max_text_length()
 
-  defp kind, do: member_of(Canvas.element_kinds())
+  defp kind, do: CanvasFixtures.element_kind()
 
   defp integer_near_bounds(limit) do
     one_of([

@@ -5,6 +5,9 @@ defmodule Sketch.CanvasFixtures do
 
   @max_generated_size 400
 
+  @doc "Generates any element kind; every kind property test draws its kinds from here."
+  def element_kind, do: StreamData.member_of(Sketch.Canvas.element_kinds())
+
   @doc "Create attributes for a default-sized rectangle, overridden by `attrs`."
   def rectangle(attrs) do
     %{default_width: width, default_height: height} = Geometry.dimensions()

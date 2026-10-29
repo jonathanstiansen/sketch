@@ -18,7 +18,7 @@ defmodule Sketch.Properties.LwwMergeTest do
 
       fixed_map(%{
         id: constant(id),
-        kind: member_of(Sketch.Canvas.element_kinds()),
+        kind: Sketch.CanvasFixtures.element_kind(),
         version: version,
         x: integer(0..(Geometry.canvas_width() - width)),
         y: integer(0..(Geometry.canvas_height() - height)),
