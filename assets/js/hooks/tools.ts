@@ -25,7 +25,7 @@ export const TOOLS: readonly Tool[] = [
   { id: "selection", letter: "v", digit: "1", enabled: true },
   { id: "rectangle", letter: "r", digit: "2", enabled: true },
   { id: "diamond", letter: "d", digit: "3", enabled: true },
-  { id: "ellipse", letter: "o", digit: "4", enabled: false },
+  { id: "ellipse", letter: "o", digit: "4", enabled: true },
   { id: "arrow", letter: "a", digit: "5", enabled: false },
   { id: "line", letter: "l", digit: "6", enabled: false },
   { id: "draw", letter: "p", digit: "7", enabled: false },
@@ -36,10 +36,10 @@ export const TOOLS: readonly Tool[] = [
 
 export const DEFAULT_TOOL: ToolId = "selection"
 
-export type DrawnKind = "rectangle" | "diamond"
+export type DrawnKind = "rectangle" | "diamond" | "ellipse"
 
 export function drawnKind(tool: ToolId): DrawnKind | undefined {
-  return tool === "rectangle" || tool === "diamond" ? tool : undefined
+  return tool === "rectangle" || tool === "diamond" || tool === "ellipse" ? tool : undefined
 }
 
 export interface KeyInput {
