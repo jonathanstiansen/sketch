@@ -34,7 +34,7 @@ export const REQUIRED_TEXT_KINDS = ["text"] as const
 
 export type RequiredTextKind = (typeof REQUIRED_TEXT_KINDS)[number]
 
-export const MIGRATED_KINDS = ["rectangle"] as const
+export const MIGRATED_KINDS = ["rectangle", "diamond"] as const
 
 export type MigratedKind = (typeof MIGRATED_KINDS)[number]
 
