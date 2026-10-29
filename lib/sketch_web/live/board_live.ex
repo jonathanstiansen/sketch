@@ -1,7 +1,6 @@
 defmodule SketchWeb.BoardLive do
   use SketchWeb, :live_view
 
-  @cascade_step 150
   @max_x Sketch.Canvas.geometry().max_x
   @max_y Sketch.Canvas.geometry().max_y
 
@@ -21,7 +20,10 @@ defmodule SketchWeb.BoardLive do
 
   @impl true
   def handle_event("add-rectangle", _params, socket) do
-    {x, y} = next_position(map_size(socket.assigns.versions))
+    {x, y} =
+      Sketch.Canvas.default_position(
+        Sketch.Canvas.board_rectangle_count(socket.assigns.board_state)
+      )
 
     case Sketch.Canvas.create_rectangle(%{board_id: socket.assigns.board_id, x: x, y: y}) do
       {:ok, _rectangle} -> {:noreply, socket}
@@ -83,13 +85,15 @@ defmodule SketchWeb.BoardLive do
   @impl true
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: rectangle}, socket)
       when event in ~w(create commit_position) do
-    if rectangle.version > Map.get(socket.assigns.versions, rectangle.id, -1) do
-      {:noreply,
-       socket
-       |> update(:versions, &Map.put(&1, rectangle.id, rectangle.version))
-       |> stream_insert(:rectangles, rectangle)}
-    else
-      {:noreply, socket}
+    case Sketch.Canvas.apply_board_event(socket.assigns.board_state, rectangle) do
+      {:changed, board_state, rectangle} ->
+        {:noreply,
+         socket
+         |> assign(:board_state, board_state)
+         |> stream_insert(:rectangles, rectangle)}
+
+      {:unchanged, _board_state} ->
+        {:noreply, socket}
     end
   end
 
@@ -168,12 +172,7 @@ defmodule SketchWeb.BoardLive do
     socket
     |> assign(:board_id, board_id)
     |> assign(:geometry, Sketch.Canvas.geometry())
-    |> assign(:versions, Map.new(rectangles, &{&1.id, &1.version}))
+    |> assign(:board_state, Sketch.Canvas.new_board_state(rectangles))
     |> stream(:rectangles, rectangles, dom_id: &"rect-#{&1.id}")
-  end
-
-  defp next_position(count) do
-    offset = rem(count, 20) * @cascade_step
-    {100 + offset, 100 + offset}
   end
 end

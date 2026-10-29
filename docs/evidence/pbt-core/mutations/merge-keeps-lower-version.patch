@@ -1,0 +1,13 @@
+diff --git a/lib/sketch/canvas/board_state.ex b/lib/sketch/canvas/board_state.ex
+index 9e8d00b..3c4ac24 100644
+--- a/lib/sketch/canvas/board_state.ex
++++ b/lib/sketch/canvas/board_state.ex
+@@ -27,7 +27,7 @@ defmodule Sketch.Canvas.BoardState do
+         %{id: id, version: version} = event
+       ) do
+     case rectangles do
+-      %{^id => %{version: known}} when known >= version ->
++      %{^id => %{version: known}} when known <= version ->
+         {:unchanged, state}
+ 
+       _newer_or_unknown ->

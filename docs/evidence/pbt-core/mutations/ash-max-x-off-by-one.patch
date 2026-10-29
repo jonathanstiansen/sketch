@@ -1,0 +1,13 @@
+diff --git a/lib/sketch/canvas/rectangle.ex b/lib/sketch/canvas/rectangle.ex
+index 05cdebf..197696b 100644
+--- a/lib/sketch/canvas/rectangle.ex
++++ b/lib/sketch/canvas/rectangle.ex
+@@ -62,7 +62,7 @@ defmodule Sketch.Canvas.Rectangle do
+     attribute :x, :integer,
+       allow_nil?: false,
+       public?: true,
+-      constraints: [min: 0, max: @max_x]
++      constraints: [min: 0, max: @max_x - 1]
+ 
+     attribute :y, :integer,
+       allow_nil?: false,
