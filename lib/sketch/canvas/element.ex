@@ -1,7 +1,7 @@
 defmodule Sketch.Canvas.Element do
   @moduledoc """
-  A shape on a board (ADR 0003): its `kind`, bounding box and, for point kinds such as lines, its
-  points relative to the box origin. `version` is the server-ordered tag of the shape (ADR 0001).
+  A shape on a board (ADR 0003): its `kind`, bounding box, for point kinds such as lines its points
+  relative to the box origin, and for text kinds its text. `version` is the server-ordered tag of the shape (ADR 0001).
   """
   use Ash.Resource,
     otp_app: :sketch,
@@ -10,15 +10,16 @@ defmodule Sketch.Canvas.Element do
     notifiers: [Ash.Notifier.PubSub]
 
   alias Sketch.Canvas.Geometry
-  alias Sketch.Canvas.Validations.{FitsCanvas, PointsFitShape}
+  alias Sketch.Canvas.Validations.{FitsCanvas, PointsFitShape, TextFitsKind}
 
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
-  @kinds [:rectangle, :diamond, :ellipse, :arrow, :freedraw, :line]
+  @kinds [:rectangle, :diamond, :ellipse, :arrow, :freedraw, :line, :text]
   @point_kinds Geometry.point_kinds()
   @box_kinds @kinds -- @point_kinds
   @box_min_size Geometry.min_size(:rectangle)
-  @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :version]
+  @max_text_length Geometry.max_text_length()
+  @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :text, :version]
 
   @sql_point_kinds Enum.map_join(@point_kinds, ", ", &"'#{&1}'")
   @sql_point_counts Enum.map_join(@point_kinds, " ", fn kind ->
@@ -26,6 +27,8 @@ defmodule Sketch.Canvas.Element do
 
                       "WHEN kind = '#{kind}' THEN cardinality(points) BETWEEN #{range.first} AND #{range.last}"
                     end)
+  @sql_text_kinds Enum.map_join(Geometry.text_kinds(), ", ", &"'#{&1}'")
+  @sql_not_text_whitespace ~S"[^ \t\n\r]"
   @sql_point_outside String.trim(~S"""
                      $[*] ? (@.type() != "object" || !exists(@.x) || !exists(@.y) ||
                        @.x.type() != "number" || @.y.type() != "number" ||
@@ -64,6 +67,12 @@ defmodule Sketch.Canvas.Element do
           jsonb_build_object('w', width, 'h', height))
         """
 
+      check_constraint :text, "text_length", check: "char_length(text) <= #{@max_text_length}"
+
+      check_constraint :text, "text_matches_kind",
+        check:
+          "CASE WHEN kind IN (#{@sql_text_kinds}) THEN text ~ '#{@sql_not_text_whitespace}' ELSE text = '' END"
+
       check_constraint :version, "version_not_negative", check: "version >= 0"
     end
   end
@@ -72,7 +81,7 @@ defmodule Sketch.Canvas.Element do
     defaults [:read]
 
     create :create do
-      accept [:kind, :x, :y, :width, :height, :points, :board_id]
+      accept [:kind, :x, :y, :width, :height, :points, :text, :board_id]
     end
 
     update :commit_position do
@@ -81,7 +90,7 @@ defmodule Sketch.Canvas.Element do
     end
 
     update :commit_shape do
-      accept [:x, :y, :width, :height, :points]
+      accept [:x, :y, :width, :height, :points, :text]
       require_attributes [:x, :y, :width, :height]
       change atomic_update(:version, expr(version + 1))
     end
@@ -113,6 +122,7 @@ defmodule Sketch.Canvas.Element do
       where: [attribute_in(:kind, @box_kinds)]
 
     validate {PointsFitShape, kinds: @kinds}
+    validate {TextFitsKind, kinds: @kinds}
   end
 
   attributes do
@@ -148,6 +158,12 @@ defmodule Sketch.Canvas.Element do
       default: [],
       public?: true,
       constraints: [max_length: Geometry.max_points()]
+
+    attribute :text, :string,
+      allow_nil?: false,
+      default: "",
+      public?: true,
+      constraints: [max_length: @max_text_length, allow_empty?: true, trim?: false]
 
     attribute :version, :integer,
       allow_nil?: false,

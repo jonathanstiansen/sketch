@@ -6,12 +6,13 @@ defmodule Sketch.Properties.GeometryTest do
   alias Sketch.Canvas.{Element, Geometry}
 
   @raw_insert """
-  INSERT INTO elements (id, board_id, kind, x, y, width, height, points)
-  VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7)
+  INSERT INTO elements (id, board_id, kind, x, y, width, height, points, text)
+  VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)
   """
 
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
+  @max_text_length Geometry.max_text_length()
 
   defp kind, do: member_of(Canvas.element_kinds())
 
@@ -111,13 +112,42 @@ defmodule Sketch.Properties.GeometryTest do
     bind(valid_box(), fn box -> map(stroke_inside(box), &{:freedraw, box, &1}) end)
   end
 
-  defp shape do
+  defp text_of_code_points(count) do
+    "a é 😀\n\t\r\u0301\u00a0<>&"
+    |> String.codepoints()
+    |> member_of()
+    |> list_of(length: count)
+    |> map(&Enum.join/1)
+  end
+
+  defp combining_text(graphemes),
+    do: constant(String.duplicate("e\u0301", graphemes))
+
+  defp text do
     one_of([
-      bind(tuple({kind(), shape_box()}), fn {kind, box} ->
-        map(points_near(box), &{kind, box, &1})
-      end),
-      stroke_shape()
+      constant(""),
+      member_of([" ", "\n", " \t\r\n ", "\u00a0", "\u0000", "a\u0000b", "<b>x</b>", "x"]),
+      string(:printable, max_length: 40),
+      string(:utf8, max_length: 40),
+      bind(
+        member_of([@max_text_length - 1, @max_text_length, @max_text_length + 1]),
+        &text_of_code_points/1
+      ),
+      bind(member_of([div(@max_text_length, 2), div(@max_text_length, 2) + 1]), &combining_text/1)
     ])
+  end
+
+  defp shape do
+    bind(
+      one_of([
+        bind(tuple({kind(), shape_box()}), fn {kind, box} ->
+          map(points_near(box), &{kind, box, &1})
+        end),
+        stroke_shape(),
+        map(valid_box(), &{:text, &1, []})
+      ]),
+      fn {kind, box, points} -> map(text(), &{kind, box, points, &1}) end
+    )
   end
 
   defp in_bounds?(%{x: x, y: y, width: width, height: height}, min_size \\ 1) do
@@ -130,10 +160,18 @@ defmodule Sketch.Properties.GeometryTest do
 
   defp well_formed?(_point), do: false
 
-  defp valid_shape?({kind, box, points}) do
+  defp valid_shape?({kind, box, points, text}) do
     in_bounds?(box, min_size(kind)) and length(points) in point_count(kind) and
-      Enum.all?(points, &well_formed?/1) and inside?(points, box.width, box.height)
+      Enum.all?(points, &well_formed?/1) and inside?(points, box.width, box.height) and
+      text_fits?(kind, text)
   end
+
+  defp text_fits?(:text, text) do
+    length(String.codepoints(text)) <= @max_text_length and not String.contains?(text, "\u0000") and
+      String.replace(text, [" ", "\t", "\n", "\r"], "") != ""
+  end
+
+  defp text_fits?(_kind, text), do: text == ""
 
   defp min_size(kind) when kind in [:arrow, :freedraw, :line], do: 0
   defp min_size(_box_kind), do: 1
@@ -145,13 +183,13 @@ defmodule Sketch.Properties.GeometryTest do
   defp inside?(points, width, height),
     do: Enum.all?(points, &(&1.x in 0..width//1 and &1.y in 0..height//1))
 
-  defp ash_accepts?(board, {kind, box, points}) do
-    attrs = Map.merge(box, %{board_id: board.id, kind: kind, points: points})
+  defp ash_accepts?(board, {kind, box, points, text}) do
+    attrs = Map.merge(box, %{board_id: board.id, kind: kind, points: points, text: text})
     Ash.Changeset.for_create(Element, :create, attrs).valid?
   end
 
-  defp database_accepts?(board, {kind, %{x: x, y: y, width: width, height: height}, points}) do
-    params = [Ecto.UUID.dump!(board.id), Atom.to_string(kind), x, y, width, height, points]
+  defp database_accepts?(board, {kind, %{x: x, y: y, width: width, height: height}, points, text}) do
+    params = [Ecto.UUID.dump!(board.id), Atom.to_string(kind), x, y, width, height, points, text]
     match?({:ok, _result}, Repo.query(@raw_insert, params, mode: :savepoint))
   end
 
@@ -159,14 +197,14 @@ defmodule Sketch.Properties.GeometryTest do
     %{board: Canvas.create_board!()}
   end
 
-  property "Ash alone accepts a shape iff its box fits the canvas and its kind's minimum size, and its points fit the kind and the box",
+  property "Ash alone accepts a shape iff its box fits the canvas and its kind's minimum size, its points fit the kind and the box, and its text fits the kind",
            %{board: board} do
     check all shape <- shape(), max_runs: 500 do
       assert ash_accepts?(board, shape) == valid_shape?(shape), inspect(shape)
     end
   end
 
-  property "PostgreSQL alone accepts a shape iff its box fits the canvas and its kind's minimum size, and its points fit the kind and the box",
+  property "PostgreSQL alone accepts a shape iff its box fits the canvas and its kind's minimum size, its points fit the kind and the box, and its text fits the kind",
            %{board: board} do
     check all shape <- shape(), max_runs: 500 do
       assert database_accepts?(board, shape) == valid_shape?(shape), inspect(shape)
@@ -184,7 +222,7 @@ defmodule Sketch.Properties.GeometryTest do
               b <- fixed_map(%{x: integer(-100..4100), y: integer(-100..4100)}),
               max_runs: 1000 do
       %{box: box, points: points} = Geometry.around_points([a, b])
-      assert valid_shape?({:line, box, points})
+      assert valid_shape?({:line, box, points, ""})
 
       clamp = fn %{x: x, y: y} ->
         %{x: x |> max(0) |> min(@canvas_width), y: y |> max(0) |> min(@canvas_height)}

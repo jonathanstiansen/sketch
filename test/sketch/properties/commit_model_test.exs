@@ -89,6 +89,7 @@ defmodule Sketch.Properties.CommitModelTest do
   defp initial_shape(kind, box) when kind in [:arrow, :freedraw, :line],
     do: %{points: [%{x: 0, y: 0}, %{x: box.width, y: box.height}]}
 
+  defp initial_shape(:text, _box), do: %{text: "hello"}
   defp initial_shape(_box_kind, _box), do: %{}
 
   defp seed_board do

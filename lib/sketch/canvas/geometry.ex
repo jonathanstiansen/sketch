@@ -3,7 +3,9 @@ defmodule Sketch.Canvas.Geometry do
   Canvas and element dimensions (addendum D1, D8). Every bound on an element's box and points
   derives from here: `x >= 0`, `y >= 0`, `x + width <= canvas_width`, `y + height <= canvas_height`,
   a size of at least `min_size(kind)`, and for point kinds a bounded number of points, each relative
-  to the box origin and inside `[0, width] x [0, height]`.
+  to the box origin and inside `[0, width] x [0, height]`. Text kinds hold non-blank text of at most
+  `max_text_length` code points, laid out one line per `line_height` at a fixed `font_size`; every
+  other kind holds empty text.
   """
 
   @canvas_width 4000
@@ -14,6 +16,12 @@ defmodule Sketch.Canvas.Geometry do
   @max_freedraw_points 500
   @point_counts %{arrow: 2..2//1, freedraw: 2..@max_freedraw_points//1, line: 2..2//1}
   @max_points @point_counts |> Map.values() |> Enum.map(& &1.last) |> Enum.max()
+  @text_kinds [:text]
+  @max_text_length 2000
+  @font_size 20
+  @line_height 25
+  @text_baseline 19
+  @text_whitespace [?\s, ?\t, ?\n, ?\r]
   @cascade_start 100
   @cascade_step 150
   @cascade_length 20
@@ -33,7 +41,11 @@ defmodule Sketch.Canvas.Geometry do
           default_width: pos_integer(),
           default_height: pos_integer(),
           min_size: pos_integer(),
-          max_points: pos_integer()
+          max_points: pos_integer(),
+          max_text_length: pos_integer(),
+          font_size: pos_integer(),
+          line_height: pos_integer(),
+          text_baseline: pos_integer()
         }
 
   @spec canvas_width() :: pos_integer()
@@ -57,6 +69,27 @@ defmodule Sketch.Canvas.Geometry do
 
   @spec max_points() :: pos_integer()
   def max_points, do: @max_points
+
+  @doc "The kinds that hold text."
+  @spec text_kinds() :: [atom()]
+  def text_kinds, do: @text_kinds
+
+  @spec max_text_length() :: pos_integer()
+  def max_text_length, do: @max_text_length
+
+  @doc """
+  Whether `text` suits an element of `kind`: a text kind needs at most `max_text_length` code points,
+  no NUL (PostgreSQL text cannot hold one) and a character other than a space, tab, CR or LF; any
+  other kind needs `""`.
+  """
+  @spec text_fits_kind?(atom(), String.t()) :: boolean()
+  def text_fits_kind?(kind, text) when kind in @text_kinds and is_binary(text) do
+    String.valid?(text) and not String.contains?(text, <<0>>) and
+      length(String.codepoints(text)) <= @max_text_length and
+      text |> String.to_charlist() |> Enum.any?(&(&1 not in @text_whitespace))
+  end
+
+  def text_fits_kind?(_kind, text), do: text == ""
 
   @doc "Whether every point lies inside `[0, width] x [0, height]`."
   @spec points_inside?([point()], non_neg_integer(), non_neg_integer()) :: boolean()
@@ -128,7 +161,11 @@ defmodule Sketch.Canvas.Geometry do
       default_width: @default_width,
       default_height: @default_height,
       min_size: @min_size,
-      max_points: @max_points
+      max_points: @max_points,
+      max_text_length: @max_text_length,
+      font_size: @font_size,
+      line_height: @line_height,
+      text_baseline: @text_baseline
     }
   end
 end
