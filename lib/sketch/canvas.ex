@@ -28,4 +28,18 @@ defmodule Sketch.Canvas do
   defdelegate rectangle_event(rectangle), to: Sketch.Canvas.Rectangle, as: :to_event
 
   defdelegate geometry, to: Sketch.Canvas.Geometry, as: :dimensions
+
+  defdelegate default_position(rectangle_count), to: Sketch.Canvas.Geometry
+
+  @doc "A client's merged view of a board, built from rectangle events (ADR 0001)."
+  defdelegate new_board_state(rectangle_events), to: Sketch.Canvas.BoardState, as: :new
+
+  @doc "Merges a rectangle event; only a higher version than the known one changes the state."
+  defdelegate apply_board_event(board_state, rectangle_event),
+    to: Sketch.Canvas.BoardState,
+    as: :apply_event
+
+  defdelegate board_rectangle_count(board_state),
+    to: Sketch.Canvas.BoardState,
+    as: :rectangle_count
 end

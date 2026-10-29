@@ -7,6 +7,9 @@ defmodule Sketch.Canvas.Geometry do
   @canvas_height 4000
   @rectangle_width 120
   @rectangle_height 80
+  @cascade_start 100
+  @cascade_step 150
+  @cascade_length 20
 
   @type t :: %{
           canvas_width: pos_integer(),
@@ -22,6 +25,13 @@ defmodule Sketch.Canvas.Geometry do
 
   @spec max_y() :: non_neg_integer()
   def max_y, do: @canvas_height - @rectangle_height
+
+  @doc "Where the next new rectangle goes on a board that already has `count` rectangles."
+  @spec default_position(non_neg_integer()) :: {non_neg_integer(), non_neg_integer()}
+  def default_position(count) do
+    offset = rem(count, @cascade_length) * @cascade_step
+    {@cascade_start + offset, @cascade_start + offset}
+  end
 
   @spec dimensions() :: t()
   def dimensions do
