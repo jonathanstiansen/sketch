@@ -6,7 +6,7 @@ defmodule Sketch.Properties.CommitModelTest do
   alias Sketch.Canvas
   alias Sketch.Canvas.Geometry
 
-  @kinds Canvas.element_kinds() ++ [:line]
+  @kinds Canvas.element_kinds()
   @element_count length(@kinds)
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
@@ -76,16 +76,16 @@ defmodule Sketch.Properties.CommitModelTest do
       length(points) == point_count(kind) and inside?(points, width, height)
   end
 
-  defp min_size(:line), do: 0
+  defp min_size(kind) when kind in [:arrow, :line], do: 0
   defp min_size(_box_kind), do: 1
 
-  defp point_count(:line), do: 2
+  defp point_count(kind) when kind in [:arrow, :line], do: 2
   defp point_count(_box_kind), do: 0
 
   defp inside?(points, width, height),
     do: Enum.all?(points, &(&1.x in 0..width//1 and &1.y in 0..height//1))
 
-  defp initial_shape(:line, box),
+  defp initial_shape(kind, box) when kind in [:arrow, :line],
     do: %{points: [%{x: 0, y: 0}, %{x: box.width, y: box.height}]}
 
   defp initial_shape(_box_kind, _box), do: %{}

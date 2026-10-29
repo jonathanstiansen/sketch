@@ -36,7 +36,7 @@ Generalise `Sketch.Canvas.Rectangle` into `Sketch.Canvas.Element`
 - `points` (added with the line, arrow and draw tools): for `:line`, `:arrow` and
   `:freedraw`, a list of the embedded resource `Sketch.Canvas.Point` (`x`, `y`
   integers) relative to `x`/`y`, each inside `[0, width] x [0, height]`. The count
-  per kind comes from `Geometry.point_count/1` (a line has exactly 2). Empty for
+  per kind comes from `Geometry.point_count/1` (a line or an arrow has exactly 2; an arrow's head is at its second point). Empty for
   other kinds. It is stored as `jsonb[]`, the AshPostgres default for an array of
   embeds: a single `jsonb` column breaks atomic updates, which cast the value to
   `jsonb[]`. The `PointsFitShape` validation and two CHECK constraints

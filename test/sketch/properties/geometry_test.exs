@@ -117,10 +117,10 @@ defmodule Sketch.Properties.GeometryTest do
       Enum.all?(points, &well_formed?/1) and inside?(points, box.width, box.height)
   end
 
-  defp min_size(:line), do: 0
+  defp min_size(kind) when kind in [:arrow, :line], do: 0
   defp min_size(_box_kind), do: 1
 
-  defp point_count(:line), do: 2
+  defp point_count(kind) when kind in [:arrow, :line], do: 2
   defp point_count(_box_kind), do: 0
 
   defp inside?(points, width, height),
