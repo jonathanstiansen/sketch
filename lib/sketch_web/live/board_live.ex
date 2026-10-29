@@ -219,22 +219,10 @@ defmodule SketchWeb.BoardLive do
             class="block select-none bg-base-100"
           >
             <g id="elements" phx-update="stream">
-              <rect
+              <.element_shape
                 :for={{dom_id, element} <- @streams.elements}
-                id={dom_id}
-                x={element.x}
-                y={element.y}
-                width={element.width}
-                height={element.height}
-                data-element={element.id}
-                data-kind={element.kind}
-                data-x={element.x}
-                data-y={element.y}
-                data-width={element.width}
-                data-height={element.height}
-                data-version={element.version}
-                stroke-width="2"
-                class="fill-primary stroke-base-content cursor-grab touch-none"
+                dom_id={dom_id}
+                element={element}
               />
             </g>
             <g id="draw-previews" phx-update="ignore"></g>
@@ -245,6 +233,61 @@ defmodule SketchWeb.BoardLive do
     </Layouts.app>
     """
   end
+
+  attr :dom_id, :string, required: true
+  attr :element, :map, required: true
+
+  defp element_shape(%{element: %{kind: :diamond}} = assigns) do
+    ~H"""
+    <polygon
+      id={@dom_id}
+      points={diamond_points(@element)}
+      x={@element.x}
+      y={@element.y}
+      width={@element.width}
+      height={@element.height}
+      data-element={@element.id}
+      data-kind={@element.kind}
+      data-x={@element.x}
+      data-y={@element.y}
+      data-width={@element.width}
+      data-height={@element.height}
+      data-version={@element.version}
+      stroke-width="2"
+      class="fill-primary stroke-base-content cursor-grab touch-none"
+    />
+    """
+  end
+
+  defp element_shape(assigns) do
+    ~H"""
+    <rect
+      id={@dom_id}
+      x={@element.x}
+      y={@element.y}
+      width={@element.width}
+      height={@element.height}
+      data-element={@element.id}
+      data-kind={@element.kind}
+      data-x={@element.x}
+      data-y={@element.y}
+      data-width={@element.width}
+      data-height={@element.height}
+      data-version={@element.version}
+      stroke-width="2"
+      class="fill-primary stroke-base-content cursor-grab touch-none"
+    />
+    """
+  end
+
+  defp diamond_points(%{x: x, y: y, width: width, height: height}) do
+    mid_x = coordinate(x + width / 2)
+    mid_y = coordinate(y + height / 2)
+    "#{mid_x},#{y} #{x + width},#{mid_y} #{mid_x},#{y + height} #{x},#{mid_y}"
+  end
+
+  defp coordinate(value) when value == trunc(value), do: trunc(value)
+  defp coordinate(value), do: value
 
   defp create_element(socket, kind, box) do
     case Sketch.Canvas.create_element(

@@ -104,7 +104,7 @@
 
 /* This file is for your main application CSS */
 
-#canvas-viewport[data-tool="rectangle"] {
+#canvas-viewport:is([data-tool="rectangle"], [data-tool="diamond"]) {
   cursor: crosshair;
 }
 
@@ -116,8 +116,8 @@
   cursor: grabbing;
 }
 
-#canvas-viewport:not([data-tool="selection"]) rect[data-element],
-#canvas-viewport:is([data-space-held="true"], [data-panning="true"]) :is(rect[data-element], rect[data-handle]) {
+#canvas-viewport:not([data-tool="selection"]) [data-element],
+#canvas-viewport:is([data-space-held="true"], [data-panning="true"]) :is([data-element], rect[data-handle]) {
   cursor: inherit;
 }
 

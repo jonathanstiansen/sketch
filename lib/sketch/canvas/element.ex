@@ -15,7 +15,7 @@ defmodule Sketch.Canvas.Element do
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
   @min_size Geometry.min_size()
-  @kinds [:rectangle]
+  @kinds [:rectangle, :diamond]
   @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :version]
 
   postgres do

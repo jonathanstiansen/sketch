@@ -216,6 +216,14 @@ test("every toolbar shortcut and button selects its tool; disabled tools stay un
     "eraser",
   ])
 
+  expect(buttons.filter(({ enabled }) => enabled).map(({ tool }) => tool)).toEqual([
+    "hand",
+    "selection",
+    "rectangle",
+    "diamond",
+  ])
+  expect(buttons.find(({ tool }) => tool === "diamond")?.keys).toEqual(["D", "3"])
+
   for (const { tool, keys, enabled } of buttons) {
     for (const key of keys) {
       await page.keyboard.press("h")

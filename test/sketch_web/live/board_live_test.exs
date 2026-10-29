@@ -70,6 +70,28 @@ defmodule SketchWeb.BoardLiveTest do
     assert length(Canvas.list_elements_for_board!(board.id)) == 6
   end
 
+  test "a drawn diamond is stored with its kind and rendered as a polygon in every view", %{
+    conn: conn,
+    board: board
+  } do
+    {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+    {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+
+    render_hook(creator, "create_element", %{
+      create_params(10, 20, 101, 40)
+      | "kind" => "diamond"
+    })
+
+    assert [%{kind: :diamond, id: id}] = Canvas.list_elements_for_board!(board.id)
+
+    for view <- [creator, watcher] do
+      assert has_element?(
+               view,
+               "polygon#element-#{id}[data-kind='diamond'][x='10'][width='101'][points='60.5,20 111,40 60.5,60 10,40']"
+             )
+    end
+  end
+
   test "create_element ends the draw preview in other views", %{conn: conn, board: board} do
     {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
     {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")

@@ -7,11 +7,13 @@ defmodule Sketch.Properties.GeometryTest do
 
   @raw_insert """
   INSERT INTO elements (id, board_id, kind, x, y, width, height)
-  VALUES (gen_random_uuid(), $1, 'rectangle', $2, $3, $4, $5)
+  VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
   """
 
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
+
+  defp kind, do: member_of(Canvas.element_kinds())
 
   defp integer_near_bounds(limit) do
     one_of([
@@ -64,13 +66,13 @@ defmodule Sketch.Properties.GeometryTest do
       y + height <= @canvas_height
   end
 
-  defp ash_accepts?(board, box) do
-    attrs = Map.merge(box, %{board_id: board.id, kind: :rectangle})
+  defp ash_accepts?(board, kind, box) do
+    attrs = Map.merge(box, %{board_id: board.id, kind: kind})
     Ash.Changeset.for_create(Element, :create, attrs).valid?
   end
 
-  defp database_accepts?(board, %{x: x, y: y, width: width, height: height}) do
-    params = [Ecto.UUID.dump!(board.id), x, y, width, height]
+  defp database_accepts?(board, kind, %{x: x, y: y, width: width, height: height}) do
+    params = [Ecto.UUID.dump!(board.id), Atom.to_string(kind), x, y, width, height]
     match?({:ok, _result}, Repo.query(@raw_insert, params, mode: :savepoint))
   end
 
@@ -78,19 +80,19 @@ defmodule Sketch.Properties.GeometryTest do
     %{board: Canvas.create_board!()}
   end
 
-  property "Ash alone accepts a box iff it is at least 1 x 1 and inside the canvas", %{
-    board: board
-  } do
-    check all box <- any_box(), max_runs: 300 do
-      assert ash_accepts?(board, box) == in_bounds?(box), inspect(box)
+  property "Ash alone accepts a box of any kind iff it is at least 1 x 1 and inside the canvas",
+           %{
+             board: board
+           } do
+    check all kind <- kind(), box <- any_box(), max_runs: 300 do
+      assert ash_accepts?(board, kind, box) == in_bounds?(box), inspect({kind, box})
     end
   end
 
-  property "PostgreSQL alone accepts a box iff it is at least 1 x 1 and inside the canvas", %{
-    board: board
-  } do
-    check all box <- any_box(), max_runs: 300 do
-      assert database_accepts?(board, box) == in_bounds?(box), inspect(box)
+  property "PostgreSQL alone accepts a box of any kind iff it is at least 1 x 1 and inside the canvas",
+           %{board: board} do
+    check all kind <- kind(), box <- any_box(), max_runs: 300 do
+      assert database_accepts?(board, kind, box) == in_bounds?(box), inspect({kind, box})
     end
   end
 
