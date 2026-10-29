@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test, type Locator, type Page } from "@playwright/test"
 import { canvasPoint, clickAt, closeSession, moveTo, openSharedBoard, pressAt } from "./support/canvas"
 
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
@@ -19,6 +19,15 @@ async function expectText(page: Page, text: string, version: number): Promise<vo
   await expect(page.locator(`${textElement} b`)).toHaveCount(0)
 }
 
+async function typeWatched(typist: Page, watched: Locator, typed: string, before = ""): Promise<void> {
+  let shown = before
+  for (const character of typed) {
+    await typist.keyboard.type(character)
+    shown += character
+    await expect(watched).toHaveText(shown)
+  }
+}
+
 async function textBox(page: Page): Promise<{ x: number; y: number; width: number; height: number }> {
   const group = page.locator(textElement)
   const number = async (name: string): Promise<number> => Number(await group.getAttribute(name))
@@ -36,8 +45,7 @@ test("A types multi-line text B watches appear, edits it with a double-click, mo
     await clickAt(pageA, 300, 200)
     await expect(pageA.locator(editor)).toBeFocused()
 
-    await pageA.keyboard.type("rv over <b>x</b>")
-    await expect(pageB.locator(drawPreview)).toHaveText("rv over <b>x</b>")
+    await typeWatched(pageA, pageB.locator(drawPreview), "rv over <b>x</b>")
     await expect(pageB.locator(textElement)).toHaveCount(0)
     await expectTool(pageA, "text")
 
@@ -60,7 +68,7 @@ test("A types multi-line text B watches appear, edits it with a double-click, mo
     await pageA.locator(textElement).dblclick()
     await expect(pageA.locator(editor)).toBeFocused()
     await expect(pageA.locator(editor)).toHaveValue("rv over <b>x</b>\nsecond line")
-    await pageA.keyboard.type(" vr")
+    await typeWatched(pageA, pageB.locator(lines).nth(1), " vr", "second line")
     await expect(pageB.locator(lines)).toHaveText(["rv over <b>x</b>", "second line vr"])
     await expect(pageB.locator(textElement)).toHaveAttribute("data-version", "0")
     await expectTool(pageA, "selection")
