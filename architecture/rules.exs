@@ -56,12 +56,13 @@
       id: "A08",
       rule: "Invalid coordinates and sizes cannot be persisted",
       status: :enforced,
-      enforcement: "Ash attribute constraints, the atomic FitsCanvas and PointsFitShape validations and per-kind minimum sizes, plus PostgreSQL CHECK constraints on the box and on line, arrow and freehand points (2 to 500 per stroke) (addendum D1, D8, ADR 0003); property tests compare Ash and raw SQL inserts over arbitrary boxes and points",
+      enforcement: "Ash attribute constraints (text max_length counted in code points), the atomic FitsCanvas, PointsFitShape and TextFitsKind validations and per-kind minimum sizes, plus PostgreSQL CHECK constraints on the box, on line, arrow and freehand points (2 to 500 per stroke) and on text (non-blank and at most 2000 code points for text elements, empty otherwise) (addendum D1, D8, ADR 0003); property tests compare Ash and raw SQL inserts over arbitrary boxes, points and strings",
       verified_by: [
         "test/sketch/canvas/element_test.exs",
         "test/sketch/properties/geometry_test.exs",
         "test/sketch/properties/commit_model_test.exs",
-        "assets/test/freedraw_geometry.test.ts"
+        "assets/test/freedraw_geometry.test.ts",
+        "assets/test/text_geometry.test.ts"
       ]
     },
     %{

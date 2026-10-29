@@ -86,12 +86,21 @@ Consequences for the earlier decisions:
   `height >= 0`, since a straight line can be zero-width; a freehand stroke has 2 to 500 points; their points are
   relative to `x`/`y` and must lie inside the box, also enforced by Ash and
   PostgreSQL (ADR 0003).
+  Text elements hold non-blank text of at most 2000 code points (counted like
+  PostgreSQL `char_length`, without NUL); every other kind holds `""`, also
+  enforced by Ash and PostgreSQL. Text renders at a fixed 20 px font size and
+  25 px line height from `Geometry`; its box is the line count times the line
+  height by the measured longest line. Text elements move but have no resize
+  handles.
 - D2: previews carry the whole box:
   `{element_id, drag_id, seq, base_version, x, y, width, height}`, used for
   moves and resizes. Drawing a new element sends `draw_preview`
   `{drag_id, seq, kind, x, y, width, height}` and ends with `draw_end`
   `{drag_id}`, sent on cancel or after the element is created. Draw previews
   follow the same rules: throttled to 20 per second, never persisted, dropped
-  after 2000 ms of silence.
+  after 2000 ms of silence. Typing text adds `text` to these payloads:
+  `draw_preview` with kind `text` for new text and `preview` for an edit. An
+  open editor resends its latest preview every second, so a typing pause does
+  not trigger the 2000 ms timeout.
 - D0: `commit_shape` is a second update action with the same atomic version
   increment as `commit_position`; the client merge rule is unchanged.

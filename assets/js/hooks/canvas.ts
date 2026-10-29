@@ -5,6 +5,7 @@ import {
   cornerPoint,
   drawnBox,
   endpointPoint,
+  isBlankText,
   isDrag,
   movedBox,
   movedEndpoint,
@@ -24,37 +25,44 @@ import {
   type Shape,
   type Size,
 } from "./canvas_logic"
-import { DrawLayer, SelectionOverlay, isCorner, isEndpoint, setShape } from "./selection"
+import { DrawLayer, SelectionOverlay, isCorner, isEndpoint, setShape, setText, type TextLayout } from "./selection"
+import { TextEditor } from "./text_editor"
 import {
   DEFAULT_TOOL,
   drawnKind,
-  hasEndpointHandles,
-  isDrawnKind,
   isPointKind,
+  isPreviewKind,
   isPanKey,
   nextTool,
   panScroll,
   pointerAction,
   selectTool,
+  selectionHandles,
   togglesHelp,
   type DrawnKind,
+  type PreviewKind,
   type KeyInput,
   type ToolId,
 } from "./tools"
 
 const STALE_PREVIEW_MS = 2000
+const TEXT_KEEPALIVE_MS = 1000
 const DRAGGING = "data-dragging"
+const TEXT_EDITING = "data-text-editing"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
 const SEGMENT_ATTRIBUTES = ["x1", "y1", "x2", "y2"]
-const BOX_ATTRIBUTES = ["x", "y", "width", "height", "points", "cx", "cy", "rx", "ry", ...SEGMENT_ATTRIBUTES]
+const BOX_ATTRIBUTES = ["x", "y", "width", "height", "points", "cx", "cy", "rx", "ry", "transform", ...SEGMENT_ATTRIBUTES]
 const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", ...SEGMENT_ATTRIBUTES]
 
-interface Throttled {
-  dragId: string
-  pointerId: number
+interface PreviewClock {
   seq: number
   lastSentAt: number
   previewTimer: number | undefined
+}
+
+interface Throttled extends PreviewClock {
+  dragId: string
+  pointerId: number
 }
 
 type Grip = { mode: "move" } | { mode: "resize"; corner: Corner } | { mode: "endpoint"; endpoint: Endpoint }
@@ -81,10 +89,23 @@ interface Draw extends Throttled {
 type Gesture = Edit | Draw
 
 interface DrawPreview extends Box {
-  kind: DrawnKind
+  kind: PreviewKind
   drag_id: string
   seq: number
   points: readonly Point[]
+  text?: string
+}
+
+type TextTarget =
+  | { mode: "create" }
+  | { mode: "edit"; element: SVGElement; elementId: string; baseVersion: number; text: string }
+
+interface TextSession extends PreviewClock {
+  target: TextTarget
+  dragId: string
+  keepAlive: number
+  text: string
+  box: Box
 }
 
 interface Pan {
@@ -130,6 +151,10 @@ function isDragRef(value: unknown): value is DragRef {
   return isRecord(value) && typeof value.element_id === "string" && typeof value.drag_id === "string"
 }
 
+function isOptionalText(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === "string"
+}
+
 function isPreview(value: unknown): value is Preview {
   return (
     isDragRef(value) &&
@@ -137,7 +162,8 @@ function isPreview(value: unknown): value is Preview {
     Number.isInteger(value.seq) &&
     Number.isInteger(value.base_version) &&
     isBox(value) &&
-    isPoints(value.points)
+    isPoints(value.points) &&
+    isOptionalText(value.text)
   )
 }
 
@@ -145,11 +171,12 @@ function isDrawPreview(value: unknown): value is DrawPreview {
   return (
     isRecord(value) &&
     typeof value.kind === "string" &&
-    isDrawnKind(value.kind) &&
+    isPreviewKind(value.kind) &&
     typeof value.drag_id === "string" &&
     Number.isInteger(value.seq) &&
     isBox(value) &&
-    isPoints(value.points)
+    isPoints(value.points) &&
+    isOptionalText(value.text)
   )
 }
 
@@ -228,7 +255,7 @@ function subtract(a: Point, b: Point): Point {
 export function keepDraggedPosition(fromEl: Element, toEl: Element): void {
   if (fromEl.hasAttribute(DRAGGING)) {
     toEl.setAttribute(DRAGGING, "")
-  } else if (fromEl.parentElement?.hasAttribute(DRAGGING) !== true) {
+  } else if (fromEl.parentElement?.closest(`[${DRAGGING}]`) == null) {
     return
   }
   for (const name of BOX_ATTRIBUTES) {
@@ -255,6 +282,8 @@ function editedShape(edit: Edit, pointer: Point, canvas: Size): Shape {
 
 export class Canvas extends ViewHook {
   private gesture: Gesture | undefined
+  private textSession: TextSession | undefined
+  private textEditor: TextEditor | undefined
   private remotePreviews = new RemotePreviews()
   private remoteDraws = new RemotePreviews()
   private staleTimers = new Map<string, number>()
@@ -288,6 +317,7 @@ export class Canvas extends ViewHook {
     this.el.addEventListener("pointerup", this.onPointerUp)
     this.el.addEventListener("pointercancel", this.onPointerCancel)
     this.el.addEventListener("lostpointercapture", this.onPointerCancel)
+    this.el.addEventListener("dblclick", this.onDoubleClick)
     this.handleEvent("preview", (payload: unknown) => {
       if (isPreview(payload)) this.applyRemotePreview(payload)
     })
@@ -310,6 +340,7 @@ export class Canvas extends ViewHook {
   override disconnected(): void {
     this.online = false
     if (this.gesture !== undefined) this.abandonGesture(this.gesture)
+    this.textEditor?.commit()
   }
 
   override reconnected(): void {
@@ -322,10 +353,18 @@ export class Canvas extends ViewHook {
     window.removeEventListener("blur", this.releaseSpace)
     this.observer?.disconnect()
     if (this.gesture !== undefined) window.clearTimeout(this.gesture.previewTimer)
+    if (this.textSession !== undefined) this.endText(this.textSession)
     for (const timer of this.staleTimers.values()) window.clearTimeout(timer)
   }
 
   private onPointerDown = (event: PointerEvent): void => {
+    if (this.textEditor !== undefined) {
+      if (!this.textEditor.contains(event.target)) {
+        event.preventDefault()
+        this.textEditor.commit()
+      }
+      return
+    }
     if (this.gesture !== undefined || this.pan !== undefined) return
     const target = event.target instanceof Element ? event.target : null
     const rect = target?.closest<SVGElement>("[data-element]") ?? null
@@ -340,6 +379,7 @@ export class Canvas extends ViewHook {
     if (action === "pan") this.startPan(event)
     const kind = drawnKind(this.tool)
     if (action === "draw" && kind !== undefined) this.startDraw(event, kind)
+    if (action === "text") this.openText(event, rect)
     if (action === "deselect") this.select(undefined)
     if (action === "move" && rect !== null) this.startEdit(event, rect, { mode: "move" })
     if (action === "resize" && isCorner(handle)) this.editSelected(event, { mode: "resize", corner: handle })
@@ -417,7 +457,9 @@ export class Canvas extends ViewHook {
   private updateEdit(edit: Edit, pointer: Point): void {
     edit.shape = editedShape(edit, pointer, this.canvasSize())
     showShape(edit.rect, edit.shape)
-    this.schedulePreview(edit)
+    this.schedulePreview(edit, () => {
+      this.sendPreview(edit)
+    })
   }
 
   private updateDraw(draw: Draw, pointer: Point): void {
@@ -430,7 +472,9 @@ export class Canvas extends ViewHook {
       draw.shape = this.drawnShape(draw.kind, draw.start, pointer)
     }
     showShape(this.draws.shape(draw.dragId, draw.kind), draw.shape)
-    this.schedulePreview(draw)
+    this.schedulePreview(draw, () => {
+      this.sendPreview(draw)
+    })
   }
 
   private drawnShape(kind: DrawnKind, start: Point, end: Point): Shape {
@@ -579,7 +623,7 @@ export class Canvas extends ViewHook {
       this.selection.hide()
     } else {
       const { box, points } = renderedShape(rect)
-      this.selection.show(box, points, hasEndpointHandles(rect.dataset.kind))
+      this.selection.show(box, points, selectionHandles(rect.dataset.kind))
     }
   }
 
@@ -599,12 +643,12 @@ export class Canvas extends ViewHook {
     if (this.el.hasPointerCapture(gesture.pointerId)) this.el.releasePointerCapture(gesture.pointerId)
   }
 
-  private schedulePreview(gesture: Gesture): void {
-    const wait = previewDelay(gesture.lastSentAt, performance.now(), gesture.previewTimer !== undefined)
+  private schedulePreview(clock: PreviewClock, send: () => void): void {
+    const wait = previewDelay(clock.lastSentAt, performance.now(), clock.previewTimer !== undefined)
     if (wait === undefined) return
-    gesture.previewTimer = window.setTimeout(() => {
-      gesture.previewTimer = undefined
-      this.sendPreview(gesture)
+    clock.previewTimer = window.setTimeout(() => {
+      clock.previewTimer = undefined
+      send()
     }, wait)
   }
 
@@ -641,6 +685,7 @@ export class Canvas extends ViewHook {
       this.cancelRemoteDrag(preview)
     })
     setShape(rect, preview, preview.points)
+    if (preview.text !== undefined) setText(rect, preview.text, this.textLayout())
   }
 
   private applyRemoteDraw(preview: DrawPreview): void {
@@ -650,7 +695,9 @@ export class Canvas extends ViewHook {
     this.restartStaleTimer(preview.drag_id, () => {
       this.endRemoteDraw(preview.drag_id)
     })
-    setShape(this.draws.shape(preview.drag_id, preview.kind), preview, preview.points)
+    const shape = this.draws.shape(preview.drag_id, preview.kind)
+    setShape(shape, preview, preview.points)
+    if (preview.text !== undefined) setText(shape, preview.text, this.textLayout())
   }
 
   private endRemoteDraw(dragId: string): void {
@@ -683,7 +730,9 @@ export class Canvas extends ViewHook {
   private revert(elementId: string): void {
     if (this.editedElementId() === elementId) return
     const rect = this.elementFor(elementId)
-    if (rect !== null) showShape(rect, committedShape(rect))
+    if (rect === null) return
+    showShape(rect, committedShape(rect))
+    if (rect.dataset.kind === "text") setText(rect, rect.dataset.text ?? "", this.textLayout())
   }
 
   private editedElementId(): string | undefined {
@@ -698,6 +747,138 @@ export class Canvas extends ViewHook {
     const layer = this.el.querySelector(selector)
     if (layer === null) throw new Error(`${selector} is missing`)
     return layer
+  }
+
+  private onDoubleClick = (event: MouseEvent): void => {
+    if (this.tool !== "selection" || this.textEditor !== undefined) return
+    const hit = document.elementFromPoint(event.clientX, event.clientY)
+    const element = hit?.closest<SVGElement>('[data-element][data-kind="text"]')
+    if (element != null) this.editText(element)
+  }
+
+  private openText(event: PointerEvent, rect: SVGElement | null): void {
+    event.preventDefault()
+    if (rect?.dataset.kind === "text") {
+      this.editText(rect)
+    } else {
+      this.startText(this.canvasPoint(event), "", { mode: "create" })
+    }
+  }
+
+  private editText(element: SVGElement): void {
+    const elementId = element.dataset.element
+    if (elementId === undefined) return
+    const text = element.dataset.text ?? ""
+    const target: TextTarget = {
+      mode: "edit",
+      element,
+      elementId,
+      baseVersion: integerAttribute(element, "data-version"),
+      text,
+    }
+    if (this.startText(committedShape(element).box, text, target)) {
+      element.setAttribute(TEXT_EDITING, "")
+      this.clearRemoteDrag(elementId)
+    }
+  }
+
+  private startText(at: Point, text: string, target: TextTarget): boolean {
+    if (!this.online || this.textSession !== undefined) return false
+    this.select(undefined)
+    const session: TextSession = {
+      target,
+      text,
+      box: { ...at, width: 0, height: 0 },
+      dragId: crypto.randomUUID(),
+      seq: 0,
+      lastSentAt: -Infinity,
+      previewTimer: undefined,
+      keepAlive: window.setInterval(() => {
+        if (session.seq > 0) this.sendTextPreview(session)
+      }, TEXT_KEEPALIVE_MS),
+    }
+    this.textSession = session
+    this.textEditor = new TextEditor(at, text, {
+      layer: this.textLayer(),
+      layout: this.textLayout(),
+      maxLength: integerAttribute(this.el, "data-max-text-length"),
+      canvas: this.canvasSize(),
+      onInput: (typed, box) => {
+        session.text = typed
+        session.box = box
+        this.schedulePreview(session, () => {
+          this.sendTextPreview(session)
+        })
+      },
+      onCommit: (typed, box) => {
+        this.finishText(session, typed, box)
+      },
+    })
+    session.box = this.textEditor.box()
+    return true
+  }
+
+  private sendTextPreview(session: TextSession): void {
+    if (this.textSession !== session || !this.online) return
+    session.seq += 1
+    session.lastSentAt = performance.now()
+    const preview = { drag_id: session.dragId, seq: session.seq, ...session.box, points: [], text: session.text }
+    if (session.target.mode === "create") {
+      void this.pushEvent("draw_preview", { kind: "text", ...preview })
+    } else {
+      void this.pushEvent("preview", {
+        element_id: session.target.elementId,
+        base_version: session.target.baseVersion,
+        ...preview,
+      })
+    }
+  }
+
+  private finishText(session: TextSession, text: string, box: Box): void {
+    this.endText(session)
+    const sent = session.seq > 0 && this.online
+    const { target } = session
+    if (target.mode === "create") {
+      if (isBlankText(text) || !this.online) {
+        if (sent) void this.pushEvent("draw_cancel", { drag_id: session.dragId })
+      } else {
+        void this.pushEvent("create_element", { kind: "text", drag_id: session.dragId, ...box, points: [], text })
+      }
+      return
+    }
+    target.element.removeAttribute(TEXT_EDITING)
+    const ref = { element_id: target.elementId, drag_id: session.dragId }
+    if (isBlankText(text) || text === target.text || !this.online) {
+      this.revert(target.elementId)
+      if (sent) void this.pushEvent("drag_cancel", ref)
+    } else {
+      setShape(target.element, box, [])
+      setText(target.element, text, this.textLayout())
+      void this.pushEvent("commit_shape", { ...ref, ...box, points: [], text })
+    }
+    this.select(target.elementId)
+  }
+
+  private endText(session: TextSession): void {
+    window.clearTimeout(session.previewTimer)
+    window.clearInterval(session.keepAlive)
+    if (this.textSession !== session) return
+    this.textSession = undefined
+    this.textEditor = undefined
+  }
+
+  private textLayer(): HTMLElement {
+    const layer = this.layer("#text-editor-layer")
+    if (!(layer instanceof HTMLElement)) throw new Error("#text-editor-layer must be an HTML element")
+    return layer
+  }
+
+  private textLayout(): TextLayout {
+    return {
+      fontSize: integerAttribute(this.el, "data-font-size"),
+      lineHeight: integerAttribute(this.el, "data-line-height"),
+      baseline: integerAttribute(this.el, "data-text-baseline"),
+    }
   }
 
   private canvasSize(): Size {

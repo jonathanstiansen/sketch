@@ -19,6 +19,7 @@ defmodule Sketch.CanvasFixtures do
         board_id: board_id,
         kind: :rectangle,
         points: [],
+        text: "",
         width: StreamData.integer(1..@max_generated_size),
         height: StreamData.integer(1..@max_generated_size),
         x: StreamData.integer(0..(Geometry.canvas_width() - @max_generated_size)),

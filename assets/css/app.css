@@ -163,3 +163,44 @@ polyline.draw-preview {
 .selection-handle-end {
   cursor: move;
 }
+
+#canvas-viewport {
+  --sketch-text-font: ui-sans-serif, system-ui, sans-serif;
+}
+
+#canvas-viewport[data-tool="text"] {
+  cursor: text;
+}
+
+.text-element {
+  font-family: var(--sketch-text-font);
+}
+
+.text-element tspan {
+  white-space: pre;
+}
+
+text.draw-preview {
+  fill: var(--color-base-content);
+  stroke: none;
+  opacity: 0.6;
+}
+
+[data-text-editing] {
+  visibility: hidden;
+}
+
+.text-editor {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 1px dashed var(--color-secondary);
+  outline-offset: 2px;
+  background: transparent;
+  color: var(--color-base-content);
+  font-family: var(--sketch-text-font);
+  white-space: pre;
+  overflow: hidden;
+  resize: none;
+}

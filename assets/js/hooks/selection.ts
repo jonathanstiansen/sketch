@@ -3,20 +3,29 @@ import {
   ENDPOINTS,
   absolutePoints,
   cornerPoint,
+  textLines,
   type Box,
   type Corner,
   type Endpoint,
   type Point,
 } from "./canvas_logic"
-import type { DrawnKind } from "./tools"
+import type { PreviewKind, SelectionHandles } from "./tools"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
 const OUTLINE_GAP = 4
 const LINE_SEGMENTS = "line[data-line-hit], line[data-line-stroke]"
 const POLYLINES = "polyline[data-freedraw-hit], polyline[data-freedraw-stroke]"
+const TEXT_BODY = "text[data-text-body]"
+const TEXT_HIT = "rect[data-text-hit]"
 
-type ShapeTag = "rect" | "polygon" | "ellipse" | "line" | "polyline"
+type ShapeTag = "rect" | "polygon" | "ellipse" | "line" | "polyline" | "text" | "tspan"
+
+export interface TextLayout {
+  fontSize: number
+  lineHeight: number
+  baseline: number
+}
 
 function svgShape<K extends ShapeTag>(tag: K, attributes: Record<string, string>): SVGElementTagNameMap[K] {
   const shape = document.createElementNS(SVG_NS, tag)
@@ -53,6 +62,30 @@ export function setShape(shape: Element, box: Box, points: readonly Point[]): vo
   const absolute = absolutePoints({ box, points })
   setSegments(shape, absolute)
   setPolylines(shape, absolute)
+  setTextBox(shape, box)
+}
+
+function textBody(shape: Element): Element | null {
+  return shape.localName === "text" ? shape : shape.querySelector(TEXT_BODY)
+}
+
+function setTextBox(shape: Element, box: Box): void {
+  textBody(shape)?.setAttribute("transform", `translate(${String(box.x)} ${String(box.y)})`)
+  const hit = shape.querySelector(TEXT_HIT)
+  if (hit !== null) setBox(hit, box)
+}
+
+export function setText(shape: Element, text: string, { fontSize, lineHeight, baseline }: TextLayout): void {
+  const body = textBody(shape)
+  if (body === null) return
+  body.setAttribute("font-size", String(fontSize))
+  body.replaceChildren(...textLines(text).map((line, index) => textLine(line, baseline + index * lineHeight)))
+}
+
+function textLine(line: string, y: number): SVGTSpanElement {
+  const span = svgShape("tspan", { x: "0", y: String(y) })
+  span.textContent = line
+  return span
 }
 
 function setSegments(shape: Element, [start, end]: Point[]): void {
@@ -80,7 +113,15 @@ function setEllipse(shape: Element, { x, y, width, height }: Box): void {
   shape.setAttribute("ry", String(height / 2))
 }
 
-const PREVIEW_TAGS = { rectangle: "rect", diamond: "polygon", ellipse: "ellipse", arrow: "line", freedraw: "polyline", line: "line" } as const
+const PREVIEW_TAGS = {
+  rectangle: "rect",
+  diamond: "polygon",
+  ellipse: "ellipse",
+  arrow: "line",
+  freedraw: "polyline",
+  line: "line",
+  text: "text",
+} as const
 
 export function isCorner(value: string | undefined): value is Corner {
   return CORNERS.some((corner) => corner === value)
@@ -115,15 +156,15 @@ export class SelectionOverlay {
     this.endpoints = new Map(ENDPOINTS.map((endpoint) => [endpoint, handle(endpoint)]))
   }
 
-  show(box: Box, points: readonly Point[], endpointHandles: boolean): void {
-    if (endpointHandles && points.length > 0) {
+  show(box: Box, points: readonly Point[], handles: SelectionHandles): void {
+    if (handles === "endpoints" && points.length > 0) {
       this.showEndpoints(box, points)
     } else {
-      this.showBox(box)
+      this.showBox(box, handles === "corners" ? [...this.corners.values()] : [])
     }
   }
 
-  private showBox(box: Box): void {
+  private showBox(box: Box, handles: SVGRectElement[]): void {
     setBox(this.outline, {
       x: box.x - OUTLINE_GAP,
       y: box.y - OUTLINE_GAP,
@@ -131,7 +172,9 @@ export class SelectionOverlay {
       height: box.height + 2 * OUTLINE_GAP,
     })
     for (const [corner, rect] of this.corners) placeHandle(rect, cornerPoint(box, corner))
-    if (this.outline.parentNode !== this.layer) this.layer.replaceChildren(this.outline, ...this.corners.values())
+    if (this.outline.parentNode !== this.layer || this.layer.childElementCount !== handles.length + 1) {
+      this.layer.replaceChildren(this.outline, ...handles)
+    }
   }
 
   private showEndpoints(box: Box, points: readonly Point[]): void {
@@ -153,12 +196,12 @@ export class SelectionOverlay {
 export class DrawLayer {
   constructor(private readonly layer: Element) {}
 
-  shape(id: string, kind: DrawnKind): SVGElement {
+  shape(id: string, kind: PreviewKind): SVGElement {
     const existing = this.find(id)
     if (existing !== null) return existing
     const shape = svgShape(PREVIEW_TAGS[kind], {
       "data-draw": id,
-      class: "draw-preview",
+      class: kind === "text" ? "draw-preview text-element" : "draw-preview",
     })
     if (kind === "arrow") shape.setAttribute("marker-end", "url(#arrowhead)")
     this.layer.append(shape)

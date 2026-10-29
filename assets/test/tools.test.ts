@@ -7,6 +7,7 @@ import {
   nextTool,
   panScroll,
   pointerAction,
+  selectionHandles,
   selectTool,
   type KeyInput,
   type ToolId,
@@ -30,10 +31,12 @@ const expectedBindings: Record<string, ToolId> = {
   "6": "line",
   p: "draw",
   "7": "draw",
+  t: "text",
+  "8": "text",
   Escape: "selection",
 }
 
-const disabledTools = new Set<ToolId>(["text", "note", "eraser"])
+const disabledTools = new Set<ToolId>(["note", "eraser"])
 
 function modelTool(current: ToolId, input: KeyInput): ToolId {
   if (input.editable || input.ctrlKey || input.metaKey || input.altKey) return current
@@ -146,7 +149,7 @@ const pointerInput = fc.record({
   onHandle: fc.boolean(),
 })
 
-void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, Arrow, Draw and Line draw; Selection resizes, moves or deselects", () => {
+void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, Arrow, Draw and Line draw; Text opens the editor; Selection resizes, moves or deselects", () => {
   fc.assert(
     fc.property(pointerInput, (input) => {
       const action = pointerAction(input)
@@ -156,6 +159,7 @@ void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, A
       assert.equal(action === "pan", pans)
       const drawing = ["rectangle", "diamond", "ellipse", "arrow", "draw", "line"].includes(input.tool)
       assert.equal(action === "draw", primary && !pans && drawing)
+      assert.equal(action === "text", primary && !pans && input.tool === "text")
       assert.equal(action === "resize", selecting && input.onHandle)
       assert.equal(action === "move", selecting && !input.onHandle && input.onElement)
       assert.equal(action === "deselect", selecting && !input.onHandle && !input.onElement)
@@ -176,5 +180,12 @@ void test("panning scrolls by exactly the opposite of the pointer movement", () 
       )
     }),
     settings,
+  )
+})
+
+void test("lines and arrows get endpoint handles, text gets none and every other kind gets corners", () => {
+  assert.deepEqual(
+    ["line", "arrow", "text", "rectangle", "diamond", "ellipse", "freedraw", undefined].map(selectionHandles),
+    ["endpoints", "endpoints", "none", "corners", "corners", "corners", "corners", "corners"],
   )
 })

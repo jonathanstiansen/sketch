@@ -7,6 +7,10 @@ defmodule SketchWeb.BoardLive do
   @max_points Sketch.Canvas.geometry().max_points
   @kinds Enum.map(Sketch.Canvas.element_kinds(), &Atom.to_string/1)
   @point_kinds Enum.map(Sketch.Canvas.point_kinds(), &Atom.to_string/1)
+  @max_text_bytes Sketch.Canvas.geometry().max_text_length * 4
+  @font_size Sketch.Canvas.geometry().font_size
+  @line_height Sketch.Canvas.geometry().line_height
+  @text_baseline Sketch.Canvas.geometry().text_baseline
 
   defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
 
@@ -56,19 +60,19 @@ defmodule SketchWeb.BoardLive do
         socket
       )
       when is_kind(kind) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
-    case points(params) do
-      {:ok, points} ->
-        shape =
-          kind
-          |> String.to_existing_atom()
-          |> Sketch.Canvas.fit_shape(%{x: x, y: y, width: width, height: height}, points)
+    with {:ok, points} <- points(params),
+         {:ok, text} <- text(params) do
+      shape =
+        kind
+        |> String.to_existing_atom()
+        |> Sketch.Canvas.fit_shape(%{x: x, y: y, width: width, height: height}, points)
+        |> Map.merge(text)
 
-        socket
-        |> create_element(kind, shape)
-        |> broadcast_preview("draw_end", %{drag_id: drag_id})
-
-      :error ->
-        {:noreply, socket}
+      socket
+      |> create_element(kind, shape)
+      |> broadcast_preview("draw_end", %{drag_id: drag_id})
+    else
+      :error -> {:noreply, socket}
     end
   end
 
@@ -87,7 +91,7 @@ defmodule SketchWeb.BoardLive do
       )
       when is_kind(kind) and is_uuid(drag_id) and is_seq(seq) and is_box(x, y, width, height) and
              fits_kind(kind, width, height) do
-    relay_with_points(socket, "draw_preview", params, %{
+    relay_shape(socket, "draw_preview", params, %{
       kind: kind,
       drag_id: drag_id,
       seq: seq,
@@ -118,7 +122,7 @@ defmodule SketchWeb.BoardLive do
       )
       when is_uuid(element_id) and is_uuid(drag_id) and is_seq(seq) and is_seq(base_version) and
              is_box(x, y, width, height) do
-    relay_with_points(socket, "preview", params, %{
+    relay_shape(socket, "preview", params, %{
       element_id: element_id,
       drag_id: drag_id,
       seq: seq,
@@ -159,20 +163,16 @@ defmodule SketchWeb.BoardLive do
         socket
       )
       when is_uuid(element_id) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
-    case points(params) do
-      {:ok, points} ->
-        element_id
-        |> Sketch.Canvas.commit_shape(socket.assigns.board_id, %{
-          x: x,
-          y: y,
-          width: width,
-          height: height,
-          points: points
-        })
-        |> committed(socket, element_id, drag_id, "Could not resize element")
-
-      :error ->
-        {:noreply, socket}
+    with {:ok, points} <- points(params),
+         {:ok, text} <- text(params) do
+      element_id
+      |> Sketch.Canvas.commit_shape(
+        socket.assigns.board_id,
+        Map.merge(%{x: x, y: y, width: width, height: height, points: points}, text)
+      )
+      |> committed(socket, element_id, drag_id, commit_shape_error(text))
+    else
+      :error -> {:noreply, socket}
     end
   end
 
@@ -232,7 +232,11 @@ defmodule SketchWeb.BoardLive do
           data-default-width={@geometry.default_width}
           data-default-height={@geometry.default_height}
           data-max-points={@geometry.max_points}
-          class="min-h-0 flex-1 overflow-auto border-t border-base-300"
+          data-max-text-length={@geometry.max_text_length}
+          data-font-size={@geometry.font_size}
+          data-line-height={@geometry.line_height}
+          data-text-baseline={@geometry.text_baseline}
+          class="relative min-h-0 flex-1 overflow-auto border-t border-base-300"
         >
           <svg
             id="canvas"
@@ -264,6 +268,7 @@ defmodule SketchWeb.BoardLive do
             <g id="draw-previews" phx-update="ignore"></g>
             <g id="selection" phx-update="ignore"></g>
           </svg>
+          <div id="text-editor-layer" phx-update="ignore" class="absolute top-0 left-0"></div>
         </div>
       </div>
     </Layouts.app>
@@ -381,6 +386,54 @@ defmodule SketchWeb.BoardLive do
     """
   end
 
+  defp element_shape(%{element: %{kind: :text}} = assigns) do
+    assigns =
+      assign(assigns,
+        font_size: @font_size,
+        lines:
+          assigns.element.text
+          |> String.split("\n")
+          |> Enum.with_index(&{&1, @text_baseline + &2 * @line_height})
+      )
+
+    ~H"""
+    <g
+      id={@dom_id}
+      x={@element.x}
+      y={@element.y}
+      width={@element.width}
+      height={@element.height}
+      data-element={@element.id}
+      data-kind={@element.kind}
+      data-x={@element.x}
+      data-y={@element.y}
+      data-width={@element.width}
+      data-height={@element.height}
+      data-text={@element.text}
+      data-version={@element.version}
+      class="cursor-grab touch-none"
+    >
+      <rect
+        data-text-hit
+        x={@element.x}
+        y={@element.y}
+        width={@element.width}
+        height={@element.height}
+        fill="transparent"
+      />
+      <text
+        data-text-body
+        transform={"translate(#{@element.x} #{@element.y})"}
+        font-size={@font_size}
+        pointer-events="none"
+        class="text-element fill-base-content"
+      >
+        <tspan :for={{line, y} <- @lines} x="0" y={y}>{line}</tspan>
+      </text>
+    </g>
+    """
+  end
+
   defp element_shape(assigns) do
     ~H"""
     <rect
@@ -466,13 +519,22 @@ defmodule SketchWeb.BoardLive do
 
   defp point?(_point), do: false
 
-  defp relay_with_points(socket, event, params, payload) do
-    case points(params) do
-      {:ok, [_ | _] = points} ->
-        broadcast_preview(socket, event, Map.put(payload, :points, points))
+  defp text(%{"text" => text}) when is_binary(text) and byte_size(text) <= @max_text_bytes,
+    do: {:ok, %{text: text}}
 
-      {:ok, []} when payload.width >= @min_size and payload.height >= @min_size ->
-        broadcast_preview(socket, event, Map.put(payload, :points, []))
+  defp text(%{"text" => _invalid}), do: :error
+  defp text(_without_text), do: {:ok, %{}}
+
+  defp commit_shape_error(%{text: _text}), do: "Could not edit text"
+  defp commit_shape_error(_shape), do: "Could not resize element"
+
+  defp relay_shape(socket, event, params, payload) do
+    case {points(params), text(params)} do
+      {{:ok, [_ | _] = points}, {:ok, text}} ->
+        broadcast_preview(socket, event, payload |> Map.put(:points, points) |> Map.merge(text))
+
+      {{:ok, []}, {:ok, text}} when payload.width >= @min_size and payload.height >= @min_size ->
+        broadcast_preview(socket, event, payload |> Map.put(:points, []) |> Map.merge(text))
 
       _invalid ->
         {:noreply, socket}

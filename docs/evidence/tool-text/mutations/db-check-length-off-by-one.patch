@@ -1,0 +1,13 @@
+diff --git a/priv/repo/migrations/20261029102431_text_element.exs b/priv/repo/migrations/20261029102431_text_element.exs
+index fe80a1e..3238cd3 100644
+--- a/priv/repo/migrations/20261029102431_text_element.exs
++++ b/priv/repo/migrations/20261029102431_text_element.exs
+@@ -14,7 +14,7 @@ defmodule Sketch.Repo.Migrations.TextElement do
+ 
+     create constraint(:elements, :text_length,
+              check: """
+-               char_length(text) <= 2000
++               char_length(text) <= 2001
+              """
+            )
+ 

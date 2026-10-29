@@ -41,13 +41,19 @@ Generalise `Sketch.Canvas.Rectangle` into `Sketch.Canvas.Element`
   embeds: a single `jsonb` column breaks atomic updates, which cast the value to
   `jsonb[]`. The `PointsFitShape` validation and two CHECK constraints
   (`points_match_kind`, `points_within_box`) enforce count, shape and bounds.
-- `text` (added with the text and note tools): for `:text` and `:note`, bounded
-  length. Empty for other kinds.
+- `text` (added with the text tool, reused by the note tool): a `:string` that keeps
+  whitespace. For `:text` it must contain a character other than a space, tab,
+  CR or LF, contain no NUL and be at most `Geometry.max_text_length/0` (2000)
+  code points, the unit of PostgreSQL `char_length`. Every other kind stores `""`.
+  The `TextFitsKind` validation (atomic against the stored kind) and two CHECK
+  constraints (`text_length`, `text_matches_kind`) enforce it. Text renders as
+  SVG `<text>` with one `<tspan>` per line at the font size and line height in
+  `Geometry`.
 - `version`: unchanged semantics (ADR 0001).
 
 Actions: `create` (accepts kind, box, points, text, board), `commit_position`
 (moves the box; points are relative so they move with it), `commit_shape`
-(box, points and text from a finished edit), and `erase` (destroy, added with the eraser). The first PR ships `create`,
+(box, points and text from a finished edit; the text PR adds `text` to it), and `erase` (destroy, added with the eraser). The first PR ships `create`,
 `commit_position`, `commit_shape` (box only) and `list_for_board`; the line
 PR makes `commit_shape` take the box and points together, so a size change
 always arrives with points that fit it. Every

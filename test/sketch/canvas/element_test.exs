@@ -2,7 +2,7 @@ defmodule Sketch.Canvas.ElementTest do
   use Sketch.DataCase
 
   alias Sketch.Canvas
-  alias Sketch.Canvas.{Board, Element}
+  alias Sketch.Canvas.{Board, Element, Geometry}
 
   setup do
     %{board: Canvas.create_board!()}
@@ -294,6 +294,99 @@ defmodule Sketch.Canvas.ElementTest do
                    [kind, width, height, points, board_id]
                  ),
                inspect({kind, points})
+      end
+    end
+  end
+
+  describe "text (A08)" do
+    defp text(attrs) do
+      Map.merge(%{kind: :text, x: 10, y: 20, width: 90, height: 50, text: "hello\nworld"}, attrs)
+    end
+
+    test "a text element stores its text, defaulting other kinds to empty", %{board: board} do
+      assert {:ok, %{text: "hello\nworld", version: 0}} =
+               Canvas.create_element(text(%{board_id: board.id}))
+
+      assert {:ok, %{text: ""}} =
+               Canvas.create_element(rectangle(%{x: 0, y: 0, board_id: board.id}))
+    end
+
+    test "text keeps its whitespace and markup verbatim", %{board: board} do
+      verbatim = "  <b>x</b>\n\t&amp; "
+
+      assert {:ok, %{text: ^verbatim}} =
+               Canvas.create_element(text(%{text: verbatim, board_id: board.id}))
+    end
+
+    test "Ash rejects blank, overlong or misplaced text", %{board: board} do
+      max = Geometry.max_text_length()
+
+      for attrs <- [
+            text(%{text: ""}),
+            text(%{text: " \n\t\r"}),
+            text(%{text: String.duplicate("a", max + 1)}),
+            text(%{text: String.duplicate("e\u0301", div(max, 2) + 1)}),
+            text(%{text: "a\u0000"}),
+            rectangle(%{x: 0, y: 0, text: "x"})
+          ] do
+        assert {:error, _} = Canvas.create_element(Map.put(attrs, :board_id, board.id)),
+               inspect(String.slice(attrs.text, 0..10))
+      end
+
+      assert {:ok, _} =
+               Canvas.create_element(
+                 text(%{text: String.duplicate("😀", max), board_id: board.id})
+               )
+    end
+
+    test "commit_shape sets the box and text together and broadcasts both", %{board: board} do
+      element = Canvas.create_element!(text(%{board_id: board.id}))
+      SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
+      edit = %{x: 30, y: 40, width: 120, height: 75, points: [], text: "a\nb\nc"}
+
+      assert {:ok, %{text: "a\nb\nc", version: 1}} =
+               Canvas.commit_shape(element.id, board.id, edit)
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        event: "commit_shape",
+        payload: %{text: "a\nb\nc", x: 30, height: 75, version: 1, kind: :text}
+      }
+    end
+
+    test "commit_shape rejects blank text for a text element and any text for other kinds", %{
+      board: board
+    } do
+      element = Canvas.create_element!(text(%{board_id: board.id}))
+      shape = Canvas.create_element!(rectangle(%{x: 0, y: 0, board_id: board.id}))
+      box = %{x: 30, y: 40, width: 120, height: 75, points: []}
+
+      assert {:error, _} = Canvas.commit_shape(element.id, board.id, Map.put(box, :text, " "))
+      assert {:error, _} = Canvas.commit_shape(shape.id, board.id, Map.put(box, :text, "x"))
+
+      assert {:ok, %{text: "hello\nworld", version: 1}} =
+               Canvas.commit_position(element.id, board.id, %{x: 0, y: 0})
+    end
+
+    test "the database rejects blank, overlong or misplaced text", %{board: board} do
+      board_id = Ecto.UUID.dump!(board.id)
+      max = Geometry.max_text_length()
+
+      for {kind, text, constraint} <- [
+            {"text", "", "text_matches_kind"},
+            {"text", " \n\t\r", "text_matches_kind"},
+            {"rectangle", "x", "text_matches_kind"},
+            {"text", String.duplicate("a", max + 1), "text_length"}
+          ] do
+        assert {:error,
+                %Postgrex.Error{postgres: %{code: :check_violation, constraint: ^constraint}}} =
+                 Sketch.Repo.query(
+                   """
+                   INSERT INTO elements (kind, x, y, width, height, text, board_id)
+                   VALUES ($1, 0, 0, 10, 10, $2, $3)
+                   """,
+                   [kind, text, board_id]
+                 ),
+               inspect({kind, String.slice(text, 0..10)})
       end
     end
   end
