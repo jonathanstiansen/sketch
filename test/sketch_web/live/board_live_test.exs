@@ -462,8 +462,8 @@ defmodule SketchWeb.BoardLiveTest do
     end
 
     defp stroke_selector(id, version) do
-      "g#element-#{id}[data-kind='freedraw'][data-version='#{version}'] " <>
-        "polyline[data-freedraw-stroke][stroke-linejoin='round'][stroke-linecap='round']"
+      "g#element-#{id}[data-kind='freedraw'][data-version='#{version}'][transform] " <>
+        "> polyline[data-freedraw-stroke][stroke-linejoin='round'][stroke-linecap='round']"
     end
 
     test "a drawn stroke is stored with its relative points and rendered in every view", %{
@@ -482,11 +482,13 @@ defmodule SketchWeb.BoardLiveTest do
       assert Enum.map(stroke.points, &{&1.x, &1.y}) == [{0, 0}, {20, 30}, {40, 10}]
 
       for view <- [creator, watcher] do
-        assert has_element?(view, stroke_selector(id, 0) <> "[points='100,200 120,230 140,210']")
+        assert has_element?(view, stroke_selector(id, 0) <> "[points='0,0 20,30 40,10']")
+
+        assert has_element?(view, "#element-#{id}[transform='translate(100 200)']")
 
         assert has_element?(
                  view,
-                 "#element-#{id}[data-points='0,0 20,30 40,10'] polyline[data-freedraw-hit]"
+                 "#element-#{id}[data-points='0,0 20,30 40,10'] > polyline[data-freedraw-hit]"
                )
       end
     end
@@ -575,7 +577,7 @@ defmodule SketchWeb.BoardLiveTest do
       for view <- [editor, watcher] do
         assert has_element?(
                  view,
-                 stroke_selector(stroke.id, 1) <> "[points='100,100 140,140 180,100']"
+                 stroke_selector(stroke.id, 1) <> "[points='0,0 40,40 80,0']"
                )
       end
 

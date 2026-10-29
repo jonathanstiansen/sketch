@@ -1,10 +1,12 @@
 import { expect, test, type Page } from "@playwright/test"
-import { canvasPoint, closeSession, moveTo, openSharedBoard, pressAt } from "./support/canvas"
+import { canvasPoint, clickAt, closeSession, moveTo, openSharedBoard, pressAt } from "./support/canvas"
 
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
 const element = 'g[data-element][data-kind="freedraw"]'
-const stroke = `${element} polyline[data-freedraw-stroke]`
-const drawPreview = "polyline[data-draw]"
+const stroke = `${element} > polyline[data-freedraw-stroke]`
+const hit = `${element} > polyline[data-freedraw-hit]`
+const drawPreview = '[data-draw][data-kind="freedraw"]'
+const previewStroke = `${drawPreview} > polyline[data-freedraw-stroke]`
 
 interface Pair {
   x: number
@@ -36,7 +38,7 @@ async function readStroke(page: Page): Promise<Stroke> {
 }
 
 async function previewCount(page: Page): Promise<number> {
-  return parsePairs(await page.locator(drawPreview).getAttribute("points")).length
+  return parsePairs(await page.locator(previewStroke).getAttribute("points")).length
 }
 
 async function expectStroke(page: Page, version: number): Promise<Stroke> {
@@ -44,7 +46,9 @@ async function expectStroke(page: Page, version: number): Promise<Stroke> {
   await expect(page.locator(element)).toHaveAttribute("data-version", String(version))
   const shape = await readStroke(page)
   const rendered = parsePairs(await page.locator(stroke).getAttribute("points"))
-  expect(rendered).toEqual(shape.points.map(({ x, y }) => ({ x: x + shape.box.x, y: y + shape.box.y })))
+  expect(rendered).toEqual(shape.points)
+  expect(parsePairs(await page.locator(hit).getAttribute("points"))).toEqual(shape.points)
+  await expect(page.locator(element)).toHaveAttribute("transform", `translate(${String(shape.box.x)} ${String(shape.box.y)})`)
   for (const { x, y } of shape.points) {
     expect(x).toBeGreaterThanOrEqual(0)
     expect(y).toBeGreaterThanOrEqual(0)
@@ -57,6 +61,10 @@ async function expectStroke(page: Page, version: number): Promise<Stroke> {
 function wave(from: number, to: number): Pair[] {
   const xs = Array.from({ length: Math.floor((to - from) / 10) + 1 }, (_, index) => from + index * 10)
   return xs.map((x) => ({ x, y: Math.round(300 + 50 * Math.sin((x - 300) / 25)) }))
+}
+
+async function expectNoErrorFlash(page: Page): Promise<void> {
+  await expect(page.locator("#flash-error")).toHaveCount(0)
 }
 
 async function trace(page: Page, path: Pair[]): Promise<void> {
@@ -116,10 +124,56 @@ test("A draws a curvy stroke that B watches grow, then moves and resizes it and 
       })),
     )
     expect(await expectStroke(pageB, 2)).toEqual(resized)
+    for (const page of [pageA, pageB]) await expectNoErrorFlash(page)
     if (evidenceDir !== undefined) await pageA.screenshot({ path: `${evidenceDir}/draw.png` })
 
     await pageB.reload()
     expect(await expectStroke(pageB, 2)).toEqual(resized)
+  } finally {
+    await closeSession(session)
+  }
+})
+
+test("a corner resize of a stroke commits scaled points inside the box and B sees them without an error", async ({
+  browser,
+}) => {
+  const session = await openSharedBoard(browser, "draw-resize")
+  const { pageA, pageB } = session
+  try {
+    await pageA.keyboard.press("p")
+    const path = wave(300, 500)
+    const start = path[0]
+    if (start === undefined) throw new Error("empty path")
+    await pressAt(pageA, start.x, start.y)
+    await trace(pageA, path)
+    await pageA.mouse.up()
+    await pageA.keyboard.press("v")
+    const drawn = await expectStroke(pageA, 0)
+    expect(await expectStroke(pageB, 0)).toEqual(drawn)
+
+    await clickAt(pageA, start.x, start.y)
+    await expect(pageA.locator('rect[data-handle="se"]')).toHaveCount(1)
+    const corner = { x: drawn.box.x + drawn.box.width, y: drawn.box.y + drawn.box.height }
+    await pressAt(pageA, corner.x, corner.y)
+    await moveTo(pageA, corner.x + 120, corner.y + 90)
+    await pageA.mouse.up()
+
+    const resized = await expectStroke(pageA, 1)
+    expect(resized.box).toEqual({ ...drawn.box, width: drawn.box.width + 120, height: drawn.box.height + 90 })
+    expect(resized.points).toHaveLength(drawn.points.length)
+    expect(resized.points).not.toEqual(drawn.points)
+    expect(resized.points).toEqual(
+      drawn.points.map(({ x, y }) => ({
+        x: Math.round((x * resized.box.width) / drawn.box.width),
+        y: Math.round((y * resized.box.height) / drawn.box.height),
+      })),
+    )
+    expect(await expectStroke(pageB, 1)).toEqual(resized)
+    for (const page of [pageA, pageB]) await expectNoErrorFlash(page)
+    if (evidenceDir !== undefined) await pageA.screenshot({ path: `${evidenceDir}/draw-resize.png` })
+
+    await pageB.reload()
+    expect(await expectStroke(pageB, 1)).toEqual(resized)
   } finally {
     await closeSession(session)
   }

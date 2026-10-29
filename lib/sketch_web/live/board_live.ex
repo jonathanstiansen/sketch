@@ -301,37 +301,6 @@ defmodule SketchWeb.BoardLive do
   defp element_shape(%{element: %{kind: kind}} = assigns) when is_map_key(@rendered_kinds, kind),
     do: SketchWeb.Elements.element(assigns)
 
-  defp element_shape(%{element: %{kind: :freedraw}} = assigns) do
-    ~H"""
-    <g
-      id={@dom_id}
-      x={@element.x}
-      y={@element.y}
-      width={@element.width}
-      height={@element.height}
-      data-element={@element.id}
-      data-kind={@element.kind}
-      data-x={@element.x}
-      data-y={@element.y}
-      data-width={@element.width}
-      data-height={@element.height}
-      data-points={points_attribute(@element.points)}
-      data-version={@element.version}
-      live-points={points_attribute(@element.points)}
-      class="cursor-grab touch-none"
-    >
-      <.stroke_polyline element={@element} data-freedraw-hit stroke="transparent" stroke-width="14" />
-      <.stroke_polyline
-        element={@element}
-        data-freedraw-stroke
-        stroke-width="2"
-        pointer-events="none"
-        class="stroke-base-content"
-      />
-    </g>
-    """
-  end
-
   defp element_shape(%{element: %{kind: :text}} = assigns) do
     assigns =
       assign(assigns,
@@ -433,25 +402,6 @@ defmodule SketchWeb.BoardLive do
     </g>
     """
   end
-
-  attr :element, :map, required: true
-  attr :rest, :global, include: ~w(stroke stroke-width pointer-events)
-
-  defp stroke_polyline(%{element: %{x: x, y: y, points: points}} = assigns) do
-    assigns = assign(assigns, :absolute, Enum.map_join(points, " ", &"#{x + &1.x},#{y + &1.y}"))
-
-    ~H"""
-    <polyline
-      points={@absolute}
-      fill="none"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      {@rest}
-    />
-    """
-  end
-
-  defp points_attribute(points), do: Enum.map_join(points, " ", &"#{&1.x},#{&1.y}")
 
   defp points(%{"points" => points}) when is_list(points) and length(points) <= @max_points do
     if Enum.all?(points, &point?/1),
