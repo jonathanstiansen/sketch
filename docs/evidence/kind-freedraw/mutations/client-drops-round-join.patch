@@ -1,0 +1,12 @@
+diff --git a/assets/js/elements/segments.ts b/assets/js/elements/segments.ts
+index 0030287..eee2c35 100644
+--- a/assets/js/elements/segments.ts
++++ b/assets/js/elements/segments.ts
+@@ -33,7 +33,6 @@ function polyline(points: readonly Point[], attrs: Readonly<Record<string, Attri
+       points: pointsAttribute(points),
+       fill: "none",
+       "stroke-linecap": "round",
+-      "stroke-linejoin": "round",
+       ...attrs,
+     },
+   }

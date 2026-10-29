@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index 078b04f..711f4eb 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -287,7 +287,7 @@ function editedShape(edit: Edit, pointer: Point, canvas: Size): Shape {
+   const { box, points } = edit.origin
+   if (edit.mode === "resize") {
+     const resized = resizedBox(box, edit.corner, subtract(pointer, edit.grab), canvas)
+-    return { box: resized, points: scalePoints(points, box, resized) }
++    return { box: resized, points }
+   }
+   if (edit.mode === "endpoint") return movedEndpoint(edit.origin, edit.endpoint, subtract(pointer, edit.grab), canvas)
+   return { box: movedBox(box, pointer, edit.grab, canvas), points }
