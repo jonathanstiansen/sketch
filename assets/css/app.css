@@ -104,7 +104,7 @@
 
 /* This file is for your main application CSS */
 
-#canvas-viewport:is([data-tool="rectangle"], [data-tool="diamond"], [data-tool="ellipse"], [data-tool="arrow"], [data-tool="line"]) {
+#canvas-viewport:is([data-tool="rectangle"], [data-tool="diamond"], [data-tool="ellipse"], [data-tool="arrow"], [data-tool="line"], [data-tool="note"]) {
   cursor: crosshair;
 }
 
@@ -186,8 +186,40 @@ text.draw-preview {
   opacity: 0.6;
 }
 
-[data-text-editing] {
+[data-kind="text"][data-text-editing],
+[data-text-editing] [data-text-body] {
   visibility: hidden;
+}
+
+:root {
+  --note-fill: oklch(0.93 0.13 98);
+  --note-edge: oklch(0.7 0.13 92);
+}
+
+:root:not([data-theme]) {
+  @media (prefers-color-scheme: dark) {
+    --note-fill: oklch(0.4 0.07 95);
+    --note-edge: oklch(0.55 0.1 95);
+  }
+}
+
+[data-theme="dark"] {
+  --note-fill: oklch(0.4 0.07 95);
+  --note-edge: oklch(0.55 0.1 95);
+}
+
+.note-body {
+  fill: var(--note-fill);
+  stroke: var(--note-edge);
+  filter: drop-shadow(0 2px 3px color-mix(in oklab, var(--color-base-content) 30%, transparent));
+}
+
+g.draw-preview {
+  opacity: 0.75;
+}
+
+.draw-preview .text-element {
+  stroke: none;
 }
 
 .text-editor {
@@ -203,4 +235,10 @@ text.draw-preview {
   white-space: pre;
   overflow: hidden;
   resize: none;
+}
+
+.note-editor {
+  outline: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

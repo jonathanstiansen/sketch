@@ -11,6 +11,7 @@ defmodule SketchWeb.BoardLive do
   @font_size Sketch.Canvas.geometry().font_size
   @line_height Sketch.Canvas.geometry().line_height
   @text_baseline Sketch.Canvas.geometry().text_baseline
+  @note_padding Sketch.Canvas.geometry().note_padding
 
   defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
 
@@ -236,6 +237,10 @@ defmodule SketchWeb.BoardLive do
           data-font-size={@geometry.font_size}
           data-line-height={@geometry.line_height}
           data-text-baseline={@geometry.text_baseline}
+          data-char-width={@geometry.char_width}
+          data-note-padding={@geometry.note_padding}
+          data-note-width={@geometry.note_width}
+          data-note-height={@geometry.note_height}
           class="relative min-h-0 flex-1 overflow-auto border-t border-base-300"
         >
           <svg
@@ -430,6 +435,60 @@ defmodule SketchWeb.BoardLive do
       >
         <tspan :for={{line, y} <- @lines} x="0" y={y}>{line}</tspan>
       </text>
+    </g>
+    """
+  end
+
+  defp element_shape(%{element: %{kind: :note}} = assigns) do
+    assigns = assign(assigns, font_size: @font_size, padding: @note_padding)
+
+    ~H"""
+    <g
+      id={@dom_id}
+      x={@element.x}
+      y={@element.y}
+      width={@element.width}
+      height={@element.height}
+      data-element={@element.id}
+      data-kind={@element.kind}
+      data-x={@element.x}
+      data-y={@element.y}
+      data-width={@element.width}
+      data-height={@element.height}
+      data-text={@element.text}
+      data-version={@element.version}
+      class="cursor-grab touch-none"
+    >
+      <rect
+        data-note-body
+        x={@element.x}
+        y={@element.y}
+        width={@element.width}
+        height={@element.height}
+        rx="6"
+        stroke-width="2"
+        class="note-body"
+      />
+      <svg
+        data-note-clip
+        x={@element.x}
+        y={@element.y}
+        width={@element.width}
+        height={@element.height}
+        overflow="hidden"
+        pointer-events="none"
+      >
+        <text
+          id={"#{@dom_id}-text"}
+          data-text-body
+          data-note-text
+          phx-update="ignore"
+          transform={"translate(#{@padding} #{@padding})"}
+          font-size={@font_size}
+          class="text-element fill-base-content"
+        >
+        </text>
+      </svg>
     </g>
     """
   end

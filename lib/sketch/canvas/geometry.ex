@@ -3,9 +3,10 @@ defmodule Sketch.Canvas.Geometry do
   Canvas and element dimensions (addendum D1, D8). Every bound on an element's box and points
   derives from here: `x >= 0`, `y >= 0`, `x + width <= canvas_width`, `y + height <= canvas_height`,
   a size of at least `min_size(kind)`, and for point kinds a bounded number of points, each relative
-  to the box origin and inside `[0, width] x [0, height]`. Text kinds hold non-blank text of at most
-  `max_text_length` code points, laid out one line per `line_height` at a fixed `font_size`; every
-  other kind holds empty text.
+  to the box origin and inside `[0, width] x [0, height]`. Text kinds hold text of at most
+  `max_text_length` code points, laid out one line per `line_height` at a fixed `font_size`: a
+  `:text` element needs non-blank text, a `:note` may be empty and wraps its text at `char_width`
+  inside `note_padding`; every other kind holds empty text.
   """
 
   @canvas_width 4000
@@ -16,11 +17,16 @@ defmodule Sketch.Canvas.Geometry do
   @max_freedraw_points 500
   @point_counts %{arrow: 2..2//1, freedraw: 2..@max_freedraw_points//1, line: 2..2//1}
   @max_points @point_counts |> Map.values() |> Enum.map(& &1.last) |> Enum.max()
-  @text_kinds [:text]
+  @required_text_kinds [:text]
+  @text_kinds [:text, :note]
   @max_text_length 2000
   @font_size 20
   @line_height 25
   @text_baseline 19
+  @char_width 12
+  @note_padding 12
+  @note_width 200
+  @note_height 160
   @text_whitespace [?\s, ?\t, ?\n, ?\r]
   @cascade_start 100
   @cascade_step 150
@@ -45,7 +51,11 @@ defmodule Sketch.Canvas.Geometry do
           max_text_length: pos_integer(),
           font_size: pos_integer(),
           line_height: pos_integer(),
-          text_baseline: pos_integer()
+          text_baseline: pos_integer(),
+          char_width: pos_integer(),
+          note_padding: pos_integer(),
+          note_width: pos_integer(),
+          note_height: pos_integer()
         }
 
   @spec canvas_width() :: pos_integer()
@@ -77,16 +87,21 @@ defmodule Sketch.Canvas.Geometry do
   @spec max_text_length() :: pos_integer()
   def max_text_length, do: @max_text_length
 
+  @doc "The text kinds whose text must contain a character other than whitespace."
+  @spec required_text_kinds() :: [atom()]
+  def required_text_kinds, do: @required_text_kinds
+
   @doc """
-  Whether `text` suits an element of `kind`: a text kind needs at most `max_text_length` code points,
-  no NUL (PostgreSQL text cannot hold one) and a character other than a space, tab, CR or LF; any
-  other kind needs `""`.
+  Whether `text` suits an element of `kind`: a text kind needs at most `max_text_length` code points
+  and no NUL (PostgreSQL text cannot hold one), and a required text kind also a character other than
+  a space, tab, CR or LF; any other kind needs `""`.
   """
   @spec text_fits_kind?(atom(), String.t()) :: boolean()
   def text_fits_kind?(kind, text) when kind in @text_kinds and is_binary(text) do
     String.valid?(text) and not String.contains?(text, <<0>>) and
       length(String.codepoints(text)) <= @max_text_length and
-      text |> String.to_charlist() |> Enum.any?(&(&1 not in @text_whitespace))
+      (kind not in @required_text_kinds or
+         text |> String.to_charlist() |> Enum.any?(&(&1 not in @text_whitespace)))
   end
 
   def text_fits_kind?(_kind, text), do: text == ""
@@ -165,7 +180,11 @@ defmodule Sketch.Canvas.Geometry do
       max_text_length: @max_text_length,
       font_size: @font_size,
       line_height: @line_height,
-      text_baseline: @text_baseline
+      text_baseline: @text_baseline,
+      char_width: @char_width,
+      note_padding: @note_padding,
+      note_width: @note_width,
+      note_height: @note_height
     }
   end
 end

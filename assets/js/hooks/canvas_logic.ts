@@ -228,3 +228,41 @@ export function textBox(origin: Point, text: string, measure: (line: string) => 
   const longest = Math.max(0, ...lines.map(measure))
   return clickBox(origin, { width: Math.max(MIN_SIZE, Math.ceil(longest)), height: lines.length * lineHeight }, canvas)
 }
+
+function charsPerLine(maxWidth: number, charWidth: number): number {
+  let chars = Math.floor(maxWidth / charWidth)
+  while (chars > 1 && chars * charWidth > maxWidth) chars -= 1
+  return Math.max(1, chars)
+}
+
+function characterChunks(word: string, size: number): string[] {
+  const characters = Array.from(word)
+  const chunks: string[] = []
+  for (let start = 0; start < characters.length; start += size) {
+    chunks.push(characters.slice(start, start + size).join(""))
+  }
+  return chunks
+}
+
+function wrapParagraph(paragraph: string, chars: number): string[] {
+  const lines: string[] = []
+  let current = ""
+  for (const word of paragraph.split(/\s+/).filter((part) => part !== "")) {
+    const joined = current === "" ? word : `${current} ${word}`
+    if (Array.from(joined).length <= chars) {
+      current = joined
+      continue
+    }
+    if (current !== "") lines.push(current)
+    const chunks = characterChunks(word, chars)
+    current = chunks.pop() ?? ""
+    lines.push(...chunks)
+  }
+  lines.push(current)
+  return lines
+}
+
+export function wrapText(text: string, maxWidth: number, charWidth: number): string[] {
+  const chars = charsPerLine(maxWidth, charWidth)
+  return textLines(text).flatMap((paragraph) => wrapParagraph(paragraph, chars))
+}

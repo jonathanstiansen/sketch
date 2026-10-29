@@ -4,6 +4,7 @@ import {
   absolutePoints,
   cornerPoint,
   textLines,
+  wrapText,
   type Box,
   type Corner,
   type Endpoint,
@@ -18,13 +19,18 @@ const LINE_SEGMENTS = "line[data-line-hit], line[data-line-stroke]"
 const POLYLINES = "polyline[data-freedraw-hit], polyline[data-freedraw-stroke]"
 const TEXT_BODY = "text[data-text-body]"
 const TEXT_HIT = "rect[data-text-hit]"
+const NOTE_PARTS = "rect[data-note-body], svg[data-note-clip]"
+const NOTE_TEXT = "data-note-text"
+const NOTE_SOURCE = "data-source"
 
-type ShapeTag = "rect" | "polygon" | "ellipse" | "line" | "polyline" | "text" | "tspan"
+type ShapeTag = "rect" | "polygon" | "ellipse" | "line" | "polyline" | "text" | "tspan" | "g" | "svg"
 
 export interface TextLayout {
   fontSize: number
   lineHeight: number
   baseline: number
+  charWidth: number
+  notePadding: number
 }
 
 function svgShape<K extends ShapeTag>(tag: K, attributes: Record<string, string>): SVGElementTagNameMap[K] {
@@ -57,29 +63,61 @@ export function setBox(shape: Element, box: Box): void {
   if (shape.localName === "ellipse") setEllipse(shape, box)
 }
 
-export function setShape(shape: Element, box: Box, points: readonly Point[]): void {
+export function setShape(shape: Element, box: Box, points: readonly Point[], layout: TextLayout): void {
   setBox(shape, box)
   const absolute = absolutePoints({ box, points })
   setSegments(shape, absolute)
   setPolylines(shape, absolute)
   setTextBox(shape, box)
+  const note = noteText(shape)
+  if (note !== null) setText(shape, note.getAttribute(NOTE_SOURCE) ?? shape.getAttribute("data-text") ?? "", layout)
 }
 
 function textBody(shape: Element): Element | null {
   return shape.localName === "text" ? shape : shape.querySelector(TEXT_BODY)
 }
 
-function setTextBox(shape: Element, box: Box): void {
-  textBody(shape)?.setAttribute("transform", `translate(${String(box.x)} ${String(box.y)})`)
-  const hit = shape.querySelector(TEXT_HIT)
-  if (hit !== null) setBox(hit, box)
+function noteText(shape: Element): Element | null {
+  return shape.querySelector(`text[${NOTE_TEXT}]`)
 }
 
-export function setText(shape: Element, text: string, { fontSize, lineHeight, baseline }: TextLayout): void {
+function setTextBox(shape: Element, box: Box): void {
+  const body = textBody(shape)
+  if (body !== null && !body.hasAttribute(NOTE_TEXT)) {
+    body.setAttribute("transform", `translate(${String(box.x)} ${String(box.y)})`)
+  }
+  const hit = shape.querySelector(TEXT_HIT)
+  if (hit !== null) setBox(hit, box)
+  for (const part of shape.querySelectorAll(NOTE_PARTS)) setBox(part, box)
+}
+
+function wrappedLines(shape: Element, body: Element, text: string, layout: TextLayout): string[] {
+  if (!body.hasAttribute(NOTE_TEXT)) return textLines(text)
+  const width = Number(shape.getAttribute("width")) - 2 * layout.notePadding
+  return wrapText(text, width, layout.charWidth)
+}
+
+export function setText(shape: Element, text: string, layout: TextLayout): void {
   const body = textBody(shape)
   if (body === null) return
+  const { fontSize, lineHeight, baseline } = layout
   body.setAttribute("font-size", String(fontSize))
-  body.replaceChildren(...textLines(text).map((line, index) => textLine(line, baseline + index * lineHeight)))
+  if (body.hasAttribute(NOTE_TEXT)) body.setAttribute(NOTE_SOURCE, text)
+  body.replaceChildren(
+    ...wrappedLines(shape, body, text, layout).map((line, index) => textLine(line, baseline + index * lineHeight)),
+  )
+}
+
+export function layoutKey(shape: Element): string {
+  return `${shape.getAttribute("width") ?? ""}:${shape.getAttribute("data-text") ?? ""}`
+}
+
+export function layoutCommittedNote(note: Element, layout: TextLayout): void {
+  const body = noteText(note)
+  const key = layoutKey(note)
+  if (body === null || body.getAttribute("data-laid-out") === key) return
+  setText(note, note.getAttribute("data-text") ?? "", layout)
+  body.setAttribute("data-laid-out", key)
 }
 
 function textLine(line: string, y: number): SVGTSpanElement {
@@ -193,16 +231,21 @@ export class SelectionOverlay {
   }
 }
 
+function noteGroup(id: string): SVGGElement {
+  const group = svgShape("g", { "data-draw": id, class: "draw-preview" })
+  const clip = svgShape("svg", { "data-note-clip": "", overflow: "hidden" })
+  clip.append(svgShape("text", { "data-text-body": "", [NOTE_TEXT]: "", class: "text-element" }))
+  group.append(svgShape("rect", { "data-note-body": "", rx: "6", class: "note-body" }), clip)
+  return group
+}
+
 export class DrawLayer {
   constructor(private readonly layer: Element) {}
 
   shape(id: string, kind: PreviewKind): SVGElement {
     const existing = this.find(id)
     if (existing !== null) return existing
-    const shape = svgShape(PREVIEW_TAGS[kind], {
-      "data-draw": id,
-      class: kind === "text" ? "draw-preview text-element" : "draw-preview",
-    })
+    const shape = kind === "note" ? noteGroup(id) : this.previewShape(id, kind)
     if (kind === "arrow") shape.setAttribute("marker-end", "url(#arrowhead)")
     this.layer.append(shape)
     return shape
@@ -210,6 +253,17 @@ export class DrawLayer {
 
   remove(id: string): void {
     this.find(id)?.remove()
+  }
+
+  hideText(id: string): void {
+    this.find(id)?.setAttribute("data-text-editing", "")
+  }
+
+  private previewShape(id: string, kind: Exclude<PreviewKind, "note">): SVGElement {
+    return svgShape(PREVIEW_TAGS[kind], {
+      "data-draw": id,
+      class: kind === "text" ? "draw-preview text-element" : "draw-preview",
+    })
   }
 
   private find(id: string): SVGElement | null {

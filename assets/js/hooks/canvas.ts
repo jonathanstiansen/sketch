@@ -25,7 +25,16 @@ import {
   type Shape,
   type Size,
 } from "./canvas_logic"
-import { DrawLayer, SelectionOverlay, isCorner, isEndpoint, setShape, setText, type TextLayout } from "./selection"
+import {
+  DrawLayer,
+  SelectionOverlay,
+  isCorner,
+  isEndpoint,
+  layoutCommittedNote,
+  setShape,
+  setText,
+  type TextLayout,
+} from "./selection"
 import { TextEditor } from "./text_editor"
 import {
   DEFAULT_TOOL,
@@ -52,7 +61,9 @@ const TEXT_EDITING = "data-text-editing"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
 const SEGMENT_ATTRIBUTES = ["x1", "y1", "x2", "y2"]
 const BOX_ATTRIBUTES = ["x", "y", "width", "height", "points", "cx", "cy", "rx", "ry", "transform", ...SEGMENT_ATTRIBUTES]
-const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", ...SEGMENT_ATTRIBUTES]
+const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", "data-text", ...SEGMENT_ATTRIBUTES]
+const TEXT_KINDS = ["text", "note"] as const
+const TEXT_KIND_SELECTOR = TEXT_KINDS.map((kind) => `[data-element][data-kind="${kind}"]`).join(", ")
 
 interface PreviewClock {
   seq: number
@@ -96,9 +107,11 @@ interface DrawPreview extends Box {
   text?: string
 }
 
+type TextKind = (typeof TEXT_KINDS)[number]
+
 type TextTarget =
-  | { mode: "create" }
-  | { mode: "edit"; element: SVGElement; elementId: string; baseVersion: number; text: string }
+  | { mode: "create"; kind: TextKind }
+  | { mode: "edit"; kind: TextKind; element: SVGElement; elementId: string; baseVersion: number; text: string }
 
 interface TextSession extends PreviewClock {
   target: TextTarget
@@ -244,8 +257,8 @@ function committedShape(shape: Element): Shape {
   }
 }
 
-function showShape(element: Element, { box, points }: Shape): void {
-  setShape(element, box, points)
+function isTextKind(value: string | undefined): value is TextKind {
+  return TEXT_KINDS.some((kind) => kind === value)
 }
 
 function subtract(a: Point, b: Point): Point {
@@ -301,6 +314,7 @@ export class Canvas extends ViewHook {
     this.selection = new SelectionOverlay(this.layer("#selection"))
     this.draws = new DrawLayer(this.layer("#draw-previews"))
     this.observer = new MutationObserver(() => {
+      this.layoutNotes()
       this.syncSelection()
     })
     this.observer.observe(this.layer("#elements"), {
@@ -308,6 +322,7 @@ export class Canvas extends ViewHook {
       childList: true,
       attributeFilter: BOX_SIZE_ATTRIBUTES,
     })
+    this.layoutNotes()
     window.addEventListener("keydown", this.onKeyDown)
     window.addEventListener("keyup", this.onKeyUp)
     window.addEventListener("blur", this.releaseSpace)
@@ -456,7 +471,7 @@ export class Canvas extends ViewHook {
 
   private updateEdit(edit: Edit, pointer: Point): void {
     edit.shape = editedShape(edit, pointer, this.canvasSize())
-    showShape(edit.rect, edit.shape)
+    this.showShape(edit.rect, edit.shape)
     this.schedulePreview(edit, () => {
       this.sendPreview(edit)
     })
@@ -471,7 +486,7 @@ export class Canvas extends ViewHook {
     } else {
       draw.shape = this.drawnShape(draw.kind, draw.start, pointer)
     }
-    showShape(this.draws.shape(draw.dragId, draw.kind), draw.shape)
+    this.showShape(this.draws.shape(draw.dragId, draw.kind), draw.shape)
     this.schedulePreview(draw, () => {
       this.sendPreview(draw)
     })
@@ -508,7 +523,11 @@ export class Canvas extends ViewHook {
     if (!draw.dragged && isPointKind(draw.kind)) return
     const { box, points } = draw.dragged
       ? draw.shape
-      : { box: clickBox(draw.start, this.defaultSize(), this.canvasSize()), points: [] }
+      : { box: clickBox(draw.start, this.defaultSize(draw.kind), this.canvasSize()), points: [] }
+    if (draw.kind === "note") {
+      this.openNote(draw, box)
+      return
+    }
     void this.pushEvent("create_element", { kind: draw.kind, drag_id: draw.dragId, ...box, points }).finally(
       () => {
         this.draws.remove(draw.dragId)
@@ -632,7 +651,7 @@ export class Canvas extends ViewHook {
     if (gesture.mode === "draw") {
       this.draws.remove(gesture.dragId)
     } else {
-      showShape(gesture.rect, gesture.origin)
+      this.showShape(gesture.rect, gesture.origin)
     }
   }
 
@@ -684,7 +703,7 @@ export class Canvas extends ViewHook {
     this.restartStaleTimer(preview.element_id, () => {
       this.cancelRemoteDrag(preview)
     })
-    setShape(rect, preview, preview.points)
+    this.showShape(rect, { box: preview, points: preview.points })
     if (preview.text !== undefined) setText(rect, preview.text, this.textLayout())
   }
 
@@ -696,7 +715,7 @@ export class Canvas extends ViewHook {
       this.endRemoteDraw(preview.drag_id)
     })
     const shape = this.draws.shape(preview.drag_id, preview.kind)
-    setShape(shape, preview, preview.points)
+    this.showShape(shape, { box: preview, points: preview.points })
     if (preview.text !== undefined) setText(shape, preview.text, this.textLayout())
   }
 
@@ -731,8 +750,8 @@ export class Canvas extends ViewHook {
     if (this.editedElementId() === elementId) return
     const rect = this.elementFor(elementId)
     if (rect === null) return
-    showShape(rect, committedShape(rect))
-    if (rect.dataset.kind === "text") setText(rect, rect.dataset.text ?? "", this.textLayout())
+    this.showShape(rect, committedShape(rect))
+    if (isTextKind(rect.dataset.kind)) setText(rect, rect.dataset.text ?? "", this.textLayout())
   }
 
   private editedElementId(): string | undefined {
@@ -752,7 +771,7 @@ export class Canvas extends ViewHook {
   private onDoubleClick = (event: MouseEvent): void => {
     if (this.tool !== "selection" || this.textEditor !== undefined) return
     const hit = document.elementFromPoint(event.clientX, event.clientY)
-    const element = hit?.closest<SVGElement>('[data-element][data-kind="text"]')
+    const element = hit?.closest<SVGElement>(TEXT_KIND_SELECTOR)
     if (element != null) this.editText(element)
   }
 
@@ -761,36 +780,48 @@ export class Canvas extends ViewHook {
     if (rect?.dataset.kind === "text") {
       this.editText(rect)
     } else {
-      this.startText(this.canvasPoint(event), "", { mode: "create" })
+      this.startText(this.canvasPoint(event), "", { mode: "create", kind: "text" })
     }
   }
 
   private editText(element: SVGElement): void {
     const elementId = element.dataset.element
     if (elementId === undefined) return
+    const kind = element.dataset.kind
+    if (!isTextKind(kind)) return
     const text = element.dataset.text ?? ""
     const target: TextTarget = {
       mode: "edit",
+      kind,
       element,
       elementId,
       baseVersion: integerAttribute(element, "data-version"),
       text,
     }
-    if (this.startText(committedShape(element).box, text, target)) {
+    const { box } = committedShape(element)
+    if (this.startText(box, text, target, kind === "note" ? box : undefined)) {
       element.setAttribute(TEXT_EDITING, "")
       this.clearRemoteDrag(elementId)
     }
   }
 
-  private startText(at: Point, text: string, target: TextTarget): boolean {
+  private openNote(draw: Draw, box: Box): void {
+    const target: TextTarget = { mode: "create", kind: "note" }
+    const shape = this.draws.shape(draw.dragId, "note")
+    this.showShape(shape, { box, points: [] })
+    this.draws.hideText(draw.dragId)
+    this.startText(box, "", target, box, draw)
+  }
+
+  private startText(at: Point, text: string, target: TextTarget, frame?: Box, drawn?: Draw): boolean {
     if (!this.online || this.textSession !== undefined) return false
     this.select(undefined)
     const session: TextSession = {
       target,
       text,
       box: { ...at, width: 0, height: 0 },
-      dragId: crypto.randomUUID(),
-      seq: 0,
+      dragId: drawn?.dragId ?? crypto.randomUUID(),
+      seq: drawn?.seq ?? 0,
       lastSentAt: -Infinity,
       previewTimer: undefined,
       keepAlive: window.setInterval(() => {
@@ -803,6 +834,7 @@ export class Canvas extends ViewHook {
       layout: this.textLayout(),
       maxLength: integerAttribute(this.el, "data-max-text-length"),
       canvas: this.canvasSize(),
+      note: frame === undefined ? undefined : { frame, padding: this.textLayout().notePadding },
       onInput: (typed, box) => {
         session.text = typed
         session.box = box
@@ -815,6 +847,7 @@ export class Canvas extends ViewHook {
       },
     })
     session.box = this.textEditor.box()
+    if (frame !== undefined && target.mode === "create") this.sendTextPreview(session)
     return true
   }
 
@@ -824,7 +857,7 @@ export class Canvas extends ViewHook {
     session.lastSentAt = performance.now()
     const preview = { drag_id: session.dragId, seq: session.seq, ...session.box, points: [], text: session.text }
     if (session.target.mode === "create") {
-      void this.pushEvent("draw_preview", { kind: "text", ...preview })
+      void this.pushEvent("draw_preview", { kind: session.target.kind, ...preview })
     } else {
       void this.pushEvent("preview", {
         element_id: session.target.elementId,
@@ -839,24 +872,32 @@ export class Canvas extends ViewHook {
     const sent = session.seq > 0 && this.online
     const { target } = session
     if (target.mode === "create") {
-      if (isBlankText(text) || !this.online) {
-        if (sent) void this.pushEvent("draw_cancel", { drag_id: session.dragId })
-      } else {
-        void this.pushEvent("create_element", { kind: "text", drag_id: session.dragId, ...box, points: [], text })
-      }
+      this.finishCreatedText(session, target.kind, text, box, sent)
       return
     }
     target.element.removeAttribute(TEXT_EDITING)
     const ref = { element_id: target.elementId, drag_id: session.dragId }
-    if (isBlankText(text) || text === target.text || !this.online) {
+    if ((target.kind === "text" && isBlankText(text)) || text === target.text || !this.online) {
       this.revert(target.elementId)
       if (sent) void this.pushEvent("drag_cancel", ref)
     } else {
-      setShape(target.element, box, [])
+      this.showShape(target.element, { box, points: [] })
       setText(target.element, text, this.textLayout())
       void this.pushEvent("commit_shape", { ...ref, ...box, points: [], text })
     }
     this.select(target.elementId)
+  }
+
+  private finishCreatedText(session: TextSession, kind: TextKind, text: string, box: Box, sent: boolean): void {
+    const { dragId } = session
+    if ((kind === "text" && isBlankText(text)) || !this.online) {
+      this.draws.remove(dragId)
+      if (sent) void this.pushEvent("draw_cancel", { drag_id: dragId })
+      return
+    }
+    void this.pushEvent("create_element", { kind, drag_id: dragId, ...box, points: [], text }).finally(() => {
+      this.draws.remove(dragId)
+    })
   }
 
   private endText(session: TextSession): void {
@@ -878,6 +919,8 @@ export class Canvas extends ViewHook {
       fontSize: integerAttribute(this.el, "data-font-size"),
       lineHeight: integerAttribute(this.el, "data-line-height"),
       baseline: integerAttribute(this.el, "data-text-baseline"),
+      charWidth: integerAttribute(this.el, "data-char-width"),
+      notePadding: integerAttribute(this.el, "data-note-padding"),
     }
   }
 
@@ -892,11 +935,21 @@ export class Canvas extends ViewHook {
     return integerAttribute(this.el, "data-max-points")
   }
 
-  private defaultSize(): Size {
+  private defaultSize(kind: DrawnKind): Size {
+    const prefix = kind === "note" ? "note" : "default"
     return {
-      width: integerAttribute(this.el, "data-default-width"),
-      height: integerAttribute(this.el, "data-default-height"),
+      width: integerAttribute(this.el, `data-${prefix}-width`),
+      height: integerAttribute(this.el, `data-${prefix}-height`),
     }
+  }
+
+  private showShape(element: Element, { box, points }: Shape): void {
+    setShape(element, box, points, this.textLayout())
+  }
+
+  private layoutNotes(): void {
+    const layout = this.textLayout()
+    for (const note of this.el.querySelectorAll('#elements [data-kind="note"]')) layoutCommittedNote(note, layout)
   }
 
   private canvasPoint(event: PointerEvent): Point {

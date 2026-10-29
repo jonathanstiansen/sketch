@@ -769,4 +769,157 @@ defmodule SketchWeb.BoardLiveTest do
       assert [%{text: "old", version: 0}] = Canvas.list_elements_for_board!(board.id)
     end
   end
+
+  describe "note" do
+    @note_edit_id "33333333-4444-4555-8666-777777777777"
+
+    defp note_params(box, text) do
+      %{"kind" => "note", "drag_id" => @drag_id, "text" => text}
+      |> Map.merge(Map.new(box, fn {key, value} -> {to_string(key), value} end))
+    end
+
+    defp note_element(view, id) do
+      view |> render() |> LazyHTML.from_fragment() |> LazyHTML.query("#element-#{id}")
+    end
+
+    test "a note is created with its text and renders as a rounded body with a clipped text in every view",
+         %{conn: conn, board: board} do
+      {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 300, y: 200, width: 200, height: 160}
+
+      render_hook(creator, "create_element", note_params(box, "<b>buy</b> milk\nand eggs"))
+
+      assert [%{kind: :note, id: id, text: "<b>buy</b> milk\nand eggs", width: 200}] =
+               Canvas.list_elements_for_board!(board.id)
+
+      for view <- [creator, watcher] do
+        assert has_element?(
+                 view,
+                 "g#element-#{id}[data-kind='note'][data-version='0'] rect[data-note-body][width='200'][height='160']"
+               )
+
+        assert has_element?(view, "#element-#{id} svg[data-note-clip][x='300'][y='200']")
+
+        assert note_element(view, id) |> LazyHTML.attribute("data-text") == [
+                 "<b>buy</b> milk\nand eggs"
+               ]
+
+        refute has_element?(view, "#elements b")
+      end
+    end
+
+    test "an empty note is still created, and overlong text creates nothing", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 0, y: 0, width: 200, height: 160}
+
+      render_hook(view, "create_element", note_params(box, ""))
+      assert [%{kind: :note, text: ""}] = Canvas.list_elements_for_board!(board.id)
+
+      overlong = String.duplicate("a", Sketch.Canvas.geometry().max_text_length + 1)
+      render_hook(view, "create_element", note_params(box, overlong))
+      assert [_only_one] = Canvas.list_elements_for_board!(board.id)
+    end
+
+    test "editing commits the text with the same box, and clearing it keeps an empty note", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, editor, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+
+      element =
+        Canvas.create_element!(%{
+          kind: :note,
+          x: 10,
+          y: 20,
+          width: 200,
+          height: 160,
+          text: "draft",
+          board_id: board.id
+        })
+
+      commit = fn text ->
+        render_hook(editor, "commit_shape", %{
+          "element_id" => element.id,
+          "drag_id" => @note_edit_id,
+          "x" => 10,
+          "y" => 20,
+          "width" => 200,
+          "height" => 160,
+          "points" => [],
+          "text" => text
+        })
+      end
+
+      commit.("final words")
+      assert [%{text: "final words", version: 1}] = Canvas.list_elements_for_board!(board.id)
+
+      for view <- [editor, watcher] do
+        assert note_element(view, element.id) |> LazyHTML.attribute("data-text") == [
+                 "final words"
+               ]
+      end
+
+      commit.("")
+      assert [%{text: "", version: 2}] = Canvas.list_elements_for_board!(board.id)
+    end
+
+    test "resizing commits the new box without touching the text", %{conn: conn, board: board} do
+      {:ok, resizer, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+
+      element =
+        Canvas.create_element!(%{
+          kind: :note,
+          x: 10,
+          y: 20,
+          width: 200,
+          height: 160,
+          text: "keep me",
+          board_id: board.id
+        })
+
+      render_hook(resizer, "commit_shape", %{
+        "element_id" => element.id,
+        "drag_id" => @note_edit_id,
+        "x" => 10,
+        "y" => 20,
+        "width" => 90,
+        "height" => 60,
+        "points" => []
+      })
+
+      assert [%{text: "keep me", width: 90, height: 60, version: 1}] =
+               Canvas.list_elements_for_board!(board.id)
+
+      for view <- [resizer, watcher] do
+        assert has_element?(
+                 view,
+                 "g#element-#{element.id}[data-version='1'] rect[data-note-body][width='90'][height='60']"
+               )
+      end
+    end
+
+    test "typing previews of a new note reach other views as note previews", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, typist, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+
+      render_hook(
+        typist,
+        "draw_preview",
+        note_params(%{x: 40, y: 50, width: 200, height: 160}, "hi there")
+        |> Map.merge(%{"seq" => 1, "points" => []})
+      )
+
+      assert_push_event(watcher, "draw_preview", %{kind: "note", seq: 1, text: "hi there"})
+      assert Canvas.list_elements_for_board!(board.id) == []
+    end
+  end
 end

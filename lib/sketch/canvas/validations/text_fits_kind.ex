@@ -1,7 +1,7 @@
 defmodule Sketch.Canvas.Validations.TextFitsKind do
   @moduledoc """
-  Validates an element's text against its kind with `Geometry.text_fits_kind?/2`: text kinds need
-  non-blank text and every other kind empty text. In an atomic update the kind is the stored one.
+  Validates an element's text against its kind with `Geometry.text_fits_kind?/2`: a `:text` element needs
+  non-blank text, a `:note` any text within the length bound, and every other kind empty text. In an atomic update the kind is the stored one.
   """
   use Ash.Resource.Validation
 

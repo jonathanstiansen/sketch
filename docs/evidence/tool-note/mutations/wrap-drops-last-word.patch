@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas_logic.ts b/assets/js/hooks/canvas_logic.ts
+index fc046a2..b2383d5 100644
+--- a/assets/js/hooks/canvas_logic.ts
++++ b/assets/js/hooks/canvas_logic.ts
+@@ -247,7 +247,7 @@ function characterChunks(word: string, size: number): string[] {
+ function wrapParagraph(paragraph: string, chars: number): string[] {
+   const lines: string[] = []
+   let current = ""
+-  for (const word of paragraph.split(/\s+/).filter((part) => part !== "")) {
++  for (const word of paragraph.split(/\s+/).filter((part) => part !== "").slice(0, -1)) {
+     const joined = current === "" ? word : `${current} ${word}`
+     if (Array.from(joined).length <= chars) {
+       current = joined

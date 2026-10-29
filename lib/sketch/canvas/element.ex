@@ -14,7 +14,7 @@ defmodule Sketch.Canvas.Element do
 
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
-  @kinds [:rectangle, :diamond, :ellipse, :arrow, :freedraw, :line, :text]
+  @kinds [:rectangle, :diamond, :ellipse, :arrow, :freedraw, :line, :text, :note]
   @point_kinds Geometry.point_kinds()
   @box_kinds @kinds -- @point_kinds
   @box_min_size Geometry.min_size(:rectangle)
@@ -27,6 +27,7 @@ defmodule Sketch.Canvas.Element do
 
                       "WHEN kind = '#{kind}' THEN cardinality(points) BETWEEN #{range.first} AND #{range.last}"
                     end)
+  @sql_required_text_kinds Enum.map_join(Geometry.required_text_kinds(), ", ", &"'#{&1}'")
   @sql_text_kinds Enum.map_join(Geometry.text_kinds(), ", ", &"'#{&1}'")
   @sql_not_text_whitespace ~S"[^ \t\n\r]"
   @sql_point_outside String.trim(~S"""
@@ -71,7 +72,7 @@ defmodule Sketch.Canvas.Element do
 
       check_constraint :text, "text_matches_kind",
         check:
-          "CASE WHEN kind IN (#{@sql_text_kinds}) THEN text ~ '#{@sql_not_text_whitespace}' ELSE text = '' END"
+          "CASE WHEN kind IN (#{@sql_required_text_kinds}) THEN text ~ '#{@sql_not_text_whitespace}' WHEN kind IN (#{@sql_text_kinds}) THEN true ELSE text = '' END"
 
       check_constraint :version, "version_not_negative", check: "version >= 0"
     end

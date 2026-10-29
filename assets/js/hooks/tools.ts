@@ -30,15 +30,23 @@ export const TOOLS: readonly Tool[] = [
   { id: "line", letter: "l", digit: "6", enabled: true },
   { id: "draw", letter: "p", digit: "7", enabled: true },
   { id: "text", letter: "t", digit: "8", enabled: true },
-  { id: "note", letter: "n", digit: "9", enabled: false },
+  { id: "note", letter: "n", digit: "9", enabled: true },
   { id: "eraser", letter: "e", digit: "0", enabled: false },
 ]
 
 export const DEFAULT_TOOL: ToolId = "selection"
 
-export type DrawnKind = "rectangle" | "diamond" | "ellipse" | "arrow" | "freedraw" | "line"
+export type DrawnKind = "rectangle" | "diamond" | "ellipse" | "arrow" | "freedraw" | "line" | "note"
 
-export const DRAWN_KINDS: readonly DrawnKind[] = ["rectangle", "diamond", "ellipse", "arrow", "freedraw", "line"]
+export const DRAWN_KINDS: readonly DrawnKind[] = [
+  "rectangle",
+  "diamond",
+  "ellipse",
+  "arrow",
+  "freedraw",
+  "line",
+  "note",
+]
 
 export function isDrawnKind(value: string): value is DrawnKind {
   return DRAWN_KINDS.some((kind) => kind === value)

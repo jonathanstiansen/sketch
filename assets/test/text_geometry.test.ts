@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import fc from "fast-check"
-import { textBox, textLines, type Box, type Size } from "../js/hooks/canvas_logic.ts"
+import { textBox, textLines, wrapText, type Box, type Size } from "../js/hooks/canvas_logic.ts"
 
 const settings = { seed: 1, numRuns: 1000 }
 
@@ -93,4 +93,79 @@ void test("an empty text still has a one-line box at least one unit wide", () =>
     }),
     settings,
   )
+})
+
+const wrapWidth = fc.double({ min: 1, max: 600, noNaN: true })
+const wrappableText = fc.string({
+  unit: fc.constantFrom("a", "b", "W", "é", "😀", " ", " ", "\t", "\n", "\r\n", "-", "<"),
+  maxLength: 120,
+})
+
+function characterCount(line: string): number {
+  return Array.from(line).length
+}
+
+function withoutWhitespace(text: string): string {
+  return text.replace(/\s/g, "")
+}
+
+void test("wrapped lines fit the width unless a single character is wider than it", () => {
+  fc.assert(
+    fc.property(wrappableText, wrapWidth, charWidth, (text, width, glyph) => {
+      for (const line of wrapText(text, width, glyph)) {
+        assert.ok(characterCount(line) * glyph <= width || characterCount(line) === 1, JSON.stringify(line))
+      }
+    }),
+    settings,
+  )
+})
+
+void test("a word longer than the width is hard-broken into lines that fit", () => {
+  fc.assert(
+    fc.property(fc.integer({ min: 1, max: 20 }), fc.integer({ min: 1, max: 100 }), (chars, length) => {
+      const lines = wrapText("x".repeat(length), chars * 10, 10)
+      assert.ok(lines.every((line) => line.length <= chars))
+      assert.equal(lines.join(""), "x".repeat(length))
+      assert.equal(lines.length, Math.ceil(length / chars))
+    }),
+    settings,
+  )
+})
+
+void test("wrapping keeps every non-whitespace character in order", () => {
+  fc.assert(
+    fc.property(wrappableText, wrapWidth, charWidth, (text, width, glyph) => {
+      assert.equal(withoutWhitespace(wrapText(text, width, glyph).join("")), withoutWhitespace(text))
+    }),
+    settings,
+  )
+})
+
+void test("explicit line breaks stay line breaks, and an empty paragraph stays an empty line", () => {
+  fc.assert(
+    fc.property(fc.array(wrappableText, { minLength: 1, maxLength: 5 }), wrapWidth, charWidth, (paragraphs, width, glyph) => {
+      const joined = paragraphs.join("\n")
+      const lines = wrapText(joined, width, glyph)
+      assert.ok(lines.length >= textLines(joined).length)
+      const rebuilt = paragraphs.flatMap((paragraph) => textLines(paragraph).flatMap((part) => wrapText(part, width, glyph)))
+      assert.deepEqual(lines, rebuilt)
+      assert.deepEqual(wrapText("a\n\nb", 1000, 1), ["a", "", "b"])
+    }),
+    settings,
+  )
+})
+
+void test("wrapping its own output changes nothing", () => {
+  fc.assert(
+    fc.property(wrappableText, wrapWidth, charWidth, (text, width, glyph) => {
+      const lines = wrapText(text, width, glyph)
+      assert.deepEqual(wrapText(lines.join("\n"), width, glyph), lines)
+    }),
+    settings,
+  )
+})
+
+void test("a sentence wraps at word boundaries, greedily", () => {
+  assert.deepEqual(wrapText("the quick brown fox", 90, 10), ["the quick", "brown fox"])
+  assert.deepEqual(wrapText("ab cd ef", 50, 10), ["ab cd", "ef"])
 })

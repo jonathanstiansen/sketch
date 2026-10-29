@@ -91,7 +91,12 @@ Consequences for the earlier decisions:
   enforced by Ash and PostgreSQL. Text renders at a fixed 20 px font size and
   25 px line height from `Geometry`; its box is the line count times the line
   height by the measured longest line. Text elements move but have no resize
-  handles.
+  handles. Note elements are boxes of at least 1 by 1 that hold text of at most
+  2000 code points, possibly empty or only whitespace. A click with the Note tool
+  makes a 200 by 160 note; the text wraps to the note's width minus a 12 px
+  padding on each side at the 12 px `Geometry.char_width` per character, breaking
+  words longer than a line, and the box clips any overflow. Notes resize with
+  corner handles and re-wrap.
 - D2: previews carry the whole box:
   `{element_id, drag_id, seq, base_version, x, y, width, height}`, used for
   moves and resizes. Drawing a new element sends `draw_preview`
@@ -99,7 +104,7 @@ Consequences for the earlier decisions:
   `{drag_id}`, sent on cancel or after the element is created. Draw previews
   follow the same rules: throttled to 20 per second, never persisted, dropped
   after 2000 ms of silence. Typing text adds `text` to these payloads:
-  `draw_preview` with kind `text` for new text and `preview` for an edit. An
+  `draw_preview` with kind `text` or `note` for a new element and `preview` for an edit. An
   open editor resends its latest preview every second, so a typing pause does
   not trigger the 2000 ms timeout.
 - D0: `commit_shape` is a second update action with the same atomic version
