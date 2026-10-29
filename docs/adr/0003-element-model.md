@@ -42,13 +42,17 @@ Generalise `Sketch.Canvas.Rectangle` into `Sketch.Canvas.Element`
   `jsonb[]`. The `PointsFitShape` validation and two CHECK constraints
   (`points_match_kind`, `points_within_box`) enforce count, shape and bounds.
 - `text` (added with the text tool, reused by the note tool): a `:string` that keeps
-  whitespace. For `:text` it must contain a character other than a space, tab,
+  whitespace. For `:note` it may be empty and is otherwise bounded like `:text`.
+  For `:text` it must contain a character other than a space, tab,
   CR or LF, contain no NUL and be at most `Geometry.max_text_length/0` (2000)
   code points, the unit of PostgreSQL `char_length`. Every other kind stores `""`.
   The `TextFitsKind` validation (atomic against the stored kind) and two CHECK
   constraints (`text_length`, `text_matches_kind`) enforce it. Text renders as
   SVG `<text>` with one `<tspan>` per line at the font size and line height in
-  `Geometry`.
+  `Geometry`. A `:note` is a box kind whose text the client wraps with the pure
+  helper `wrapText`, at `Geometry.char_width` per character inside
+  `Geometry.note_padding`, in a nested `<svg>` that clips it; the server
+  renders no lines for notes.
 - `version`: unchanged semantics (ADR 0001).
 
 Actions: `create` (accepts kind, box, points, text, board), `commit_position`
