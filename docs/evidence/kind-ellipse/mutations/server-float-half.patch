@@ -1,0 +1,11 @@
+diff --git a/lib/sketch_web/element_renderer.ex b/lib/sketch_web/element_renderer.ex
+index 7ee55fd..a9705e2 100644
+--- a/lib/sketch_web/element_renderer.ex
++++ b/lib/sketch_web/element_renderer.ex
+@@ -27,6 +27,5 @@ defmodule SketchWeb.ElementRenderer do
+ 
+   @doc "Half of a size, an integer when the size is even so that it prints like JavaScript's `String(n)`."
+   @spec half(non_neg_integer()) :: number()
+-  def half(value) when rem(value, 2) == 0, do: div(value, 2)
+   def half(value), do: value / 2
+ end

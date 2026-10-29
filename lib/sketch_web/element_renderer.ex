@@ -24,4 +24,9 @@ defmodule SketchWeb.ElementRenderer do
         }
 
   @callback render(local_shape()) :: [svg_node()]
+
+  @doc "Half of a size, an integer when the size is even so that it prints like JavaScript's `String(n)`."
+  @spec half(non_neg_integer()) :: number()
+  def half(value) when rem(value, 2) == 0, do: div(value, 2)
+  def half(value), do: value / 2
 end

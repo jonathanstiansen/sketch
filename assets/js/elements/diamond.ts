@@ -1,3 +1,4 @@
+import { half } from "./half.ts"
 import type { Renderer } from "./renderer.ts"
 
 function pair(x: number, y: number): string {
@@ -5,8 +6,8 @@ function pair(x: number, y: number): string {
 }
 
 export const diamond: Renderer = ({ width, height }) => {
-  const midX = width / 2
-  const midY = height / 2
+  const midX = half(width)
+  const midY = half(height)
   return [
     {
       tag: "polygon",

@@ -26,7 +26,7 @@ const NOTE_PARTS = "rect[data-note-body], svg[data-note-clip]"
 const NOTE_TEXT = "data-note-text"
 const NOTE_SOURCE = "data-source"
 
-type ShapeTag = "rect" | "ellipse" | "line" | "polyline" | "text" | "tspan" | "g" | "svg"
+type ShapeTag = "rect" | "line" | "polyline" | "text" | "tspan" | "g" | "svg"
 
 export interface TextLayout {
   fontSize: number
@@ -56,7 +56,6 @@ export function setBox(shape: Element, box: Box): void {
   shape.setAttribute("y", String(y))
   shape.setAttribute("width", String(width))
   shape.setAttribute("height", String(height))
-  if (shape.localName === "ellipse") setEllipse(shape, box)
 }
 
 export function setShape(shape: Element, box: Box, points: readonly Point[], layout: TextLayout): void {
@@ -145,15 +144,7 @@ function setSegment(segment: Element, start: Point, end: Point): void {
   segment.setAttribute("y2", String(end.y))
 }
 
-function setEllipse(shape: Element, { x, y, width, height }: Box): void {
-  shape.setAttribute("cx", String(x + width / 2))
-  shape.setAttribute("cy", String(y + height / 2))
-  shape.setAttribute("rx", String(width / 2))
-  shape.setAttribute("ry", String(height / 2))
-}
-
 const PREVIEW_TAGS = {
-  ellipse: "ellipse",
   arrow: "line",
   freedraw: "polyline",
   line: "line",

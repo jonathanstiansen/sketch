@@ -2,6 +2,8 @@ defmodule SketchWeb.Elements.Diamond do
   @moduledoc "Renders a diamond as one filled `polygon` through the midpoints of its box's sides."
   @behaviour SketchWeb.ElementRenderer
 
+  import SketchWeb.ElementRenderer, only: [half: 1]
+
   @impl true
   def render(%{width: width, height: height}) do
     mid_x = half(width)
@@ -18,7 +20,4 @@ defmodule SketchWeb.Elements.Diamond do
       }
     ]
   end
-
-  defp half(value) when rem(value, 2) == 0, do: div(value, 2)
-  defp half(value), do: value / 2
 end
