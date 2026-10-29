@@ -224,6 +224,41 @@ defmodule Sketch.ArchitectureCheck do
     |> Enum.flat_map(&matching_lines(root, &1, @pointer_events, "A13", "pointer event"))
   end
 
+  @doc """
+  Lines in `lib/` and `assets/js/` that branch on a literal element kind (A22): `kind == :x` or
+  `kind === "x"` in either order and their negations, `kind in [`, `kind: :x`, `data-kind="x"` and
+  any `dataset.kind` comparison. Files equal to or under an `allowed_paths` entry are skipped.
+  """
+  @spec kind_branching_violations(Path.t(), [String.t()], [String.t()]) :: [violation()]
+  def kind_branching_violations(root, kinds, allowed_paths) do
+    pattern = kind_branching_pattern(kinds)
+
+    root
+    |> source_files(~w(lib assets/js), ~w(.ex .exs .heex .ts .tsx .js .mjs))
+    |> Enum.reject(&allowed_path?(&1, allowed_paths))
+    |> Enum.flat_map(&matching_lines(root, &1, pattern, "A22", "kind branch"))
+  end
+
+  defp kind_branching_pattern(kinds) do
+    names = Enum.map_join(kinds, "|", &Regex.escape/1)
+    literal = ~s/(?::|["'])(?:#{names})\\b/
+    comparison = "(?:===|!==|==|!=)"
+
+    [
+      "\\bkind\\s*#{comparison}\\s*#{literal}",
+      ~s/#{literal}["']?\\s*#{comparison}\\s*[\\w.@]*\\bkind\\b/,
+      "\\bkind\\s+(?:not\\s+)?in\\s+\\[",
+      "\\bkind:\\s*:(?:#{names})\\b",
+      ~s/data-kind=\\\\?["'](?:#{names})\\b/,
+      "\\bdataset\\.kind\\s*#{comparison}"
+    ]
+    |> Enum.join("|")
+    |> Regex.compile!()
+  end
+
+  defp allowed_path?(file, allowed_paths),
+    do: Enum.any?(allowed_paths, &(file == &1 or String.starts_with?(file, &1)))
+
   @spec e2e_violations(Path.t()) :: [violation()]
   def e2e_violations(root) do
     sources = source_files(root, ~w(e2e), ~w(.ts .tsx .js .mjs .cjs))
