@@ -10,6 +10,7 @@ import {
   pointerAction,
   selectionHandles,
   selectTool,
+  typedKind,
   type KeyInput,
   type ToolId,
 } from "../js/hooks/tools.ts"
@@ -185,6 +186,14 @@ void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, A
     }),
     settings,
   )
+})
+
+void test("a pointer action of text always has a typed kind to create or edit, and only the Text tool has one", () => {
+  for (const { id } of TOOLS) {
+    const action = pointerAction({ button: 0, tool: id, spaceHeld: false, onElement: false, onHandle: false })
+    assert.equal(typedKind(id) !== undefined, action === "text", id)
+  }
+  assert.equal(typedKind("text"), "text")
 })
 
 const anyPoint = fc.record({ x: fc.integer({ min: -5000, max: 5000 }), y: fc.integer({ min: -5000, max: 5000 }) })

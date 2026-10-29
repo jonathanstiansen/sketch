@@ -9,8 +9,6 @@ defmodule SketchWeb.BoardLive do
   @point_kinds Enum.map(Sketch.Canvas.point_kinds(), &Atom.to_string/1)
   @max_text_bytes Sketch.Canvas.geometry().max_text_length * 4
   @font_size Sketch.Canvas.geometry().font_size
-  @line_height Sketch.Canvas.geometry().line_height
-  @text_baseline Sketch.Canvas.geometry().text_baseline
   @note_padding Sketch.Canvas.geometry().note_padding
   @rendered_kinds Map.from_keys(SketchWeb.Elements.kinds(), true)
 
@@ -300,54 +298,6 @@ defmodule SketchWeb.BoardLive do
 
   defp element_shape(%{element: %{kind: kind}} = assigns) when is_map_key(@rendered_kinds, kind),
     do: SketchWeb.Elements.element(assigns)
-
-  defp element_shape(%{element: %{kind: :text}} = assigns) do
-    assigns =
-      assign(assigns,
-        font_size: @font_size,
-        lines:
-          assigns.element.text
-          |> String.split("\n")
-          |> Enum.with_index(&{&1, @text_baseline + &2 * @line_height})
-      )
-
-    ~H"""
-    <g
-      id={@dom_id}
-      x={@element.x}
-      y={@element.y}
-      width={@element.width}
-      height={@element.height}
-      data-element={@element.id}
-      data-kind={@element.kind}
-      data-x={@element.x}
-      data-y={@element.y}
-      data-width={@element.width}
-      data-height={@element.height}
-      data-text={@element.text}
-      data-version={@element.version}
-      class="cursor-grab touch-none"
-    >
-      <rect
-        data-text-hit
-        x={@element.x}
-        y={@element.y}
-        width={@element.width}
-        height={@element.height}
-        fill="transparent"
-      />
-      <text
-        data-text-body
-        transform={"translate(#{@element.x} #{@element.y})"}
-        font-size={@font_size}
-        pointer-events="none"
-        class="text-element fill-base-content"
-      >
-        <tspan :for={{line, y} <- @lines} x="0" y={y}>{line}</tspan>
-      </text>
-    </g>
-    """
-  end
 
   defp element_shape(%{element: %{kind: :note}} = assigns) do
     assigns = assign(assigns, font_size: @font_size, padding: @note_padding)

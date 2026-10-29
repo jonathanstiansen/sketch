@@ -6,8 +6,9 @@ import { freedraw } from "./freedraw.ts"
 import { line } from "./line.ts"
 import { rectangle } from "./rectangle.ts"
 import type { Renderer } from "./renderer.ts"
+import { text } from "./text.ts"
 
-export const RENDERERS = { rectangle, diamond, ellipse, arrow, freedraw, line } as const satisfies Record<MigratedKind, Renderer>
+export const RENDERERS = { rectangle, diamond, ellipse, arrow, freedraw, line, text } as const satisfies Record<MigratedKind, Renderer>
 
 export function isMigratedKind(kind: string | null | undefined): kind is MigratedKind {
   return MIGRATED_KINDS.some((migrated) => migrated === kind)

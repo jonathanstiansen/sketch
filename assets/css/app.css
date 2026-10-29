@@ -190,7 +190,12 @@ polyline.draw-preview {
   white-space: pre;
 }
 
-text.draw-preview {
+.local-preview > [data-text-hit] {
+  fill: transparent;
+  stroke: none;
+}
+
+.local-preview > .text-element {
   fill: var(--color-base-content);
   stroke: none;
   opacity: 0.6;

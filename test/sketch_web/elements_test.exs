@@ -61,13 +61,18 @@ defmodule SketchWeb.ElementsTest do
   defp tree(nodes) do
     for {tag, attrs, children} <- nodes do
       %{"tag" => tag, "attrs" => Map.new(attrs)}
-      |> put_content(Enum.reject(children, &whitespace?/1))
+      |> put_content(children)
     end
   end
 
-  defp put_content(node, []), do: node
-  defp put_content(node, [text]) when is_binary(text), do: Map.put(node, "text", text)
-  defp put_content(node, children), do: Map.put(node, "children", tree(children))
+  defp put_content(node, children) do
+    if Enum.all?(children, &is_binary/1),
+      do: put_text(node, Enum.join(children)),
+      else: Map.put(node, "children", children |> Enum.reject(&whitespace?/1) |> tree())
+  end
+
+  defp put_text(node, ""), do: node
+  defp put_text(node, text), do: Map.put(node, "text", text)
 
   defp whitespace?(child), do: is_binary(child) and String.trim(child) == ""
 end

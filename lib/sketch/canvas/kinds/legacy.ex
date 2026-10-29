@@ -10,7 +10,6 @@ defmodule Sketch.Canvas.Kinds.Legacy do
   @spec specs() :: [Kind.t()]
   def specs do
     [
-      %Kind{id: :text, geometry: :box, text: :required, default_size: %{width: 1, height: 25}},
       %Kind{id: :note, geometry: :box, text: :optional, default_size: %{width: 200, height: 160}}
     ]
   end
