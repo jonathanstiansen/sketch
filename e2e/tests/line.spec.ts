@@ -2,9 +2,9 @@ import { expect, test, type Page } from "@playwright/test"
 import { clickAt, closeSession, expectBox, moveTo, openSharedBoard, pressAt } from "./support/canvas"
 
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
-const element = 'g[data-element][data-kind="line"]'
-const stroke = `${element} line[data-line-stroke]`
-const drawPreview = "line[data-draw]"
+const element = '[data-element][data-kind="line"]'
+const drawPreview = '[data-draw][data-kind="line"]'
+const handleSize = 10
 
 interface Segment {
   x1: number
@@ -13,33 +13,65 @@ interface Segment {
   y2: number
 }
 
-async function expectSegment(page: Page, selector: string, segment: Segment): Promise<void> {
-  for (const [name, value] of Object.entries(segment)) {
-    await expect(page.locator(selector)).toHaveAttribute(name, String(value))
-  }
+function originOf({ x1, y1, x2, y2 }: Segment): { x: number; y: number } {
+  return { x: Math.min(x1, x2), y: Math.min(y1, y2) }
 }
 
-function relativePoints({ x1, y1, x2, y2 }: Segment, x: number, y: number): string {
-  return [
-    [x1 - x, y1 - y],
-    [x2 - x, y2 - y],
-  ]
-    .map((point) => point.map(String).join(","))
-    .join(" ")
+function localSegment(segment: Segment): Segment {
+  const { x, y } = originOf(segment)
+  return { x1: segment.x1 - x, y1: segment.y1 - y, x2: segment.x2 - x, y2: segment.y2 - y }
+}
+
+function pointsOf(segment: Segment): string {
+  const { x1, y1, x2, y2 } = localSegment(segment)
+  return `${String(x1)},${String(y1)} ${String(x2)},${String(y2)}`
+}
+
+async function expectDrawn(page: Page, wrapper: string, segment: Segment): Promise<void> {
+  const { x, y } = originOf(segment)
+  await expect(page.locator(wrapper)).toHaveAttribute("transform", `translate(${String(x)} ${String(y)})`)
+  for (const part of ["line[data-line-hit]", "line[data-line-stroke]"]) {
+    const line = page.locator(`${wrapper} > ${part}`)
+    await expect(line).toHaveCount(1)
+    for (const [name, value] of Object.entries(localSegment(segment))) {
+      await expect(line).toHaveAttribute(name, String(value))
+    }
+  }
 }
 
 async function expectLines(page: Page, count: number): Promise<void> {
   await expect(page.locator(element)).toHaveCount(count)
 }
 
+async function expectCommitted(page: Page, segment: Segment, version: number): Promise<void> {
+  const { x1, y1, x2, y2 } = segment
+  const { x, y } = originOf(segment)
+  const wrapper = page.locator(element)
+  await expect(wrapper).toHaveAttribute("data-version", String(version))
+  await expect(wrapper).toHaveAttribute("data-x", String(x))
+  await expect(wrapper).toHaveAttribute("data-y", String(y))
+  await expect(wrapper).toHaveAttribute("data-width", String(Math.abs(x2 - x1)))
+  await expect(wrapper).toHaveAttribute("data-height", String(Math.abs(y2 - y1)))
+  await expect(wrapper).toHaveAttribute("data-points", pointsOf(segment))
+}
+
 async function expectLine(page: Page, segment: Segment, version: number): Promise<void> {
   await expectLines(page, 1)
-  await expectSegment(page, stroke, segment)
+  await expectDrawn(page, element, segment)
   const { x1, y1, x2, y2 } = segment
-  const [x, y] = [Math.min(x1, x2), Math.min(y1, y2)]
-  await expectBox(page, element, { x, y, width: Math.abs(x2 - x1), height: Math.abs(y2 - y1) })
-  await expect(page.locator(element)).toHaveAttribute("data-points", relativePoints(segment, x, y))
-  await expect(page.locator(element)).toHaveAttribute("data-version", String(version))
+  await expectBox(page, element, { ...originOf(segment), width: Math.abs(x2 - x1), height: Math.abs(y2 - y1) })
+  await expectCommitted(page, segment, version)
+}
+
+async function expectHandles(page: Page, { x1, y1, x2, y2 }: Segment): Promise<void> {
+  for (const [name, x, y] of [
+    ["start", x1, y1],
+    ["end", x2, y2],
+  ] as const) {
+    const handle = page.locator(`rect[data-handle="${name}"]`)
+    await expect(handle).toHaveAttribute("x", String(x - handleSize / 2))
+    await expect(handle).toHaveAttribute("y", String(y - handleSize / 2))
+  }
 }
 
 async function drawLine(page: Page, { x1, y1, x2, y2 }: Segment): Promise<void> {
@@ -56,7 +88,7 @@ test("A draws, edits an endpoint of and moves a line; B sees each step live and 
     await pressAt(pageA, 400, 300)
     await moveTo(pageA, 200, 220)
     const drawn = { x1: 400, y1: 300, x2: 200, y2: 220 }
-    await expectSegment(pageB, drawPreview, drawn)
+    await expectDrawn(pageB, drawPreview, drawn)
     await expectLines(pageB, 0)
     await pageA.mouse.up()
 
@@ -73,7 +105,7 @@ test("A draws, edits an endpoint of and moves a line; B sees each step live and 
     await pressAt(pageA, 200, 220)
     await moveTo(pageA, 250, 400)
     const edited = { x1: 400, y1: 300, x2: 250, y2: 400 }
-    await expectSegment(pageB, stroke, edited)
+    await expectDrawn(pageB, element, edited)
     await pageA.mouse.up()
     for (const page of [pageA, pageB]) await expectLine(page, edited, 1)
     if (evidenceDir !== undefined) await pageA.screenshot({ path: `${evidenceDir}/line.png` })
@@ -81,7 +113,7 @@ test("A draws, edits an endpoint of and moves a line; B sees each step live and 
     await pressAt(pageA, 325, 350)
     await moveTo(pageA, 425, 300)
     const moved = { x1: 500, y1: 250, x2: 350, y2: 350 }
-    await expectSegment(pageB, stroke, moved)
+    await expectDrawn(pageB, element, moved)
     await pageA.mouse.up()
     for (const page of [pageA, pageB]) await expectLine(page, moved, 2)
 
@@ -106,9 +138,8 @@ test("lines drawn in every direction, including flat ones, reach B with matching
     for (const [index, segment] of segments.entries()) {
       await drawLine(pageA, segment)
       await expectLines(pageB, index + 1)
-      const { x1, y1, x2, y2 } = segment
-      const origin = `[data-x="${String(Math.min(x1, x2))}"][data-y="${String(Math.min(y1, y2))}"]`
-      await expectSegment(pageB, `${element}${origin} line[data-line-stroke]`, segment)
+      const { x, y } = originOf(segment)
+      await expectDrawn(pageB, `${element}[data-x="${String(x)}"][data-y="${String(y)}"]`, segment)
     }
   } finally {
     await closeSession(session)
@@ -144,6 +175,89 @@ test("Esc while drawing a line creates nothing and clears B's preview", async ({
     const drawn = { x1: 100, y1: 100, x2: 200, y2: 150 }
     await drawLine(pageA, drawn)
     for (const page of [pageA, pageB]) await expectLine(page, drawn, 0)
+  } finally {
+    await closeSession(session)
+  }
+})
+
+test("a line is a translated wrapper: a move changes only the transform and an endpoint drag redraws the line, in both browsers", async ({
+  browser,
+}) => {
+  const session = await openSharedBoard(browser, "line-move")
+  const { pageA, pageB } = session
+  try {
+    await pageA.keyboard.press("l")
+    await drawLine(pageA, { x1: 100, y1: 300, x2: 260, y2: 200 })
+    const drawn = { x1: 100, y1: 300, x2: 260, y2: 200 }
+    for (const page of [pageA, pageB]) await expectLine(page, drawn, 0)
+
+    await pageA.keyboard.press("v")
+    await pressAt(pageA, 180, 250)
+    await moveTo(pageA, 380, 200)
+    const moved = { x1: 300, y1: 250, x2: 460, y2: 150 }
+    for (const page of [pageA, pageB]) {
+      await expectDrawn(page, element, moved)
+      await expectCommitted(page, drawn, 0)
+    }
+    await pageA.mouse.up()
+    for (const page of [pageA, pageB]) await expectLine(page, moved, 1)
+
+    await pressAt(pageA, 460, 150)
+    await moveTo(pageA, 600, 90)
+    const lengthened = { ...moved, x2: 600, y2: 90 }
+    for (const page of [pageA, pageB]) {
+      await expectDrawn(page, element, lengthened)
+      await expectCommitted(page, moved, 1)
+    }
+    await expectHandles(pageA, lengthened)
+    await pageA.mouse.up()
+    for (const page of [pageA, pageB]) await expectLine(page, lengthened, 2)
+
+    await pressAt(pageA, 300, 250)
+    await moveTo(pageA, 700, 330)
+    const swung = { ...lengthened, x1: 700, y1: 330 }
+    for (const page of [pageA, pageB]) await expectDrawn(page, element, swung)
+    await pageA.mouse.up()
+    for (const page of [pageA, pageB]) await expectLine(page, swung, 3)
+    await expectHandles(pageA, swung)
+  } finally {
+    await closeSession(session)
+  }
+})
+
+test("a remote commit mid-endpoint-drag updates the committed points without snapping the dragged line, and Esc reverts to them", async ({
+  browser,
+}) => {
+  const session = await openSharedBoard(browser, "line-remote-commit")
+  const { pageA, pageB } = session
+  try {
+    await pageA.keyboard.press("l")
+    const drawn = { x1: 100, y1: 100, x2: 300, y2: 200 }
+    await drawLine(pageA, drawn)
+    for (const page of [pageA, pageB]) await expectLine(page, drawn, 0)
+
+    await pageA.keyboard.press("v")
+    await clickAt(pageA, 200, 150)
+    await pressAt(pageA, 300, 200)
+    await moveTo(pageA, 380, 260)
+    const draggedByA = { ...drawn, x2: 380, y2: 260 }
+    await expectDrawn(pageB, element, draggedByA)
+
+    await clickAt(pageB, 110, 105)
+    await expectDrawn(pageB, element, drawn)
+    await pressAt(pageB, 100, 100)
+    await moveTo(pageB, 60, 40)
+    await pageB.mouse.up()
+    const committedByB = { ...drawn, x1: 60, y1: 40 }
+    await expectLine(pageB, committedByB, 1)
+
+    await expectCommitted(pageA, committedByB, 1)
+    await expectDrawn(pageA, element, draggedByA)
+    await expectHandles(pageA, draggedByA)
+
+    await pageA.keyboard.press("Escape")
+    await pageA.mouse.up()
+    for (const page of [pageA, pageB]) await expectLine(page, committedByB, 1)
   } finally {
     await closeSession(session)
   }

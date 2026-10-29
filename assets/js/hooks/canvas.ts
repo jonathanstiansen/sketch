@@ -37,6 +37,7 @@ import {
   type TextLayout,
 } from "./selection"
 import { TextEditor } from "./text_editor"
+import { LIVE_POINTS } from "../elements/dom"
 import { TEXT_KINDS, type TextKind } from "../generated/manifest"
 import {
   DEFAULT_TOOL,
@@ -64,7 +65,7 @@ const ERASING = "data-erasing"
 const TEXT_EDITING = "data-text-editing"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
 const PHX_UPDATE = "phx-update"
-const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", "data-text", "x1", "y1", "x2", "y2"]
+const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", "data-text", LIVE_POINTS]
 const TEXT_KIND_SELECTOR = TEXT_KINDS.map((kind) => `[data-element][data-kind="${kind}"]`).join(", ")
 
 interface PreviewClock {
@@ -216,28 +217,15 @@ function renderedBox(rect: Element): Box {
   }
 }
 
-function renderedPoints(shape: Element, box: Box): Point[] {
-  const segment = shape.querySelector("line[data-line-stroke]")
-  if (segment !== null) {
-    return [
-      { x: integerAttribute(segment, "x1") - box.x, y: integerAttribute(segment, "y1") - box.y },
-      { x: integerAttribute(segment, "x2") - box.x, y: integerAttribute(segment, "y2") - box.y },
-    ]
-  }
-  const stroke = shape.querySelector("polyline[data-freedraw-stroke]")
-  if (stroke === null) return []
-  return pairs(stroke.getAttribute("points") ?? "").map((at) => subtract(at, box))
-}
-
 function renderedShape(shape: Element): Shape {
-  const box = renderedBox(shape)
-  return { box, points: renderedPoints(shape, box) }
+  const points = shape.getAttribute(LIVE_POINTS) ?? shape.getAttribute("data-points") ?? ""
+  return { box: renderedBox(shape), points: pairs(points) }
 }
 
 function integerPair(pair: string): Point {
   const [x, y] = pair.split(",").map(Number)
   if (x === undefined || y === undefined || !Number.isInteger(x) || !Number.isInteger(y)) {
-    throw new Error("data-points must be integer pairs")
+    throw new Error("points must be integer pairs")
   }
   return { x, y }
 }
@@ -741,7 +729,7 @@ export class Canvas extends ViewHook {
     if (gesture.mode === "draw") {
       this.draws.remove(gesture.dragId)
     } else {
-      this.showShape(gesture.rect, gesture.origin)
+      this.revert(gesture.elementId)
     }
   }
 

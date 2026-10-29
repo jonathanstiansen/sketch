@@ -3,6 +3,7 @@ import { attributeString, type Renderer, type SvgNode } from "./renderer.ts"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 const LIVEVIEW_ATTRIBUTE_PREFIX = "data-phx-"
+export const LIVE_POINTS = "live-points"
 
 function setAttributes(element: Element, attrs: SvgNode["attrs"]): void {
   for (const [name, value] of Object.entries(attrs)) {
@@ -47,11 +48,24 @@ export function renderNodes(parent: Element, nodes: readonly SvgNode[]): void {
   for (const extra of [...parent.children].slice(nodes.length)) extra.remove()
 }
 
-export function placeElement(wrapper: Element, { x, y, width, height }: Box): void {
+export function pointsAttribute(points: readonly Point[]): string {
+  return points.map(({ x, y }) => `${String(x)},${String(y)}`).join(" ")
+}
+
+export function setLivePoints(element: Element, points: readonly Point[]): void {
+  if (points.length === 0) {
+    element.removeAttribute(LIVE_POINTS)
+  } else {
+    setAttributes(element, { [LIVE_POINTS]: pointsAttribute(points) })
+  }
+}
+
+export function placeElement(wrapper: Element, { x, y, width, height }: Box, points: readonly Point[]): void {
   setAttributes(wrapper, { x, y, width, height, transform: `translate(${String(x)} ${String(y)})` })
+  setLivePoints(wrapper, points)
 }
 
 export function renderElement(wrapper: Element, renderer: Renderer, box: Box, points: readonly Point[], text: string): void {
-  placeElement(wrapper, box)
+  placeElement(wrapper, box, points)
   renderNodes(wrapper, renderer({ width: box.width, height: box.height, points, text }))
 }

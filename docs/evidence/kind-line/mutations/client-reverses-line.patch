@@ -1,0 +1,13 @@
+diff --git a/assets/js/elements/line.ts b/assets/js/elements/line.ts
+index 5db7d6c..56ba4e4 100644
+--- a/assets/js/elements/line.ts
++++ b/assets/js/elements/line.ts
+@@ -4,7 +4,7 @@ import type { AttributeValue, Renderer, SvgNode } from "./renderer.ts"
+ function segment(start: Point, end: Point, attrs: Readonly<Record<string, AttributeValue>>): SvgNode {
+   return {
+     tag: "line",
+-    attrs: { x1: start.x, y1: start.y, x2: end.x, y2: end.y, "stroke-linecap": "round", ...attrs },
++    attrs: { x1: end.x, y1: end.y, x2: start.x, y2: start.y, "stroke-linecap": "round", ...attrs },
+   }
+ }
+ 

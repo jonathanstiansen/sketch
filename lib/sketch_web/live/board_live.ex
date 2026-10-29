@@ -301,7 +301,7 @@ defmodule SketchWeb.BoardLive do
   defp element_shape(%{element: %{kind: kind}} = assigns) when is_map_key(@rendered_kinds, kind),
     do: SketchWeb.Elements.element(assigns)
 
-  defp element_shape(%{element: %{kind: kind}} = assigns) when kind in [:line, :arrow] do
+  defp element_shape(%{element: %{kind: :arrow}} = assigns) do
     ~H"""
     <g
       id={@dom_id}
@@ -317,6 +317,7 @@ defmodule SketchWeb.BoardLive do
       data-height={@element.height}
       data-points={points_attribute(@element.points)}
       data-version={@element.version}
+      live-points={points_attribute(@element.points)}
       class="cursor-grab touch-none"
     >
       <.line_segment element={@element} data-line-hit stroke="transparent" stroke-width="14" />
@@ -325,7 +326,7 @@ defmodule SketchWeb.BoardLive do
         data-line-stroke
         stroke-width="2"
         pointer-events="none"
-        marker-end={if @element.kind == :arrow, do: "url(#arrowhead)"}
+        marker-end="url(#arrowhead)"
         class="stroke-base-content"
       />
     </g>
@@ -348,6 +349,7 @@ defmodule SketchWeb.BoardLive do
       data-height={@element.height}
       data-points={points_attribute(@element.points)}
       data-version={@element.version}
+      live-points={points_attribute(@element.points)}
       class="cursor-grab touch-none"
     >
       <.stroke_polyline element={@element} data-freedraw-hit stroke="transparent" stroke-width="14" />

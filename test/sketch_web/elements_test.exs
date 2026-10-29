@@ -26,7 +26,9 @@ defmodule SketchWeb.ElementsTest do
         element = Map.merge(shape, %{id: id, kind: @kind, x: 7, y: 9, version: 3})
 
         html = render_component(&Elements.element/1, dom_id: id, element: element)
-        assert [{"g", attrs, children}] = html |> LazyHTML.from_fragment() |> LazyHTML.to_tree()
+        # Outside <svg> the HTML parser ignores "/>" on <line>, so sibling lines would nest.
+        assert [{"svg", _svg, [{"g", attrs, children}]}] =
+                 "<svg>#{html}</svg>" |> LazyHTML.from_fragment() |> LazyHTML.to_tree()
 
         attrs = Map.new(attrs)
 
@@ -43,6 +45,8 @@ defmodule SketchWeb.ElementsTest do
 
         assert attrs["data-width"] == attrs["width"] and attrs["width"] == "#{shape.width}"
         assert attrs["data-height"] == attrs["height"] and attrs["height"] == "#{shape.height}"
+        assert attrs["data-points"] == attrs["live-points"]
+        assert attrs["live-points"] == points_attribute(shape.points)
 
         assert tree(children) ==
                  @kind |> Elements.render_children(shape) |> RenderFixtures.normalize(),
@@ -50,6 +54,9 @@ defmodule SketchWeb.ElementsTest do
       end
     end
   end
+
+  defp points_attribute([]), do: nil
+  defp points_attribute(points), do: Enum.map_join(points, " ", &"#{&1.x},#{&1.y}")
 
   defp tree(nodes) do
     for {tag, attrs, children} <- nodes do

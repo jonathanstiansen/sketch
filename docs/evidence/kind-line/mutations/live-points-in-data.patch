@@ -1,0 +1,26 @@
+diff --git a/assets/js/elements/dom.ts b/assets/js/elements/dom.ts
+index 66fb26d..c48ef7e 100644
+--- a/assets/js/elements/dom.ts
++++ b/assets/js/elements/dom.ts
+@@ -3,7 +3,7 @@ import { attributeString, type Renderer, type SvgNode } from "./renderer.ts"
+ 
+ const SVG_NS = "http://www.w3.org/2000/svg"
+ const LIVEVIEW_ATTRIBUTE_PREFIX = "data-phx-"
+-export const LIVE_POINTS = "live-points"
++export const LIVE_POINTS = "data-live-points"
+ 
+ function setAttributes(element: Element, attrs: SvgNode["attrs"]): void {
+   for (const [name, value] of Object.entries(attrs)) {
+diff --git a/lib/sketch_web/elements.ex b/lib/sketch_web/elements.ex
+index 5e0f1ba..6280995 100644
+--- a/lib/sketch_web/elements.ex
++++ b/lib/sketch_web/elements.ex
+@@ -67,7 +67,7 @@ defmodule SketchWeb.Elements do
+       y={@element.y}
+       width={@element.width}
+       height={@element.height}
+-      live-points={points_attribute(@element.points)}
++      data-live-points={points_attribute(@element.points)}
+       transform={"translate(#{@element.x} #{@element.y})"}
+       class="cursor-grab touch-none"
+     >

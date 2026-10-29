@@ -260,15 +260,17 @@ defmodule SketchWeb.BoardLiveTest do
       |> Map.put("points", Enum.map(points, fn {x, y} -> %{"x" => x, "y" => y} end))
     end
 
-    defp line_selector(id, {x1, y1, x2, y2}, version) do
-      "g#element-#{id}[data-kind='line'][data-version='#{version}'] " <>
+    defp line_selector(id, {x, y}, {x1, y1, x2, y2}, version) do
+      "g#element-#{id}[data-kind='line'][data-version='#{version}']" <>
+        "[transform='translate(#{x} #{y})'][live-points='#{x1},#{y1} #{x2},#{y2}'] > " <>
         "line[data-line-stroke][x1='#{x1}'][y1='#{y1}'][x2='#{x2}'][y2='#{y2}']"
     end
 
-    test "a drawn line is stored with its relative points and rendered in every view", %{
-      conn: conn,
-      board: board
-    } do
+    test "a drawn line is stored with its relative points and rendered in local coordinates in every view",
+         %{
+           conn: conn,
+           board: board
+         } do
       {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
       {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
       box = %{x: 200, y: 220, width: 200, height: 80}
@@ -281,7 +283,7 @@ defmodule SketchWeb.BoardLiveTest do
       assert Enum.map(line.points, &{&1.x, &1.y}) == [{200, 80}, {0, 0}]
 
       for view <- [creator, watcher] do
-        assert has_element?(view, line_selector(id, {400, 300, 200, 220}, 0))
+        assert has_element?(view, line_selector(id, {200, 220}, {200, 80, 0, 0}, 0))
         assert has_element?(view, "#element-#{id}[data-points='200,80 0,0'] line[data-line-hit]")
       end
     end
@@ -320,7 +322,7 @@ defmodule SketchWeb.BoardLiveTest do
       assert [%{id: id, x: 3900, y: 15, width: 100, height: 0}] =
                Canvas.list_elements_for_board!(board.id)
 
-      assert has_element?(view, line_selector(id, {3900, 15, 4000, 15}, 0))
+      assert has_element?(view, line_selector(id, {3900, 15}, {0, 0, 100, 0}, 0))
     end
 
     test "a line with too few, too many or malformed points creates nothing", %{
@@ -408,7 +410,7 @@ defmodule SketchWeb.BoardLiveTest do
       render_hook(editor, "commit_shape", shape)
 
       for view <- [editor, watcher] do
-        assert has_element?(view, line_selector(line.id, {100, 100, 200, 50}, 1))
+        assert has_element?(view, line_selector(line.id, {100, 50}, {0, 50, 100, 0}, 1))
       end
 
       render_hook(editor, "commit_shape", %{
@@ -444,7 +446,7 @@ defmodule SketchWeb.BoardLiveTest do
         "y" => 0
       })
 
-      assert has_element?(view, line_selector(line.id, {4000, 40, 4000, 0}, 1))
+      assert has_element?(view, line_selector(line.id, {4000, 0}, {0, 40, 0, 0}, 1))
     end
   end
 

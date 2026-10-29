@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index 078b04f..3937f1e 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -729,7 +729,7 @@ export class Canvas extends ViewHook {
+     if (gesture.mode === "draw") {
+       this.draws.remove(gesture.dragId)
+     } else {
+-      this.revert(gesture.elementId)
++      this.showShape(gesture.rect, gesture.origin)
+     }
+   }
+ 

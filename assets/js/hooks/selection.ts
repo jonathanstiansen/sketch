@@ -12,7 +12,7 @@ import {
 } from "./canvas_logic"
 import type { PreviewKind, SelectionHandles } from "./tools"
 import { isMigratedKind, rendererFor } from "../elements"
-import { renderElement } from "../elements/dom"
+import { pointsAttribute, renderElement, setLivePoints } from "../elements/dom"
 import type { MigratedKind } from "../generated/manifest"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
@@ -46,10 +46,6 @@ function svgRect(attributes: Record<string, string>): SVGRectElement {
   return svgShape("rect", attributes)
 }
 
-function point(x: number, y: number): string {
-  return [x, y].map(String).join(",")
-}
-
 export function setBox(shape: Element, box: Box): void {
   const { x, y, width, height } = box
   shape.setAttribute("x", String(x))
@@ -65,6 +61,7 @@ export function setShape(shape: Element, box: Box, points: readonly Point[], lay
     return
   }
   setBox(shape, box)
+  setLivePoints(shape, points)
   const absolute = absolutePoints({ box, points })
   setSegments(shape, absolute)
   setPolylines(shape, absolute)
@@ -134,7 +131,7 @@ function setSegments(shape: Element, [start, end]: Point[]): void {
 
 function setPolylines(shape: Element, absolute: Point[]): void {
   const polylines = shape.localName === "polyline" ? [shape] : shape.querySelectorAll(POLYLINES)
-  for (const polyline of polylines) polyline.setAttribute("points", absolute.map(({ x, y }) => point(x, y)).join(" "))
+  for (const polyline of polylines) polyline.setAttribute("points", pointsAttribute(absolute))
 }
 
 function setSegment(segment: Element, start: Point, end: Point): void {
@@ -147,7 +144,6 @@ function setSegment(segment: Element, start: Point, end: Point): void {
 const PREVIEW_TAGS = {
   arrow: "line",
   freedraw: "polyline",
-  line: "line",
   text: "text",
 } as const
 
