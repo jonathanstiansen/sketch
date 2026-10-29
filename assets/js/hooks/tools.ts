@@ -1,17 +1,20 @@
-import type { Point } from "./canvas_logic"
+import { ENDPOINTS, type Point } from "./canvas_logic.ts"
+import {
+  DEFAULT_TOOL,
+  ELEMENT_KINDS,
+  KIND_SPECS,
+  POINT_KINDS,
+  REQUIRED_TEXT_KINDS,
+  TOOLS as TOOL_SPECS,
+  type ElementKind,
+  type KindSpec,
+  type PointKind,
+  type RequiredTextKind,
+  type ToolId,
+  type ToolSpec,
+} from "../generated/manifest.ts"
 
-export type ToolId =
-  | "hand"
-  | "selection"
-  | "rectangle"
-  | "diamond"
-  | "ellipse"
-  | "arrow"
-  | "line"
-  | "draw"
-  | "text"
-  | "note"
-  | "eraser"
+export { DEFAULT_TOOL, type ToolId }
 
 export interface Tool {
   id: ToolId
@@ -20,58 +23,59 @@ export interface Tool {
   enabled: boolean
 }
 
-export const TOOLS: readonly Tool[] = [
-  { id: "hand", letter: "h", digit: null, enabled: true },
-  { id: "selection", letter: "v", digit: "1", enabled: true },
-  { id: "rectangle", letter: "r", digit: "2", enabled: true },
-  { id: "diamond", letter: "d", digit: "3", enabled: true },
-  { id: "ellipse", letter: "o", digit: "4", enabled: true },
-  { id: "arrow", letter: "a", digit: "5", enabled: true },
-  { id: "line", letter: "l", digit: "6", enabled: true },
-  { id: "draw", letter: "p", digit: "7", enabled: true },
-  { id: "text", letter: "t", digit: "8", enabled: true },
-  { id: "note", letter: "n", digit: "9", enabled: true },
-  { id: "eraser", letter: "e", digit: "0", enabled: true },
-]
+function shortcutKeys({ id, keys }: ToolSpec): Pick<Tool, "letter" | "digit"> {
+  const [letter, digit] = keys
+  if (letter === undefined) throw new Error(`tool ${id} has no shortcut key`)
+  return { letter: letter.toLowerCase(), digit: digit ?? null }
+}
 
-export const DEFAULT_TOOL: ToolId = "selection"
+export const TOOLS: readonly Tool[] = TOOL_SPECS.map((tool) => ({ id: tool.id, enabled: tool.enabled, ...shortcutKeys(tool) }))
 
-export type DrawnKind = "rectangle" | "diamond" | "ellipse" | "arrow" | "freedraw" | "line" | "note"
+export type PreviewKind = NonNullable<(typeof TOOL_SPECS)[number]["creates"]>
 
-export const DRAWN_KINDS: readonly DrawnKind[] = [
-  "rectangle",
-  "diamond",
-  "ellipse",
-  "arrow",
-  "freedraw",
-  "line",
-  "note",
-]
+export type DrawnKind = Exclude<PreviewKind, RequiredTextKind>
+
+function isElementKind(value: string | undefined): value is ElementKind {
+  return ELEMENT_KINDS.some((kind) => kind === value)
+}
+
+function isTypedKind(kind: ElementKind): kind is RequiredTextKind {
+  return REQUIRED_TEXT_KINDS.some((typed) => typed === kind)
+}
+
+export function isPreviewKind(value: string): value is PreviewKind {
+  return TOOL_SPECS.some(({ creates }) => creates === value)
+}
 
 export function isDrawnKind(value: string): value is DrawnKind {
-  return DRAWN_KINDS.some((kind) => kind === value)
+  return isPreviewKind(value) && !isTypedKind(value)
+}
+
+export const DRAWN_KINDS: readonly DrawnKind[] = ELEMENT_KINDS.filter(isDrawnKind)
+
+function createdKind(tool: string): PreviewKind | undefined {
+  return TOOL_SPECS.find(({ id }) => id === tool)?.creates ?? undefined
 }
 
 export function drawnKind(tool: string): DrawnKind | undefined {
-  if (tool === "draw") return "freedraw"
-  return DRAWN_KINDS.find((kind) => kind === tool && kind !== "freedraw")
+  const kind = createdKind(tool)
+  return kind !== undefined && isDrawnKind(kind) ? kind : undefined
 }
 
-export function isPointKind(kind: DrawnKind): boolean {
-  return kind === "line" || kind === "arrow" || kind === "freedraw"
-}
-
-export type PreviewKind = DrawnKind | "text"
-
-export function isPreviewKind(value: string): value is PreviewKind {
-  return value === "text" || isDrawnKind(value)
+export function isPointKind(kind: DrawnKind): kind is DrawnKind & PointKind {
+  return POINT_KINDS.some((pointKind) => pointKind === kind)
 }
 
 export type SelectionHandles = "corners" | "endpoints" | "none"
 
+function hasEndpoints({ geometry }: KindSpec): boolean {
+  return geometry !== "box" && geometry.points.min === ENDPOINTS.length && geometry.points.max === ENDPOINTS.length
+}
+
 export function selectionHandles(kind: string | undefined): SelectionHandles {
-  if (kind === "line" || kind === "arrow") return "endpoints"
-  return kind === "text" ? "none" : "corners"
+  if (!isElementKind(kind)) return "corners"
+  if (hasEndpoints(KIND_SPECS[kind])) return "endpoints"
+  return isTypedKind(kind) ? "none" : "corners"
 }
 
 export interface KeyInput {
@@ -136,8 +140,8 @@ export function pointerAction({ button, tool, spaceHeld, onElement, onHandle }: 
   if (button === MIDDLE_BUTTON) return "pan"
   if (button !== PRIMARY_BUTTON) return "none"
   if (spaceHeld || tool === "hand") return "pan"
-  if (drawnKind(tool) !== undefined) return "draw"
-  if (tool === "text") return "text"
+  const created = createdKind(tool)
+  if (created !== undefined) return isDrawnKind(created) ? "draw" : "text"
   if (tool === "eraser") return "erase"
   if (tool === "selection") return selectionAction(onElement, onHandle)
   return "none"

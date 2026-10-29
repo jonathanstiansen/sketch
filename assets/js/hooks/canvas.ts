@@ -37,6 +37,7 @@ import {
   type TextLayout,
 } from "./selection"
 import { TextEditor } from "./text_editor"
+import { TEXT_KINDS, type TextKind } from "../generated/manifest"
 import {
   DEFAULT_TOOL,
   deletesSelection,
@@ -65,7 +66,6 @@ const SELECT_TOOL_EVENT = "sketch:select-tool"
 const SEGMENT_ATTRIBUTES = ["x1", "y1", "x2", "y2"]
 const BOX_ATTRIBUTES = ["x", "y", "width", "height", "points", "cx", "cy", "rx", "ry", "transform", ...SEGMENT_ATTRIBUTES]
 const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", "data-text", ...SEGMENT_ATTRIBUTES]
-const TEXT_KINDS = ["text", "note"] as const
 const TEXT_KIND_SELECTOR = TEXT_KINDS.map((kind) => `[data-element][data-kind="${kind}"]`).join(", ")
 
 interface PreviewClock {
@@ -115,8 +115,6 @@ interface DrawPreview extends Box {
   points: readonly Point[]
   text?: string
 }
-
-type TextKind = (typeof TEXT_KINDS)[number]
 
 type TextTarget =
   | { mode: "create"; kind: TextKind }
