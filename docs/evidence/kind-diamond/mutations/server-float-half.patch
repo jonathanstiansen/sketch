@@ -1,0 +1,11 @@
+diff --git a/lib/sketch_web/elements/diamond.ex b/lib/sketch_web/elements/diamond.ex
+index 89ca23c..840cb71 100644
+--- a/lib/sketch_web/elements/diamond.ex
++++ b/lib/sketch_web/elements/diamond.ex
+@@ -19,6 +19,5 @@ defmodule SketchWeb.Elements.Diamond do
+     ]
+   end
+ 
+-  defp half(value) when rem(value, 2) == 0, do: div(value, 2)
+   defp half(value), do: value / 2
+ end
