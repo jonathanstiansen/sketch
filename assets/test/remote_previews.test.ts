@@ -1,46 +1,46 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import fc from "fast-check"
-import { RemotePreviews, type Point, type Preview } from "../js/hooks/canvas_logic.ts"
+import { RemotePreviews, type Box, type Preview } from "../js/hooks/canvas_logic.ts"
 
 const settings = { seed: 1, numRuns: 500 }
-const rectangleId = "rect-1"
+const elementId = "element-1"
 const knownVersion = 5
-const committed: Point = { x: 100, y: 100 }
+const committed: Box = { x: 100, y: 100, width: 120, height: 80 }
 
 class Viewer {
   readonly previews = new RemotePreviews()
   readonly applied: Preview[] = []
-  shown: Point = committed
+  shown: Box = committed
 
   receive(preview: Preview): void {
     if (!this.previews.accept(preview, knownVersion)) return
     this.applied.push(preview)
-    this.shown = { x: preview.x, y: preview.y }
+    this.shown = { x: preview.x, y: preview.y, width: preview.width, height: preview.height }
   }
 
   cancel(dragId: string): void {
-    if (this.previews.finish({ rectangle_id: rectangleId, drag_id: dragId })) this.shown = committed
+    if (this.previews.finish({ element_id: elementId, drag_id: dragId })) this.shown = committed
   }
 }
 
-const point = fc.record({ x: fc.nat(3880), y: fc.nat(3920) })
+const box = fc.record({ x: fc.nat(3880), y: fc.nat(3920), width: fc.integer({ min: 1, max: 120 }), height: fc.integer({ min: 1, max: 80 }) })
 
 interface Drag {
   dragId: string
   baseVersion: number
-  positions: Point[]
+  positions: Box[]
 }
 
 const drag: fc.Arbitrary<Drag> = fc.record({
   dragId: fc.constantFrom("drag-a", "drag-b", "drag-c", "drag-d"),
   baseVersion: fc.integer({ min: knownVersion - 2, max: knownVersion + 1 }),
-  positions: fc.array(point, { minLength: 1, maxLength: 8 }),
+  positions: fc.array(box, { minLength: 1, maxLength: 8 }),
 })
 
 function previewsOf({ dragId, baseVersion, positions }: Drag): Preview[] {
   return positions.map((position, index) => ({
-    rectangle_id: rectangleId,
+    element_id: elementId,
     drag_id: dragId,
     seq: index + 1,
     base_version: baseVersion,
@@ -71,10 +71,10 @@ function lastAppliedPerDrag(applied: Preview[]): Map<string, Preview> {
   return new Map(applied.map((p) => [p.drag_id, p]))
 }
 
-function expectedShown(delivered: Preview[]): Point {
+function expectedShown(delivered: Preview[]): Box {
   const winners = new Set(highestSeqPerDrag(delivered).values())
   const last = [...delivered].reverse().find((p) => winners.has(p))
-  return last === undefined ? committed : { x: last.x, y: last.y }
+  return last === undefined ? committed : { x: last.x, y: last.y, width: last.width, height: last.height }
 }
 
 function deliver(previews: Preview[]): Viewer {

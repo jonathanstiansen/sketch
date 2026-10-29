@@ -116,7 +116,39 @@
   cursor: grabbing;
 }
 
-#canvas-viewport:not([data-tool="selection"]) rect[data-rect],
-#canvas-viewport:is([data-space-held="true"], [data-panning="true"]) rect[data-rect] {
+#canvas-viewport:not([data-tool="selection"]) rect[data-element],
+#canvas-viewport:is([data-space-held="true"], [data-panning="true"]) :is(rect[data-element], rect[data-handle]) {
   cursor: inherit;
+}
+
+.draw-preview {
+  fill: color-mix(in oklab, var(--color-primary) 35%, transparent);
+  stroke: var(--color-base-content);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+
+.selection-outline {
+  fill: none;
+  stroke: var(--color-secondary);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.selection-handle {
+  fill: var(--color-base-100);
+  stroke: var(--color-secondary);
+  stroke-width: 1.5;
+}
+
+.selection-handle-nw,
+.selection-handle-se {
+  cursor: nwse-resize;
+}
+
+.selection-handle-ne,
+.selection-handle-sw {
+  cursor: nesw-resize;
 }

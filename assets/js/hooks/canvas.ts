@@ -1,12 +1,22 @@
 import { ViewHook } from "phoenix_live_view"
 import {
   RemotePreviews,
-  dragPosition,
+  clickBox,
+  cornerPoint,
+  drawnBox,
+  isDrag,
+  movedBox,
   previewDelay,
+  resizedBox,
+  sameBox,
+  type Box,
+  type Corner,
   type DragRef,
   type Point,
   type Preview,
+  type Size,
 } from "./canvas_logic"
+import { DrawLayer, SelectionOverlay, isCorner, setBox } from "./selection"
 import {
   DEFAULT_TOOL,
   isPanKey,
@@ -22,20 +32,44 @@ import {
 const STALE_PREVIEW_MS = 2000
 const DRAGGING = "data-dragging"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
+const DRAWN_KIND = "rectangle"
+const BOX_ATTRIBUTES = ["x", "y", "width", "height"]
 
-interface LocalDrag {
-  rect: SVGRectElement
-  rectangleId: string
+interface Throttled {
   dragId: string
   pointerId: number
-  baseVersion: number
-  grab: Point
-  origin: Point
-  position: Point
-  max: Point
   seq: number
   lastSentAt: number
   previewTimer: number | undefined
+}
+
+interface Edit extends Throttled {
+  mode: "move" | "resize"
+  rect: SVGRectElement
+  elementId: string
+  baseVersion: number
+  grab: Point
+  corner: Corner
+  origin: Box
+  box: Box
+}
+
+interface Draw extends Throttled {
+  mode: "draw"
+  start: Point
+  dragged: boolean
+  box: Box
+}
+
+type Gesture = Edit | Draw
+
+interface DrawPreview {
+  drag_id: string
+  seq: number
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
 interface Pan {
@@ -69,10 +103,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
 }
 
+function isBox(value: Record<string, unknown>): boolean {
+  return ["x", "y", "width", "height"].every((key) => Number.isInteger(value[key]))
+}
+
 function isDragRef(value: unknown): value is DragRef {
-  return (
-    isRecord(value) && typeof value.rectangle_id === "string" && typeof value.drag_id === "string"
-  )
+  return isRecord(value) && typeof value.element_id === "string" && typeof value.drag_id === "string"
 }
 
 function isPreview(value: unknown): value is Preview {
@@ -81,13 +117,12 @@ function isPreview(value: unknown): value is Preview {
     isRecord(value) &&
     Number.isInteger(value.seq) &&
     Number.isInteger(value.base_version) &&
-    Number.isInteger(value.x) &&
-    Number.isInteger(value.y)
+    isBox(value)
   )
 }
 
-function numberAttribute(el: Element, name: string): number {
-  return Number(el.getAttribute(name))
+function isDrawPreview(value: unknown): value is DrawPreview {
+  return isRecord(value) && typeof value.drag_id === "string" && Number.isInteger(value.seq) && isBox(value)
 }
 
 function integerAttribute(el: Element, name: string): number {
@@ -98,39 +133,63 @@ function integerAttribute(el: Element, name: string): number {
   return value
 }
 
-function maxPosition(el: Element): Point {
-  return { x: integerAttribute(el, "data-max-x"), y: integerAttribute(el, "data-max-y") }
+function renderedBox(rect: Element): Box {
+  return {
+    x: integerAttribute(rect, "x"),
+    y: integerAttribute(rect, "y"),
+    width: integerAttribute(rect, "width"),
+    height: integerAttribute(rect, "height"),
+  }
 }
 
-function committedPosition(rect: Element): Point {
-  return { x: numberAttribute(rect, "data-x"), y: numberAttribute(rect, "data-y") }
+function committedBox(rect: Element): Box {
+  return {
+    x: integerAttribute(rect, "data-x"),
+    y: integerAttribute(rect, "data-y"),
+    width: integerAttribute(rect, "data-width"),
+    height: integerAttribute(rect, "data-height"),
+  }
 }
 
-function moveRect(rect: Element, { x, y }: Point): void {
-  rect.setAttribute("x", String(x))
-  rect.setAttribute("y", String(y))
+function subtract(a: Point, b: Point): Point {
+  return { x: a.x - b.x, y: a.y - b.y }
 }
 
 export function keepDraggedPosition(fromEl: Element, toEl: Element): void {
   if (!fromEl.hasAttribute(DRAGGING)) return
   toEl.setAttribute(DRAGGING, "")
-  for (const name of ["x", "y"]) {
+  for (const name of BOX_ATTRIBUTES) {
     const value = fromEl.getAttribute(name)
     if (value !== null) toEl.setAttribute(name, value)
   }
 }
 
 export class Canvas extends ViewHook {
-  private drag: LocalDrag | undefined
+  private gesture: Gesture | undefined
   private remotePreviews = new RemotePreviews()
+  private remoteDraws = new RemotePreviews()
   private staleTimers = new Map<string, number>()
   private online = true
   private tool: ToolId = DEFAULT_TOOL
   private spaceHeld = false
   private pannedWithSpace = false
   private pan: Pan | undefined
+  private selectedId: string | undefined
+  private selection!: SelectionOverlay
+  private draws!: DrawLayer
+  private observer: MutationObserver | undefined
 
   override mounted(): void {
+    this.selection = new SelectionOverlay(this.layer("#selection"))
+    this.draws = new DrawLayer(this.layer("#draw-previews"))
+    this.observer = new MutationObserver(() => {
+      this.syncSelection()
+    })
+    this.observer.observe(this.layer("#elements"), {
+      subtree: true,
+      childList: true,
+      attributeFilter: BOX_ATTRIBUTES,
+    })
     window.addEventListener("keydown", this.onKeyDown)
     window.addEventListener("keyup", this.onKeyUp)
     window.addEventListener("blur", this.releaseSpace)
@@ -146,16 +205,22 @@ export class Canvas extends ViewHook {
     this.handleEvent("drag_cancel", (payload: unknown) => {
       if (isDragRef(payload)) this.cancelRemoteDrag(payload)
     })
+    this.handleEvent("draw_preview", (payload: unknown) => {
+      if (isDrawPreview(payload)) this.applyRemoteDraw(payload)
+    })
+    this.handleEvent("draw_end", (payload: unknown) => {
+      if (isRecord(payload) && typeof payload.drag_id === "string") this.endRemoteDraw(payload.drag_id)
+    })
     this.handleEvent("revert", (payload: unknown) => {
-      if (isRecord(payload) && typeof payload.rectangle_id === "string") {
-        this.revert(payload.rectangle_id)
+      if (isRecord(payload) && typeof payload.element_id === "string") {
+        this.revert(payload.element_id)
       }
     })
   }
 
   override disconnected(): void {
     this.online = false
-    if (this.drag !== undefined) this.abandonDrag(this.drag)
+    if (this.gesture !== undefined) this.abandonGesture(this.gesture)
   }
 
   override reconnected(): void {
@@ -166,44 +231,76 @@ export class Canvas extends ViewHook {
     window.removeEventListener("keydown", this.onKeyDown)
     window.removeEventListener("keyup", this.onKeyUp)
     window.removeEventListener("blur", this.releaseSpace)
-    if (this.drag !== undefined) window.clearTimeout(this.drag.previewTimer)
+    this.observer?.disconnect()
+    if (this.gesture !== undefined) window.clearTimeout(this.gesture.previewTimer)
     for (const timer of this.staleTimers.values()) window.clearTimeout(timer)
   }
 
   private onPointerDown = (event: PointerEvent): void => {
-    if (this.drag !== undefined || this.pan !== undefined) return
-    const rect = event.target instanceof SVGRectElement ? event.target : null
+    if (this.gesture !== undefined || this.pan !== undefined) return
+    const target = event.target instanceof Element ? event.target : null
+    const rect = target?.closest<SVGRectElement>("rect[data-element]") ?? null
+    const corner = target?.closest<SVGRectElement>("rect[data-handle]")?.dataset.handle
     const action = pointerAction({
       button: event.button,
       tool: this.tool,
       spaceHeld: this.spaceHeld,
-      onRectangle: rect?.dataset.rect !== undefined,
+      onElement: rect !== null,
+      onHandle: isCorner(corner),
     })
     if (action === "pan") this.startPan(event)
-    if (action === "create") this.createAt(event)
-    if (action === "drag" && rect !== null) this.startDrag(event, rect)
+    if (action === "draw") this.startDraw(event)
+    if (action === "deselect") this.select(undefined)
+    if (action === "move" && rect !== null) this.startEdit(event, rect, "move", "nw")
+    if (action === "resize" && isCorner(corner)) this.startResize(event, corner)
   }
 
-  private startDrag(event: PointerEvent, rect: SVGRectElement): void {
-    const rectangleId = rect.dataset.rect
-    if (!this.online || rectangleId === undefined) return
+  private startResize(event: PointerEvent, corner: Corner): void {
+    const rect = this.selectedId === undefined ? null : this.elementFor(this.selectedId)
+    if (rect !== null) this.startEdit(event, rect, "resize", corner)
+  }
+
+  private startEdit(event: PointerEvent, rect: SVGRectElement, mode: Edit["mode"], corner: Corner): void {
+    const elementId = rect.dataset.element
+    if (!this.online || elementId === undefined) return
 
     event.preventDefault()
-    rect.setPointerCapture(event.pointerId)
+    this.select(elementId)
+    this.el.setPointerCapture(event.pointerId)
     rect.setAttribute(DRAGGING, "")
-    this.clearRemoteDrag(rectangleId)
-    const position = { x: numberAttribute(rect, "x"), y: numberAttribute(rect, "y") }
-    const pointer = this.canvasPoint(event)
-    this.drag = {
+    this.clearRemoteDrag(elementId)
+    const box = renderedBox(rect)
+    const anchor = mode === "move" ? box : cornerPoint(box, corner)
+    this.gesture = {
+      mode,
       rect,
-      rectangleId,
+      elementId,
+      corner,
       dragId: crypto.randomUUID(),
       pointerId: event.pointerId,
-      baseVersion: numberAttribute(rect, "data-version"),
-      grab: { x: pointer.x - position.x, y: pointer.y - position.y },
-      origin: position,
-      position,
-      max: maxPosition(this.el),
+      baseVersion: integerAttribute(rect, "data-version"),
+      grab: subtract(this.canvasPoint(event), anchor),
+      origin: box,
+      box,
+      seq: 0,
+      lastSentAt: -Infinity,
+      previewTimer: undefined,
+    }
+  }
+
+  private startDraw(event: PointerEvent): void {
+    if (!this.online) return
+    event.preventDefault()
+    this.select(undefined)
+    this.el.setPointerCapture(event.pointerId)
+    const start = this.canvasPoint(event)
+    this.gesture = {
+      mode: "draw",
+      start,
+      dragged: false,
+      box: drawnBox(start, start, this.canvasSize()),
+      dragId: crypto.randomUUID(),
+      pointerId: event.pointerId,
       seq: 0,
       lastSentAt: -Infinity,
       previewTimer: undefined,
@@ -216,34 +313,77 @@ export class Canvas extends ViewHook {
       this.el.scrollTo(scroll.x, scroll.y)
       return
     }
-    const drag = this.drag
-    if (drag?.pointerId !== event.pointerId) return
-    drag.position = dragPosition(this.canvasPoint(event), drag.grab, drag.max)
-    moveRect(drag.rect, drag.position)
-    this.schedulePreview(drag)
+    const gesture = this.gesture
+    if (gesture?.pointerId !== event.pointerId) return
+    const pointer = this.canvasPoint(event)
+    if (gesture.mode === "draw") {
+      this.updateDraw(gesture, pointer)
+    } else {
+      this.updateEdit(gesture, pointer)
+    }
+  }
+
+  private updateEdit(edit: Edit, pointer: Point): void {
+    const canvas = this.canvasSize()
+    edit.box =
+      edit.mode === "move"
+        ? movedBox(edit.origin, pointer, edit.grab, canvas)
+        : resizedBox(edit.origin, edit.corner, subtract(pointer, edit.grab), canvas)
+    setBox(edit.rect, edit.box)
+    this.schedulePreview(edit)
+  }
+
+  private updateDraw(draw: Draw, pointer: Point): void {
+    draw.dragged ||= isDrag(draw.start, pointer)
+    if (!draw.dragged) return
+    draw.box = drawnBox(draw.start, pointer, this.canvasSize())
+    setBox(this.draws.shape(draw.dragId), draw.box)
+    this.schedulePreview(draw)
   }
 
   private onPointerUp = (event: PointerEvent): void => {
     if (this.pan?.pointerId === event.pointerId) this.endPan()
-    const drag = this.drag
-    if (drag?.pointerId !== event.pointerId) return
-    this.endDrag(drag)
-    const { x, y } = drag.position
-    if (x === drag.origin.x && y === drag.origin.y) return
-    void this.pushEvent("commit", {
-      rectangle_id: drag.rectangleId,
-      drag_id: drag.dragId,
-      x,
-      y,
-    })
+    const gesture = this.gesture
+    if (gesture?.pointerId !== event.pointerId) return
+    this.endGesture(gesture)
+    if (gesture.mode === "draw") {
+      this.finishDraw(gesture)
+    } else {
+      this.finishEdit(gesture)
+    }
+  }
+
+  private finishEdit(edit: Edit): void {
+    if (sameBox(edit.box, edit.origin)) return
+    const ref = { element_id: edit.elementId, drag_id: edit.dragId }
+    if (edit.mode === "move") {
+      void this.pushEvent("commit", { ...ref, x: edit.box.x, y: edit.box.y })
+    } else {
+      void this.pushEvent("commit_shape", { ...ref, ...edit.box })
+    }
+  }
+
+  private finishDraw(draw: Draw): void {
+    const box = draw.dragged ? draw.box : clickBox(draw.start, this.defaultSize(), this.canvasSize())
+    void this.pushEvent("create_element", { kind: DRAWN_KIND, drag_id: draw.dragId, ...box }).finally(
+      () => {
+        this.draws.remove(draw.dragId)
+      },
+    )
   }
 
   private onPointerCancel = (event: PointerEvent): void => {
     if (this.pan?.pointerId === event.pointerId) this.endPan()
-    const drag = this.drag
-    if (drag === undefined) return
-    this.abandonDrag(drag)
-    void this.pushEvent("drag_cancel", { rectangle_id: drag.rectangleId, drag_id: drag.dragId })
+    if (this.gesture !== undefined) this.cancelGesture(this.gesture)
+  }
+
+  private cancelGesture(gesture: Gesture): void {
+    this.abandonGesture(gesture)
+    if (gesture.mode === "draw") {
+      void this.pushEvent("draw_cancel", { drag_id: gesture.dragId })
+    } else {
+      void this.pushEvent("drag_cancel", { element_id: gesture.elementId, drag_id: gesture.dragId })
+    }
   }
 
   private onKeyDown = (event: KeyboardEvent): void => {
@@ -254,8 +394,14 @@ export class Canvas extends ViewHook {
       return
     }
     if (togglesHelp(input)) this.toggleHelp()
-    if (input.key === "Escape") this.hideHelp()
+    if (input.key === "Escape") this.escape()
     this.useTool(nextTool(this.tool, input))
+  }
+
+  private escape(): void {
+    this.hideHelp()
+    if (this.gesture !== undefined) this.cancelGesture(this.gesture)
+    this.select(undefined)
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {
@@ -278,6 +424,7 @@ export class Canvas extends ViewHook {
   private useTool(tool: ToolId): void {
     if (tool === this.tool) return
     this.tool = tool
+    if (tool !== "selection") this.select(undefined)
     this.js().setAttribute(this.el, "data-tool", tool)
     for (const button of document.querySelectorAll<HTMLElement>("[data-tool-button]")) {
       this.js().setAttribute(button, "aria-pressed", String(button.dataset.toolButton === tool))
@@ -320,86 +467,148 @@ export class Canvas extends ViewHook {
     if (this.el.hasPointerCapture(pan.pointerId)) this.el.releasePointerCapture(pan.pointerId)
   }
 
-  private createAt(event: PointerEvent): void {
-    if (!this.online) return
-    event.preventDefault()
-    const { x, y } = this.canvasPoint(event)
-    void this.pushEvent("create_at", { x: Math.round(x), y: Math.round(y) })
+  private select(elementId: string | undefined): void {
+    this.selectedId = elementId
+    this.syncSelection()
   }
 
-  private abandonDrag(drag: LocalDrag): void {
-    this.endDrag(drag)
-    moveRect(drag.rect, drag.origin)
+  private syncSelection(): void {
+    const rect = this.selectedId === undefined ? null : this.elementFor(this.selectedId)
+    if (rect === null) {
+      this.selectedId = undefined
+      this.selection.hide()
+    } else {
+      this.selection.show(renderedBox(rect))
+    }
   }
 
-  private endDrag(drag: LocalDrag): void {
-    this.drag = undefined
-    window.clearTimeout(drag.previewTimer)
-    drag.rect.removeAttribute(DRAGGING)
-    if (drag.rect.hasPointerCapture(drag.pointerId)) drag.rect.releasePointerCapture(drag.pointerId)
+  private abandonGesture(gesture: Gesture): void {
+    this.endGesture(gesture)
+    if (gesture.mode === "draw") {
+      this.draws.remove(gesture.dragId)
+    } else {
+      setBox(gesture.rect, gesture.origin)
+    }
   }
 
-  private schedulePreview(drag: LocalDrag): void {
-    const wait = previewDelay(drag.lastSentAt, performance.now(), drag.previewTimer !== undefined)
+  private endGesture(gesture: Gesture): void {
+    this.gesture = undefined
+    window.clearTimeout(gesture.previewTimer)
+    if (gesture.mode !== "draw") gesture.rect.removeAttribute(DRAGGING)
+    if (this.el.hasPointerCapture(gesture.pointerId)) this.el.releasePointerCapture(gesture.pointerId)
+  }
+
+  private schedulePreview(gesture: Gesture): void {
+    const wait = previewDelay(gesture.lastSentAt, performance.now(), gesture.previewTimer !== undefined)
     if (wait === undefined) return
-    drag.previewTimer = window.setTimeout(() => {
-      drag.previewTimer = undefined
-      this.sendPreview(drag)
+    gesture.previewTimer = window.setTimeout(() => {
+      gesture.previewTimer = undefined
+      this.sendPreview(gesture)
     }, wait)
   }
 
-  private sendPreview(drag: LocalDrag): void {
-    if (this.drag !== drag) return
-    drag.seq += 1
-    drag.lastSentAt = performance.now()
-    void this.pushEvent("preview", {
-      rectangle_id: drag.rectangleId,
-      drag_id: drag.dragId,
-      seq: drag.seq,
-      base_version: drag.baseVersion,
-      ...drag.position,
-    })
+  private sendPreview(gesture: Gesture): void {
+    if (this.gesture !== gesture) return
+    gesture.seq += 1
+    gesture.lastSentAt = performance.now()
+    if (gesture.mode === "draw") {
+      void this.pushEvent("draw_preview", {
+        kind: DRAWN_KIND,
+        drag_id: gesture.dragId,
+        seq: gesture.seq,
+        ...gesture.box,
+      })
+    } else {
+      void this.pushEvent("preview", {
+        element_id: gesture.elementId,
+        drag_id: gesture.dragId,
+        seq: gesture.seq,
+        base_version: gesture.baseVersion,
+        ...gesture.box,
+      })
+    }
   }
 
   private applyRemotePreview(preview: Preview): void {
-    const rect = this.rectFor(preview.rectangle_id)
-    if (rect === null || this.drag?.rectangleId === preview.rectangle_id) return
-    if (!this.remotePreviews.accept(preview, numberAttribute(rect, "data-version"))) return
+    const rect = this.elementFor(preview.element_id)
+    if (rect === null || this.editedElementId() === preview.element_id) return
+    if (!this.remotePreviews.accept(preview, integerAttribute(rect, "data-version"))) return
 
-    window.clearTimeout(this.staleTimers.get(preview.rectangle_id))
-    this.staleTimers.set(
-      preview.rectangle_id,
-      window.setTimeout(() => {
-        this.cancelRemoteDrag(preview)
-      }, STALE_PREVIEW_MS),
-    )
-    moveRect(rect, preview)
+    this.restartStaleTimer(preview.element_id, () => {
+      this.cancelRemoteDrag(preview)
+    })
+    setBox(rect, preview)
+  }
+
+  private applyRemoteDraw(preview: DrawPreview): void {
+    const ref = { element_id: preview.drag_id, drag_id: preview.drag_id }
+    if (!this.remoteDraws.accept({ ...ref, seq: preview.seq, base_version: 0 }, 0)) return
+
+    this.restartStaleTimer(preview.drag_id, () => {
+      this.endRemoteDraw(preview.drag_id)
+    })
+    setBox(this.draws.shape(preview.drag_id), preview)
+  }
+
+  private endRemoteDraw(dragId: string): void {
+    this.remoteDraws.finish({ element_id: dragId, drag_id: dragId })
+    this.clearStaleTimer(dragId)
+    this.draws.remove(dragId)
+  }
+
+  private restartStaleTimer(id: string, onStale: () => void): void {
+    window.clearTimeout(this.staleTimers.get(id))
+    this.staleTimers.set(id, window.setTimeout(onStale, STALE_PREVIEW_MS))
   }
 
   private cancelRemoteDrag(ref: DragRef): void {
     if (!this.remotePreviews.finish(ref)) return
-    this.clearStaleTimer(ref.rectangle_id)
-    this.revert(ref.rectangle_id)
+    this.clearStaleTimer(ref.element_id)
+    this.revert(ref.element_id)
   }
 
-  private clearRemoteDrag(rectangleId: string): void {
-    this.remotePreviews.forget(rectangleId)
-    this.clearStaleTimer(rectangleId)
+  private clearRemoteDrag(elementId: string): void {
+    this.remotePreviews.forget(elementId)
+    this.clearStaleTimer(elementId)
   }
 
-  private clearStaleTimer(rectangleId: string): void {
-    window.clearTimeout(this.staleTimers.get(rectangleId))
-    this.staleTimers.delete(rectangleId)
+  private clearStaleTimer(id: string): void {
+    window.clearTimeout(this.staleTimers.get(id))
+    this.staleTimers.delete(id)
   }
 
-  private revert(rectangleId: string): void {
-    if (this.drag?.rectangleId === rectangleId) return
-    const rect = this.rectFor(rectangleId)
-    if (rect !== null) moveRect(rect, committedPosition(rect))
+  private revert(elementId: string): void {
+    if (this.editedElementId() === elementId) return
+    const rect = this.elementFor(elementId)
+    if (rect !== null) setBox(rect, committedBox(rect))
   }
 
-  private rectFor(rectangleId: string): SVGRectElement | null {
-    return this.el.querySelector<SVGRectElement>(`rect[data-rect="${CSS.escape(rectangleId)}"]`)
+  private editedElementId(): string | undefined {
+    return this.gesture?.mode === "draw" ? undefined : this.gesture?.elementId
+  }
+
+  private elementFor(elementId: string): SVGRectElement | null {
+    return this.el.querySelector<SVGRectElement>(`rect[data-element="${CSS.escape(elementId)}"]`)
+  }
+
+  private layer(selector: string): Element {
+    const layer = this.el.querySelector(selector)
+    if (layer === null) throw new Error(`${selector} is missing`)
+    return layer
+  }
+
+  private canvasSize(): Size {
+    return {
+      width: integerAttribute(this.el, "data-canvas-width"),
+      height: integerAttribute(this.el, "data-canvas-height"),
+    }
+  }
+
+  private defaultSize(): Size {
+    return {
+      width: integerAttribute(this.el, "data-default-width"),
+      height: integerAttribute(this.el, "data-default-height"),
+    }
   }
 
   private canvasPoint(event: PointerEvent): Point {

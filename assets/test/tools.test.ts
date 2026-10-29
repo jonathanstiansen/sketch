@@ -132,17 +132,22 @@ const pointerInput = fc.record({
   button: fc.integer({ min: 0, max: 4 }),
   tool: startTool,
   spaceHeld: fc.boolean(),
-  onRectangle: fc.boolean(),
+  onElement: fc.boolean(),
+  onHandle: fc.boolean(),
 })
 
-void test("the middle button, Space and the Hand tool pan; only Selection on a rectangle drags", () => {
+void test("the middle button, Space and Hand pan; Rectangle draws; Selection resizes, moves or deselects", () => {
   fc.assert(
     fc.property(pointerInput, (input) => {
       const action = pointerAction(input)
-      const pans = input.button === 1 || (input.button === 0 && (input.spaceHeld || input.tool === "hand"))
+      const primary = input.button === 0
+      const pans = input.button === 1 || (primary && (input.spaceHeld || input.tool === "hand"))
+      const selecting = primary && !pans && input.tool === "selection"
       assert.equal(action === "pan", pans)
-      if (action === "drag") assert.ok(input.tool === "selection" && input.onRectangle && !input.spaceHeld)
-      if (action === "create") assert.ok(input.tool === "rectangle" && input.button === 0)
+      assert.equal(action === "draw", primary && !pans && input.tool === "rectangle")
+      assert.equal(action === "resize", selecting && input.onHandle)
+      assert.equal(action === "move", selecting && !input.onHandle && input.onElement)
+      assert.equal(action === "deselect", selecting && !input.onHandle && !input.onElement)
     }),
     settings,
   )
