@@ -2,6 +2,8 @@ defmodule Sketch.Canvas.ConcurrentCommitsTest do
   use ExUnit.Case, async: false
 
   alias Ecto.Adapters.SQL.Sandbox
+  import Sketch.CanvasFixtures
+
   alias Sketch.Canvas
 
   @commits 50
@@ -11,7 +13,7 @@ defmodule Sketch.Canvas.ConcurrentCommitsTest do
 
     rectangle =
       Sandbox.unboxed_run(Sketch.Repo, fn ->
-        Canvas.create_rectangle!(%{x: 0, y: 0, board_id: board.id})
+        Canvas.create_element!(rectangle(%{x: 0, y: 0, board_id: board.id}))
       end)
 
     on_exit(fn ->
@@ -23,16 +25,20 @@ defmodule Sketch.Canvas.ConcurrentCommitsTest do
     %{board: board, rectangle: rectangle}
   end
 
-  test "concurrent commits never lose a version increment (A09)", ctx do
+  defp commit(element, board, n) when rem(n, 2) == 0,
+    do: Canvas.commit_position(element.id, board.id, %{x: n, y: 2 * n})
+
+  defp commit(element, board, n),
+    do: Canvas.commit_shape(element.id, board.id, %{x: n, y: 2 * n, width: n, height: 3 * n})
+
+  test "concurrent moves and resizes never lose a version increment (A09)", ctx do
     %{board: board, rectangle: rectangle} = ctx
 
     committed =
       1..@commits
       |> Task.async_stream(
         fn n ->
-          Sandbox.unboxed_run(Sketch.Repo, fn ->
-            Canvas.commit_position(rectangle.id, board.id, %{x: n, y: 2 * n})
-          end)
+          Sandbox.unboxed_run(Sketch.Repo, fn -> commit(rectangle, board, n) end)
         end,
         max_concurrency: 25,
         ordered: false,
@@ -46,10 +52,11 @@ defmodule Sketch.Canvas.ConcurrentCommitsTest do
     assert results |> Enum.map(& &1.version) |> Enum.sort() == Enum.to_list(1..@commits)
 
     stored =
-      Sandbox.unboxed_run(Sketch.Repo, fn -> Canvas.list_rectangles_for_board!(board.id) end)
+      Sandbox.unboxed_run(Sketch.Repo, fn -> Canvas.list_elements_for_board!(board.id) end)
 
-    assert [%{version: @commits, x: x, y: y}] = stored
+    box = [:x, :y, :width, :height, :version]
+    assert [stored_element] = stored
     last_writer = Enum.find(results, &(&1.version == @commits))
-    assert {x, y} == {last_writer.x, last_writer.y}
+    assert Map.take(stored_element, box) == Map.take(last_writer, box)
   end
 end

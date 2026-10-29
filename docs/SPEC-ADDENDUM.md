@@ -57,3 +57,37 @@ as **unverified** in every PR.
   sandbox; board isolation is the test isolation.
 - Known risk, not addressed this milestone: no server-side rate limit or
   rectangle cap on public boards.
+
+## D8 — Drawing tools approved (2026-10-28, see ADR 0003)
+
+The human approved Excalidraw-style tools on 2026-10-28, added one PR at a time:
+Selection, Rectangle, Diamond, Ellipse, Arrow, Line, Draw, Text, Note and
+Eraser, with keyboard shortcuts.
+
+This lifts three SPEC §2 initial exclusions:
+
+- **Resizing**: elements are drawn at any size and resized from a corner.
+- **Deleting**: the Eraser removes elements (its own PR).
+- **Selection**: clicking an element selects it. Selection is local UI state
+  and is never broadcast.
+
+Still excluded: undo, history, styling, presence indicators, offline editing,
+CRDTs (and the other §2 exclusions: user accounts, external brokers,
+multi-node deployment).
+
+Consequences for the earlier decisions:
+
+- D1: rectangles are no longer a constant 120 × 80. An `Element` stores its
+  box; `x >= 0`, `y >= 0`, `width >= 1`, `height >= 1`, `x + width <= 4000`
+  and `y + height <= 4000`, from `Sketch.Canvas.Geometry`, enforced by Ash and
+  PostgreSQL CHECK constraints. 120 × 80 stays the size of a clicked or added
+  rectangle.
+- D2: previews carry the whole box:
+  `{element_id, drag_id, seq, base_version, x, y, width, height}`, used for
+  moves and resizes. Drawing a new element sends `draw_preview`
+  `{drag_id, seq, kind, x, y, width, height}` and ends with `draw_end`
+  `{drag_id}`, sent on cancel or after the element is created. Draw previews
+  follow the same rules: throttled to 20 per second, never persisted, dropped
+  after 2000 ms of silence.
+- D0: `commit_shape` is a second update action with the same atomic version
+  increment as `commit_position`; the client merge rule is unchanged.

@@ -6,22 +6,32 @@ defmodule Sketch.Properties.LwwMergeTest do
 
   @max_runs 500
 
-  defp events do
-    {member_of(~w(a b c d)), integer(0..12)}
-    |> tuple()
-    |> uniq_list_of(max_length: 20)
-    |> bind(fn tags ->
-      tags
-      |> Enum.map(fn {id, version} ->
-        fixed_map(%{
-          id: constant(id),
-          version: constant(version),
-          x: integer(0..Geometry.max_x()),
-          y: integer(0..Geometry.max_y())
-        })
-      end)
-      |> fixed_list()
+  defp payload(:create, id), do: element_payload(id, constant(0))
+
+  defp payload(_commit, id), do: element_payload(id, integer(1..12))
+
+  defp element_payload(id, version) do
+    bind(tuple({integer(1..400), integer(1..400)}), fn {width, height} ->
+      fixed_map(%{
+        id: constant(id),
+        kind: constant(:rectangle),
+        version: version,
+        x: integer(0..(Geometry.canvas_width() - width)),
+        y: integer(0..(Geometry.canvas_height() - height)),
+        width: constant(width),
+        height: constant(height)
+      })
     end)
+  end
+
+  defp events do
+    {member_of(~w(a b c d)), member_of([:create, :commit_position, :commit_shape])}
+    |> tuple()
+    |> list_of(max_length: 20)
+    |> bind(fn sources ->
+      sources |> Enum.map(fn {id, action} -> payload(action, id) end) |> fixed_list()
+    end)
+    |> map(&Enum.uniq_by(&1, fn event -> {event.id, event.version} end))
   end
 
   defp permutation(list) do
@@ -51,9 +61,9 @@ defmodule Sketch.Properties.LwwMergeTest do
     end
   end
 
-  property "the state per rectangle is its highest-version event" do
+  property "the state per element is its highest-version event, whichever action produced it" do
     check all events <- events(), max_runs: @max_runs do
-      assert BoardState.new(events).rectangles == highest_version_per_id(events)
+      assert BoardState.new(events).elements == highest_version_per_id(events)
     end
   end
 
@@ -62,10 +72,10 @@ defmodule Sketch.Properties.LwwMergeTest do
               events != [],
               known <- member_of(events),
               age <- positive_integer(),
-              x <- integer(0..Geometry.max_x()),
+              x <- integer(0..(Geometry.canvas_width() - 1)),
               max_runs: @max_runs do
       state = BoardState.new(events)
-      known_version = state.rectangles[known.id].version
+      known_version = state.elements[known.id].version
       stale = %{known | version: known_version - age, x: x}
 
       assert {:unchanged, ^state} = BoardState.apply_event(state, stale)

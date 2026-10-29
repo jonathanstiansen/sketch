@@ -1,14 +1,24 @@
 defmodule SketchWeb.BoardLive do
   use SketchWeb, :live_view
 
-  @max_x Sketch.Canvas.geometry().max_x
-  @max_y Sketch.Canvas.geometry().max_y
+  @canvas_width Sketch.Canvas.geometry().canvas_width
+  @canvas_height Sketch.Canvas.geometry().canvas_height
+  @min_size Sketch.Canvas.geometry().min_size
+  @kinds Enum.map(Sketch.Canvas.element_kinds(), &Atom.to_string/1)
 
   defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
 
-  defguardp is_position(x, y)
-            when is_integer(x) and x >= 0 and x <= @max_x and is_integer(y) and y >= 0 and
-                   y <= @max_y
+  defguardp is_seq(value) when is_integer(value) and value >= 0
+
+  defguardp is_kind(value) when is_binary(value) and value in @kinds
+
+  defguardp is_box(x, y, width, height)
+            when is_integer(x) and is_integer(y) and is_integer(width) and is_integer(height) and
+                   x >= 0 and y >= 0 and width >= @min_size and height >= @min_size and
+                   x + width <= @canvas_width and y + height <= @canvas_height
+
+  defguardp is_integer_box(x, y, width, height)
+            when is_integer(x) and is_integer(y) and is_integer(width) and is_integer(height)
 
   @impl true
   def mount(%{"board_id" => board_id}, _session, socket) do
@@ -20,80 +30,144 @@ defmodule SketchWeb.BoardLive do
 
   @impl true
   def handle_event("add-rectangle", _params, socket) do
-    socket.assigns.board_state
-    |> Sketch.Canvas.board_rectangle_count()
-    |> Sketch.Canvas.default_position()
-    |> create_rectangle(socket)
+    box =
+      socket.assigns.board_state
+      |> Sketch.Canvas.board_element_count()
+      |> Sketch.Canvas.default_box()
+
+    {:noreply, create_element(socket, "rectangle", box)}
   end
 
-  def handle_event("create_at", %{"x" => x, "y" => y}, socket)
-      when is_integer(x) and is_integer(y) do
-    {x, y}
-    |> Sketch.Canvas.clamp_position()
-    |> create_rectangle(socket)
+  def handle_event(
+        "create_element",
+        %{
+          "kind" => kind,
+          "drag_id" => drag_id,
+          "x" => x,
+          "y" => y,
+          "width" => width,
+          "height" => height
+        },
+        socket
+      )
+      when is_kind(kind) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
+    box = Sketch.Canvas.clamp_box(%{x: x, y: y, width: width, height: height})
+
+    socket
+    |> create_element(kind, box)
+    |> broadcast_preview("draw_end", %{drag_id: drag_id})
+  end
+
+  def handle_event(
+        "draw_preview",
+        %{
+          "kind" => kind,
+          "drag_id" => drag_id,
+          "seq" => seq,
+          "x" => x,
+          "y" => y,
+          "width" => width,
+          "height" => height
+        },
+        socket
+      )
+      when is_kind(kind) and is_uuid(drag_id) and is_seq(seq) and is_box(x, y, width, height) do
+    broadcast_preview(socket, "draw_preview", %{
+      kind: kind,
+      drag_id: drag_id,
+      seq: seq,
+      x: x,
+      y: y,
+      width: width,
+      height: height
+    })
+  end
+
+  def handle_event("draw_cancel", %{"drag_id" => drag_id}, socket) when is_uuid(drag_id) do
+    broadcast_preview(socket, "draw_end", %{drag_id: drag_id})
   end
 
   def handle_event(
         "preview",
         %{
-          "rectangle_id" => rectangle_id,
+          "element_id" => element_id,
           "drag_id" => drag_id,
           "seq" => seq,
           "base_version" => base_version,
           "x" => x,
-          "y" => y
+          "y" => y,
+          "width" => width,
+          "height" => height
         },
         socket
       )
-      when is_uuid(rectangle_id) and is_uuid(drag_id) and is_integer(seq) and seq >= 0 and
-             is_integer(base_version) and base_version >= 0 and is_position(x, y) do
+      when is_uuid(element_id) and is_uuid(drag_id) and is_seq(seq) and is_seq(base_version) and
+             is_box(x, y, width, height) do
     broadcast_preview(socket, "preview", %{
-      rectangle_id: rectangle_id,
+      element_id: element_id,
       drag_id: drag_id,
       seq: seq,
       base_version: base_version,
       x: x,
-      y: y
+      y: y,
+      width: width,
+      height: height
     })
   end
 
-  def handle_event("drag_cancel", %{"rectangle_id" => rectangle_id, "drag_id" => drag_id}, socket)
-      when is_uuid(rectangle_id) and is_uuid(drag_id) do
-    broadcast_preview(socket, "drag_cancel", %{rectangle_id: rectangle_id, drag_id: drag_id})
+  def handle_event("drag_cancel", %{"element_id" => element_id, "drag_id" => drag_id}, socket)
+      when is_uuid(element_id) and is_uuid(drag_id) do
+    broadcast_preview(socket, "drag_cancel", %{element_id: element_id, drag_id: drag_id})
   end
 
   def handle_event(
         "commit",
-        %{"rectangle_id" => rectangle_id, "drag_id" => drag_id, "x" => x, "y" => y},
+        %{"element_id" => element_id, "drag_id" => drag_id, "x" => x, "y" => y},
         socket
       )
-      when is_uuid(rectangle_id) and is_uuid(drag_id) and is_integer(x) and is_integer(y) do
-    case Sketch.Canvas.commit_position(rectangle_id, socket.assigns.board_id, %{x: x, y: y}) do
-      {:ok, _rectangle} ->
-        {:noreply, socket}
+      when is_uuid(element_id) and is_uuid(drag_id) and is_integer(x) and is_integer(y) do
+    element_id
+    |> Sketch.Canvas.commit_position(socket.assigns.board_id, %{x: x, y: y})
+    |> committed(socket, element_id, drag_id, "Could not move element")
+  end
 
-      {:error, _error} ->
+  def handle_event(
+        "commit_shape",
+        %{
+          "element_id" => element_id,
+          "drag_id" => drag_id,
+          "x" => x,
+          "y" => y,
+          "width" => width,
+          "height" => height
+        },
         socket
-        |> put_flash(:error, "Could not move rectangle")
-        |> push_event("revert", %{rectangle_id: rectangle_id})
-        |> broadcast_preview("drag_cancel", %{rectangle_id: rectangle_id, drag_id: drag_id})
-    end
+      )
+      when is_uuid(element_id) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
+    element_id
+    |> Sketch.Canvas.commit_shape(socket.assigns.board_id, %{
+      x: x,
+      y: y,
+      width: width,
+      height: height
+    })
+    |> committed(socket, element_id, drag_id, "Could not resize element")
   end
 
   def handle_event(event, _params, socket)
-      when event in ~w(create_at preview drag_cancel commit) do
+      when event in ~w(create_element draw_preview draw_cancel preview drag_cancel commit commit_shape) do
     {:noreply, socket}
   end
 
   @impl true
-  def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: rectangle}, socket)
-      when event in ~w(create commit_position) do
-    case Sketch.Canvas.apply_board_event(socket.assigns.board_state, rectangle) do
-      {:changed, board_state, rectangle} ->
+  def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: element}, socket)
+      when event in ~w(create commit_position commit_shape) do
+    case Sketch.Canvas.apply_board_event(socket.assigns.board_state, element) do
+      {:changed, board_state, element} ->
         {:noreply,
          socket
          |> assign(:board_state, board_state)
-         |> stream_insert(:rectangles, rectangle)}
+         |> stream_insert(:elements, element)}
 
       {:unchanged, _board_state} ->
         {:noreply, socket}
@@ -101,7 +175,7 @@ defmodule SketchWeb.BoardLive do
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket)
-      when event in ~w(preview drag_cancel) do
+      when event in ~w(preview drag_cancel draw_preview draw_end) do
     {:noreply, push_event(socket, event, payload)}
   end
 
@@ -131,8 +205,10 @@ defmodule SketchWeb.BoardLive do
           id="canvas-viewport"
           phx-hook="Canvas"
           data-tool="selection"
-          data-max-x={@geometry.max_x}
-          data-max-y={@geometry.max_y}
+          data-canvas-width={@geometry.canvas_width}
+          data-canvas-height={@geometry.canvas_height}
+          data-default-width={@geometry.default_width}
+          data-default-height={@geometry.default_height}
           class="min-h-0 flex-1 overflow-auto border-t border-base-300"
         >
           <svg
@@ -142,22 +218,27 @@ defmodule SketchWeb.BoardLive do
             viewBox={"0 0 #{@geometry.canvas_width} #{@geometry.canvas_height}"}
             class="block select-none bg-base-100"
           >
-            <g id="rectangles" phx-update="stream">
+            <g id="elements" phx-update="stream">
               <rect
-                :for={{dom_id, rectangle} <- @streams.rectangles}
+                :for={{dom_id, element} <- @streams.elements}
                 id={dom_id}
-                x={rectangle.x}
-                y={rectangle.y}
-                width={@geometry.rectangle_width}
-                height={@geometry.rectangle_height}
-                data-rect={rectangle.id}
-                data-x={rectangle.x}
-                data-y={rectangle.y}
-                data-version={rectangle.version}
+                x={element.x}
+                y={element.y}
+                width={element.width}
+                height={element.height}
+                data-element={element.id}
+                data-kind={element.kind}
+                data-x={element.x}
+                data-y={element.y}
+                data-width={element.width}
+                data-height={element.height}
+                data-version={element.version}
                 stroke-width="2"
                 class="fill-primary stroke-base-content cursor-grab touch-none"
               />
             </g>
+            <g id="draw-previews" phx-update="ignore"></g>
+            <g id="selection" phx-update="ignore"></g>
           </svg>
         </div>
       </div>
@@ -165,12 +246,26 @@ defmodule SketchWeb.BoardLive do
     """
   end
 
-  defp create_rectangle({x, y}, socket) do
-    case Sketch.Canvas.create_rectangle(%{board_id: socket.assigns.board_id, x: x, y: y}) do
-      {:ok, _rectangle} -> {:noreply, socket}
-      {:error, _error} -> {:noreply, put_flash(socket, :error, "Could not add rectangle")}
+  defp create_element(socket, kind, box) do
+    case Sketch.Canvas.create_element(
+           Map.merge(box, %{board_id: socket.assigns.board_id, kind: kind})
+         ) do
+      {:ok, _element} -> socket
+      {:error, _error} -> put_flash(socket, :error, "Could not add element")
     end
   end
+
+  defp committed({:ok, _element}, socket, _element_id, _drag_id, _message), do: {:noreply, socket}
+
+  defp committed({:error, _error}, socket, element_id, drag_id, message) do
+    socket
+    |> put_flash(:error, message)
+    |> push_event("revert", %{element_id: element_id})
+    |> broadcast_preview("drag_cancel", %{element_id: element_id, drag_id: drag_id})
+  end
+
+  defp broadcast_preview({:noreply, socket}, event, payload),
+    do: broadcast_preview(socket, event, payload)
 
   defp broadcast_preview(socket, event, payload) do
     topic = Sketch.Canvas.board_topic(socket.assigns.board_id)
@@ -183,15 +278,15 @@ defmodule SketchWeb.BoardLive do
     if connected?(socket),
       do: :ok = SketchWeb.Endpoint.subscribe(Sketch.Canvas.board_topic(board_id))
 
-    rectangles =
+    elements =
       board_id
-      |> Sketch.Canvas.list_rectangles_for_board!()
-      |> Enum.map(&Sketch.Canvas.rectangle_event/1)
+      |> Sketch.Canvas.list_elements_for_board!()
+      |> Enum.map(&Sketch.Canvas.element_event/1)
 
     socket
     |> assign(:board_id, board_id)
     |> assign(:geometry, Sketch.Canvas.geometry())
-    |> assign(:board_state, Sketch.Canvas.new_board_state(rectangles))
-    |> stream(:rectangles, rectangles, dom_id: &"rect-#{&1.id}")
+    |> assign(:board_state, Sketch.Canvas.new_board_state(elements))
+    |> stream(:elements, elements, dom_id: &"element-#{&1.id}")
   end
 end

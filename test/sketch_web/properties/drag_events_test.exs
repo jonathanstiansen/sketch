@@ -11,18 +11,25 @@ defmodule SketchWeb.Properties.DragEventsTest do
   @rectangle_count 2
   @drag_ids for n <- 1..3, do: "00000000-0000-4000-8000-00000000000#{n}"
 
-  defp coordinate(max), do: one_of([integer(0..max), member_of([-1, max + 1])])
+  @canvas_width Geometry.canvas_width()
+  @canvas_height Geometry.canvas_height()
+
+  defp coordinate(limit), do: one_of([integer(0..limit), member_of([-1, limit - 120, limit])])
+
+  defp size(limit), do: one_of([integer(1..limit), member_of([0, 1, 120, limit + 1])])
 
   defp event(view_count) do
     fixed_map(%{
-      kind: member_of([:preview, :drag_cancel, :commit]),
+      kind: member_of([:preview, :drag_cancel, :commit, :commit_shape]),
       view: integer(0..(view_count - 1)),
       rectangle: integer(0..(@rectangle_count - 1)),
       drag_id: member_of(@drag_ids),
       seq: integer(0..50),
       base_version: integer(0..5),
-      x: coordinate(Geometry.max_x()),
-      y: coordinate(Geometry.max_y())
+      x: coordinate(@canvas_width),
+      y: coordinate(@canvas_height),
+      width: size(@canvas_width),
+      height: size(@canvas_height)
     })
   end
 
@@ -32,7 +39,15 @@ defmodule SketchWeb.Properties.DragEventsTest do
     end)
   end
 
-  defp in_bounds?(%{x: x, y: y}), do: x in 0..Geometry.max_x() and y in 0..Geometry.max_y()
+  defp in_bounds?(%{x: x, y: y, width: width, height: height}) do
+    x >= 0 and y >= 0 and width >= 1 and height >= 1 and x + width <= @canvas_width and
+      y + height <= @canvas_height
+  end
+
+  defp commits?(%{kind: :commit} = event, stored),
+    do: in_bounds?(%{event | width: stored.width, height: stored.height})
+
+  defp commits?(%{kind: :commit_shape} = event, _stored), do: in_bounds?(event)
 
   def forward_query(_event, _measurements, metadata, %{test_pid: test_pid, pids: pids}) do
     if self() in pids, do: send(test_pid, {:repo_query, self(), metadata.query})
@@ -59,11 +74,12 @@ defmodule SketchWeb.Properties.DragEventsTest do
 
     rectangles =
       for index <- 0..(@rectangle_count - 1) do
-        {x, y} = Canvas.default_position(index)
-        Canvas.create_rectangle!(%{board_id: board.id, x: x, y: y})
+        Canvas.create_element!(
+          Map.merge(Canvas.default_box(index), %{board_id: board.id, kind: :rectangle})
+        )
       end
 
-    Canvas.create_rectangle!(%{board_id: other_board.id, x: 10, y: 10})
+    Canvas.create_element!(rectangle(%{board_id: other_board.id, x: 10, y: 10}))
 
     views =
       for _ <- 1..view_count do
@@ -84,8 +100,8 @@ defmodule SketchWeb.Properties.DragEventsTest do
 
   defp preview(event, rectangle) do
     event
-    |> Map.take([:drag_id, :seq, :base_version, :x, :y])
-    |> Map.put(:rectangle_id, rectangle.id)
+    |> Map.take([:drag_id, :seq, :base_version, :x, :y, :width, :height])
+    |> Map.put(:element_id, rectangle.id)
   end
 
   defp params(event, rectangle),
@@ -94,35 +110,43 @@ defmodule SketchWeb.Properties.DragEventsTest do
   defp send_event(ctx, event) do
     sender = Enum.at(ctx.views, event.view)
     rectangle = Enum.at(ctx.rectangles, event.rectangle)
+    stored = Enum.find(Canvas.list_elements_for_board!(ctx.board.id), &(&1.id == rectangle.id))
     render_hook(sender, to_string(event.kind), params(event, rectangle))
     Enum.each([ctx.outsider | ctx.views], &render/1)
-    {sender, rectangle}
+    {sender, rectangle, stored}
   end
 
-  defp expected_relay(%{kind: :preview} = event, rectangle) do
+  defp expected_relay(%{kind: :preview} = event, rectangle, _stored) do
     if in_bounds?(event), do: [{"preview", preview(event, rectangle)}], else: []
   end
 
-  defp expected_relay(%{kind: :drag_cancel} = event, rectangle),
-    do: [{"drag_cancel", %{rectangle_id: rectangle.id, drag_id: event.drag_id}}]
+  defp expected_relay(%{kind: :drag_cancel} = event, rectangle, _stored),
+    do: [{"drag_cancel", %{element_id: rectangle.id, drag_id: event.drag_id}}]
 
-  defp expected_relay(%{kind: :commit} = event, rectangle) do
-    if in_bounds?(event),
+  defp expected_relay(event, rectangle, stored) do
+    if commits?(event, stored),
       do: [],
-      else: [{"drag_cancel", %{rectangle_id: rectangle.id, drag_id: event.drag_id}}]
+      else: [{"drag_cancel", %{element_id: rectangle.id, drag_id: event.drag_id}}]
   end
 
-  defp expected_reply(%{kind: :commit} = event, rectangle) do
-    if in_bounds?(event), do: [], else: [{"revert", %{rectangle_id: rectangle.id}}]
+  defp expected_reply(%{kind: kind} = event, rectangle, stored)
+       when kind in [:commit, :commit_shape] do
+    if commits?(event, stored), do: [], else: [{"revert", %{element_id: rectangle.id}}]
   end
 
-  defp expected_reply(_event, _rectangle), do: []
+  defp expected_reply(_event, _rectangle, _stored), do: []
 
-  defp expected_queries(%{kind: :commit} = event, sender) do
+  defp expected_queries(%{kind: :commit, x: x, y: y}, sender, _stored) do
+    if x in 0..(@canvas_width - 1) and y in 0..(@canvas_height - 1),
+      do: [{sender.pid, :update}],
+      else: []
+  end
+
+  defp expected_queries(%{kind: :commit_shape} = event, sender, _stored) do
     if in_bounds?(event), do: [{sender.pid, :update}], else: []
   end
 
-  defp expected_queries(_event, _sender), do: []
+  defp expected_queries(_event, _sender, _stored), do: []
 
   defp query_kind({pid, "UPDATE " <> _query}), do: {pid, :update}
   defp query_kind({pid, query}), do: {pid, query}
@@ -136,9 +160,10 @@ defmodule SketchWeb.Properties.DragEventsTest do
   end
 
   defp assert_converged(board, views) do
-    for rectangle <- Canvas.list_rectangles_for_board!(board.id), view <- views do
+    for rectangle <- Canvas.list_elements_for_board!(board.id), view <- views do
       selector =
-        "#rect-#{rectangle.id}[x='#{rectangle.x}'][y='#{rectangle.y}']" <>
+        "#element-#{rectangle.id}[x='#{rectangle.x}'][y='#{rectangle.y}']" <>
+          "[width='#{rectangle.width}'][height='#{rectangle.height}']" <>
           "[data-version='#{rectangle.version}']"
 
       assert has_element?(view, selector)
@@ -153,14 +178,15 @@ defmodule SketchWeb.Properties.DragEventsTest do
       handler_id = record_queries([ctx.outsider | ctx.views])
 
       for event <- events do
-        {sender, rectangle} = send_event(ctx, event)
+        {sender, rectangle, stored} = send_event(ctx, event)
 
-        assert Enum.map(received_queries(), &query_kind/1) == expected_queries(event, sender)
+        assert Enum.map(received_queries(), &query_kind/1) ==
+                 expected_queries(event, sender, stored)
 
         for view <- ctx.views do
           if view == sender,
-            do: assert_pushes(view, expected_reply(event, rectangle)),
-            else: assert_pushes(view, expected_relay(event, rectangle))
+            do: assert_pushes(view, expected_reply(event, rectangle, stored)),
+            else: assert_pushes(view, expected_relay(event, rectangle, stored))
         end
 
         assert_pushes(ctx.outsider, [])

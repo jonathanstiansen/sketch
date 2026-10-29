@@ -26,6 +26,7 @@ defmodule Sketch.DataCase do
       import Ecto.Changeset
       import Ecto.Query
       import Sketch.DataCase
+      import Sketch.CanvasFixtures
     end
   end
 
