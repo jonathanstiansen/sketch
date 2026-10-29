@@ -1,0 +1,14 @@
+diff --git a/architecture/rules.exs b/architecture/rules.exs
+index 7bd9b70..9941066 100644
+--- a/architecture/rules.exs
++++ b/architecture/rules.exs
+@@ -222,7 +222,8 @@
+     legacy_kind_files: [
+       {"lib/sketch_web/live/board_live.ex", "Legacy kinds: element_shape clauses for diamond, ellipse, line, arrow, freedraw, text and note"},
+       {"assets/js/hooks/canvas.ts", "Legacy kinds: freedraw strokes, text and note editing and the note default size"},
+-      {"assets/js/hooks/selection.ts", "Legacy kinds: draw previews for note, arrow and text"}
++      {"assets/js/hooks/selection.ts", "Legacy kinds: draw previews for note, arrow and text"},
++      {"assets/js/hooks/tools.ts", "Legacy kinds: none left"}
+     ],
+     production_mix_deps: [
+       {:ash, "Core framework (SPEC section 3)"},

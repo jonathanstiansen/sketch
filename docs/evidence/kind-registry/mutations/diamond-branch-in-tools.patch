@@ -1,0 +1,12 @@
+diff --git a/assets/js/hooks/tools.ts b/assets/js/hooks/tools.ts
+index 5d6e6ca..f38a380 100644
+--- a/assets/js/hooks/tools.ts
++++ b/assets/js/hooks/tools.ts
+@@ -74,6 +74,7 @@ function hasEndpoints({ geometry }: KindSpec): boolean {
+ 
+ export function selectionHandles(kind: string | undefined): SelectionHandles {
+   if (!isElementKind(kind)) return "corners"
++  if (kind === "diamond") return "corners"
+   if (hasEndpoints(KIND_SPECS[kind])) return "endpoints"
+   return isTypedKind(kind) ? "none" : "corners"
+ }
