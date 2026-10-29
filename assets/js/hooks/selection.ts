@@ -1,20 +1,37 @@
 import { CORNERS, cornerPoint, type Box, type Corner } from "./canvas_logic"
+import type { DrawnKind } from "./tools"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
 const OUTLINE_GAP = 4
 
-function svgRect(attributes: Record<string, string>): SVGRectElement {
-  const rect = document.createElementNS(SVG_NS, "rect")
-  for (const [name, value] of Object.entries(attributes)) rect.setAttribute(name, value)
-  return rect
+function svgShape<K extends "rect" | "polygon">(tag: K, attributes: Record<string, string>): SVGElementTagNameMap[K] {
+  const shape = document.createElementNS(SVG_NS, tag)
+  for (const [name, value] of Object.entries(attributes)) shape.setAttribute(name, value)
+  return shape
 }
 
-export function setBox(rect: Element, { x, y, width, height }: Box): void {
-  rect.setAttribute("x", String(x))
-  rect.setAttribute("y", String(y))
-  rect.setAttribute("width", String(width))
-  rect.setAttribute("height", String(height))
+function svgRect(attributes: Record<string, string>): SVGRectElement {
+  return svgShape("rect", attributes)
+}
+
+function point(x: number, y: number): string {
+  return [x, y].map(String).join(",")
+}
+
+export function diamondPoints({ x, y, width, height }: Box): string {
+  const midX = x + width / 2
+  const midY = y + height / 2
+  return [point(midX, y), point(x + width, midY), point(midX, y + height), point(x, midY)].join(" ")
+}
+
+export function setBox(shape: Element, box: Box): void {
+  const { x, y, width, height } = box
+  shape.setAttribute("x", String(x))
+  shape.setAttribute("y", String(y))
+  shape.setAttribute("width", String(width))
+  shape.setAttribute("height", String(height))
+  if (shape.localName === "polygon") shape.setAttribute("points", diamondPoints(box))
 }
 
 export function isCorner(value: string | undefined): value is Corner {
@@ -63,10 +80,13 @@ export class SelectionOverlay {
 export class DrawLayer {
   constructor(private readonly layer: Element) {}
 
-  shape(id: string): SVGRectElement {
+  shape(id: string, kind: DrawnKind): SVGElement {
     const existing = this.find(id)
     if (existing !== null) return existing
-    const shape = svgRect({ "data-draw": id, class: "draw-preview" })
+    const shape = svgShape(kind === "diamond" ? "polygon" : "rect", {
+      "data-draw": id,
+      class: "draw-preview",
+    })
     this.layer.append(shape)
     return shape
   }
@@ -75,7 +95,7 @@ export class DrawLayer {
     this.find(id)?.remove()
   }
 
-  private find(id: string): SVGRectElement | null {
-    return this.layer.querySelector<SVGRectElement>(`rect[data-draw="${CSS.escape(id)}"]`)
+  private find(id: string): SVGElement | null {
+    return this.layer.querySelector<SVGElement>(`[data-draw="${CSS.escape(id)}"]`)
   }
 }

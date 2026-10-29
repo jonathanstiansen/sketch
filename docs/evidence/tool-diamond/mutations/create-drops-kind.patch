@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index 7bb9534..48d8a23 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -291,7 +291,7 @@ defmodule SketchWeb.BoardLive do
+ 
+   defp create_element(socket, kind, box) do
+     case Sketch.Canvas.create_element(
+-           Map.merge(box, %{board_id: socket.assigns.board_id, kind: kind})
++           Map.merge(box, %{board_id: socket.assigns.board_id, kind: :rectangle})
+          ) do
+       {:ok, _element} -> socket
+       {:error, _error} -> put_flash(socket, :error, "Could not add element")

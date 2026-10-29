@@ -6,7 +6,7 @@ defmodule Sketch.Properties.CommitModelTest do
   alias Sketch.Canvas
   alias Sketch.Canvas.Geometry
 
-  @element_count 3
+  @element_count 4
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
 
@@ -38,6 +38,9 @@ defmodule Sketch.Properties.CommitModelTest do
       y + height <= @canvas_height
   end
 
+  defp kind_at(index),
+    do: Enum.at(Canvas.element_kinds(), rem(index, length(Canvas.element_kinds())))
+
   defp seed_board do
     board = Canvas.create_board!()
     other_board = Canvas.create_board!()
@@ -45,7 +48,7 @@ defmodule Sketch.Properties.CommitModelTest do
     elements =
       for index <- 0..(@element_count - 1) do
         Canvas.create_element!(
-          Map.merge(Canvas.default_box(index), %{board_id: board.id, kind: :rectangle})
+          Map.merge(Canvas.default_box(index), %{board_id: board.id, kind: kind_at(index)})
         )
       end
 
@@ -53,7 +56,7 @@ defmodule Sketch.Properties.CommitModelTest do
     {board, other_board, elements, model}
   end
 
-  defp stored_box(element), do: Map.take(element, [:x, :y, :width, :height, :version])
+  defp stored_box(element), do: Map.take(element, [:kind, :x, :y, :width, :height, :version])
 
   defp run({action, index, input} = op, ctx, model) do
     element = Enum.at(ctx.elements, index)

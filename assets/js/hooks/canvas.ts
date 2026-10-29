@@ -19,12 +19,14 @@ import {
 import { DrawLayer, SelectionOverlay, isCorner, setBox } from "./selection"
 import {
   DEFAULT_TOOL,
+  drawnKind,
   isPanKey,
   nextTool,
   panScroll,
   pointerAction,
   selectTool,
   togglesHelp,
+  type DrawnKind,
   type KeyInput,
   type ToolId,
 } from "./tools"
@@ -32,8 +34,8 @@ import {
 const STALE_PREVIEW_MS = 2000
 const DRAGGING = "data-dragging"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
-const DRAWN_KIND = "rectangle"
-const BOX_ATTRIBUTES = ["x", "y", "width", "height"]
+const BOX_ATTRIBUTES = ["x", "y", "width", "height", "points"]
+const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height"]
 
 interface Throttled {
   dragId: string
@@ -45,7 +47,7 @@ interface Throttled {
 
 interface Edit extends Throttled {
   mode: "move" | "resize"
-  rect: SVGRectElement
+  rect: SVGElement
   elementId: string
   baseVersion: number
   grab: Point
@@ -56,6 +58,7 @@ interface Edit extends Throttled {
 
 interface Draw extends Throttled {
   mode: "draw"
+  kind: DrawnKind
   start: Point
   dragged: boolean
   box: Box
@@ -64,6 +67,7 @@ interface Draw extends Throttled {
 type Gesture = Edit | Draw
 
 interface DrawPreview {
+  kind: DrawnKind
   drag_id: string
   seq: number
   x: number
@@ -122,7 +126,13 @@ function isPreview(value: unknown): value is Preview {
 }
 
 function isDrawPreview(value: unknown): value is DrawPreview {
-  return isRecord(value) && typeof value.drag_id === "string" && Number.isInteger(value.seq) && isBox(value)
+  return (
+    isRecord(value) &&
+    (value.kind === "rectangle" || value.kind === "diamond") &&
+    typeof value.drag_id === "string" &&
+    Number.isInteger(value.seq) &&
+    isBox(value)
+  )
 }
 
 function integerAttribute(el: Element, name: string): number {
@@ -188,7 +198,7 @@ export class Canvas extends ViewHook {
     this.observer.observe(this.layer("#elements"), {
       subtree: true,
       childList: true,
-      attributeFilter: BOX_ATTRIBUTES,
+      attributeFilter: BOX_SIZE_ATTRIBUTES,
     })
     window.addEventListener("keydown", this.onKeyDown)
     window.addEventListener("keyup", this.onKeyUp)
@@ -239,7 +249,7 @@ export class Canvas extends ViewHook {
   private onPointerDown = (event: PointerEvent): void => {
     if (this.gesture !== undefined || this.pan !== undefined) return
     const target = event.target instanceof Element ? event.target : null
-    const rect = target?.closest<SVGRectElement>("rect[data-element]") ?? null
+    const rect = target?.closest<SVGElement>("[data-element]") ?? null
     const corner = target?.closest<SVGRectElement>("rect[data-handle]")?.dataset.handle
     const action = pointerAction({
       button: event.button,
@@ -249,7 +259,8 @@ export class Canvas extends ViewHook {
       onHandle: isCorner(corner),
     })
     if (action === "pan") this.startPan(event)
-    if (action === "draw") this.startDraw(event)
+    const kind = drawnKind(this.tool)
+    if (action === "draw" && kind !== undefined) this.startDraw(event, kind)
     if (action === "deselect") this.select(undefined)
     if (action === "move" && rect !== null) this.startEdit(event, rect, "move", "nw")
     if (action === "resize" && isCorner(corner)) this.startResize(event, corner)
@@ -260,7 +271,7 @@ export class Canvas extends ViewHook {
     if (rect !== null) this.startEdit(event, rect, "resize", corner)
   }
 
-  private startEdit(event: PointerEvent, rect: SVGRectElement, mode: Edit["mode"], corner: Corner): void {
+  private startEdit(event: PointerEvent, rect: SVGElement, mode: Edit["mode"], corner: Corner): void {
     const elementId = rect.dataset.element
     if (!this.online || elementId === undefined) return
 
@@ -288,7 +299,7 @@ export class Canvas extends ViewHook {
     }
   }
 
-  private startDraw(event: PointerEvent): void {
+  private startDraw(event: PointerEvent, kind: DrawnKind): void {
     if (!this.online) return
     event.preventDefault()
     this.select(undefined)
@@ -296,6 +307,7 @@ export class Canvas extends ViewHook {
     const start = this.canvasPoint(event)
     this.gesture = {
       mode: "draw",
+      kind,
       start,
       dragged: false,
       box: drawnBox(start, start, this.canvasSize()),
@@ -337,7 +349,7 @@ export class Canvas extends ViewHook {
     draw.dragged ||= isDrag(draw.start, pointer)
     if (!draw.dragged) return
     draw.box = drawnBox(draw.start, pointer, this.canvasSize())
-    setBox(this.draws.shape(draw.dragId), draw.box)
+    setBox(this.draws.shape(draw.dragId, draw.kind), draw.box)
     this.schedulePreview(draw)
   }
 
@@ -365,7 +377,7 @@ export class Canvas extends ViewHook {
 
   private finishDraw(draw: Draw): void {
     const box = draw.dragged ? draw.box : clickBox(draw.start, this.defaultSize(), this.canvasSize())
-    void this.pushEvent("create_element", { kind: DRAWN_KIND, drag_id: draw.dragId, ...box }).finally(
+    void this.pushEvent("create_element", { kind: draw.kind, drag_id: draw.dragId, ...box }).finally(
       () => {
         this.draws.remove(draw.dragId)
       },
@@ -513,7 +525,7 @@ export class Canvas extends ViewHook {
     gesture.lastSentAt = performance.now()
     if (gesture.mode === "draw") {
       void this.pushEvent("draw_preview", {
-        kind: DRAWN_KIND,
+        kind: gesture.kind,
         drag_id: gesture.dragId,
         seq: gesture.seq,
         ...gesture.box,
@@ -547,7 +559,7 @@ export class Canvas extends ViewHook {
     this.restartStaleTimer(preview.drag_id, () => {
       this.endRemoteDraw(preview.drag_id)
     })
-    setBox(this.draws.shape(preview.drag_id), preview)
+    setBox(this.draws.shape(preview.drag_id, preview.kind), preview)
   }
 
   private endRemoteDraw(dragId: string): void {
@@ -587,8 +599,8 @@ export class Canvas extends ViewHook {
     return this.gesture?.mode === "draw" ? undefined : this.gesture?.elementId
   }
 
-  private elementFor(elementId: string): SVGRectElement | null {
-    return this.el.querySelector<SVGRectElement>(`rect[data-element="${CSS.escape(elementId)}"]`)
+  private elementFor(elementId: string): SVGElement | null {
+    return this.el.querySelector<SVGElement>(`[data-element="${CSS.escape(elementId)}"]`)
   }
 
   private layer(selector: string): Element {

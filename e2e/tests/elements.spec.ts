@@ -1,78 +1,19 @@
-import { mkdirSync } from "node:fs"
-import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test"
-import { createBoard, openBoard } from "./support/board"
+import { expect, test, type Page } from "@playwright/test"
+import {
+  canvasPoint,
+  clickAt,
+  closeSession,
+  expectBox,
+  moveTo,
+  openSharedBoard,
+  pressAt,
+  type Box,
+} from "./support/canvas"
 
-const recordingDir = process.env.E2E_RECORD_DIR
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
-const recordingSize = { width: 960, height: 600 }
 const element = "rect[data-element]"
 const drawPreview = "rect[data-draw]"
 const handle = (corner: string): string => `rect[data-handle="${corner}"]`
-
-interface Session {
-  pageA: Page
-  pageB: Page
-  contexts: BrowserContext[]
-}
-
-interface Box {
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
-function recordingOptions(name: string) {
-  if (recordingDir === undefined) return {}
-  const dir = `${recordingDir}/${name}`
-  mkdirSync(dir, { recursive: true })
-  return { recordVideo: { dir, size: recordingSize }, viewport: recordingSize }
-}
-
-async function openSharedBoard(browser: Browser, name: string): Promise<Session> {
-  const contexts = await Promise.all([
-    browser.newContext(recordingOptions(`${name}-a`)),
-    browser.newContext(recordingOptions(`${name}-b`)),
-  ])
-  const [pageA, pageB] = await Promise.all(contexts.map((context) => context.newPage()))
-  if (pageA === undefined || pageB === undefined) throw new Error("pages did not open")
-  await openBoard(pageB, await createBoard(pageA))
-  return { pageA, pageB, contexts }
-}
-
-async function closeSession({ contexts }: Session): Promise<void> {
-  await Promise.all(contexts.map((context) => context.close()))
-}
-
-async function canvasPoint(page: Page, x: number, y: number): Promise<{ x: number; y: number }> {
-  const box = await page.locator("#canvas").boundingBox()
-  if (box === null) throw new Error("canvas is not visible")
-  return { x: box.x + x, y: box.y + y }
-}
-
-async function pressAt(page: Page, x: number, y: number): Promise<void> {
-  const point = await canvasPoint(page, x, y)
-  await page.mouse.move(point.x, point.y)
-  await page.mouse.down()
-}
-
-async function clickAt(page: Page, x: number, y: number): Promise<void> {
-  const point = await canvasPoint(page, x, y)
-  await page.mouse.click(point.x, point.y)
-}
-
-async function moveTo(page: Page, x: number, y: number): Promise<void> {
-  const point = await canvasPoint(page, x, y)
-  await page.mouse.move(point.x, point.y, { steps: 30 })
-}
-
-async function expectBox(page: Page, selector: string, { x, y, width, height }: Box): Promise<void> {
-  const shape = page.locator(selector)
-  await expect(shape).toHaveAttribute("x", String(x))
-  await expect(shape).toHaveAttribute("y", String(y))
-  await expect(shape).toHaveAttribute("width", String(width))
-  await expect(shape).toHaveAttribute("height", String(height))
-}
 
 async function expectElement(page: Page, box: Box, version: number): Promise<void> {
   await expect(page.locator(element)).toHaveCount(1)

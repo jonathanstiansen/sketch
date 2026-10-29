@@ -24,7 +24,7 @@ export const TOOLS: readonly Tool[] = [
   { id: "hand", letter: "h", digit: null, enabled: true },
   { id: "selection", letter: "v", digit: "1", enabled: true },
   { id: "rectangle", letter: "r", digit: "2", enabled: true },
-  { id: "diamond", letter: "d", digit: "3", enabled: false },
+  { id: "diamond", letter: "d", digit: "3", enabled: true },
   { id: "ellipse", letter: "o", digit: "4", enabled: false },
   { id: "arrow", letter: "a", digit: "5", enabled: false },
   { id: "line", letter: "l", digit: "6", enabled: false },
@@ -35,6 +35,12 @@ export const TOOLS: readonly Tool[] = [
 ]
 
 export const DEFAULT_TOOL: ToolId = "selection"
+
+export type DrawnKind = "rectangle" | "diamond"
+
+export function drawnKind(tool: ToolId): DrawnKind | undefined {
+  return tool === "rectangle" || tool === "diamond" ? tool : undefined
+}
 
 export interface KeyInput {
   key: string
@@ -94,7 +100,7 @@ export function pointerAction({ button, tool, spaceHeld, onElement, onHandle }: 
   if (button === MIDDLE_BUTTON) return "pan"
   if (button !== PRIMARY_BUTTON) return "none"
   if (spaceHeld || tool === "hand") return "pan"
-  if (tool === "rectangle") return "draw"
+  if (drawnKind(tool) !== undefined) return "draw"
   if (tool === "selection") return selectionAction(onElement, onHandle)
   return "none"
 }
