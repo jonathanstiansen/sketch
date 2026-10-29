@@ -2,7 +2,9 @@ defmodule SketchWeb.RenderFixtures do
   @moduledoc """
   Renders `assets/test/fixtures/render_parity.json` (ADR 0004): the children each server renderer
   in `SketchWeb.Elements` draws for a fixed set of shapes, as SVG node trees whose attribute values
-  are the strings HEEx writes into the page. Every map has string keys, so the JSON key order is
+  are the strings HEEx writes into the page. A point kind is rendered along three paths inside
+  each box (corner to corner, zigzag between the top and bottom edges, and strictly inside), with
+  its minimum point count and its maximum capped at 12 to keep the file small. Every map has string keys, so the JSON key order is
   the same on every run. `assets/test/render_parity.test.ts` feeds the same
   shapes to the client renderers and expects the same trees.
   `mix sketch.gen.render_fixtures --check` fails when the file is stale.
@@ -15,6 +17,8 @@ defmodule SketchWeb.RenderFixtures do
 
   @sizes [0, 1, 2, 119, 120, 3999, 4000]
   @texts ["", "a", "two\nlines", "  padded  ", "ünïcødé & <tags>"]
+  @point_paths [:diagonal, :zigzag, :interior]
+  @max_fixture_points 12
 
   @spec path() :: Path.t()
   def path, do: @path
@@ -81,12 +85,22 @@ defmodule SketchWeb.RenderFixtures do
   defp point_sets(:box, _width, _height), do: [[]]
 
   defp point_sets({:points, range}, width, height) do
-    corners = [%{x: 0, y: 0}, %{x: width, y: height}, %{x: width, y: 0}, %{x: 0, y: height}]
-
-    [range.first, min(range.last, length(corners))]
-    |> Enum.uniq()
-    |> Enum.map(&Enum.take(Stream.cycle(corners), &1))
+    for count <- Enum.uniq([range.first, min(range.last, @max_fixture_points)]),
+        path <- @point_paths do
+      Enum.map(0..(count - 1)//1, &point_on(path, &1, count, width, height))
+    end
   end
+
+  defp point_on(:diagonal, index, count, width, height),
+    do: %{x: step(index, count - 1, width), y: step(index, count - 1, height)}
+
+  defp point_on(:zigzag, index, count, width, height),
+    do: %{x: width - step(index, count - 1, width), y: rem(index, 2) * height}
+
+  defp point_on(:interior, index, count, width, height),
+    do: %{x: step(index + 1, count + 1, width), y: height - step(index + 1, count + 1, height)}
+
+  defp step(index, steps, length), do: div(index * length, steps)
 
   defp texts(:none), do: [""]
   defp texts(_text), do: @texts

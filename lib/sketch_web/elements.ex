@@ -9,9 +9,9 @@ defmodule SketchWeb.Elements do
   """
   use Phoenix.Component
 
-  alias SketchWeb.Elements.{Diamond, Ellipse, Rectangle}
+  alias SketchWeb.Elements.{Diamond, Ellipse, Line, Rectangle}
 
-  @renderers [rectangle: Rectangle, diamond: Diamond, ellipse: Ellipse]
+  @renderers [rectangle: Rectangle, diamond: Diamond, ellipse: Ellipse, line: Line]
 
   @kinds Keyword.keys(@renderers)
   @expected Sketch.Canvas.element_kinds() -- Sketch.Canvas.legacy_kinds()
@@ -40,9 +40,10 @@ defmodule SketchWeb.Elements do
 
   @doc """
   One element: a wrapper translated to the element's box, with the kind's children inside it.
-  `data-x`, `data-y`, `data-width` and `data-height` are the committed box; `x`, `y`, `width`
-  and `height` are the box on screen, which the canvas hook changes while an element is dragged
-  or previewed.
+  `data-x`, `data-y`, `data-width`, `data-height` and `data-points` are the committed shape;
+  `x`, `y`, `width`, `height` and `live-points` are the shape on screen, which the canvas hook
+  changes while an element is dragged or previewed. The live shape stays outside `data-*`
+  because LiveView still merges `data-*` attributes into an element a gesture has claimed.
   """
   def element(assigns) do
     assigns =
@@ -66,6 +67,7 @@ defmodule SketchWeb.Elements do
       y={@element.y}
       width={@element.width}
       height={@element.height}
+      live-points={points_attribute(@element.points)}
       transform={"translate(#{@element.x} #{@element.y})"}
       class="cursor-grab touch-none"
     >
