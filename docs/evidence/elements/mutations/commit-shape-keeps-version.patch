@@ -1,0 +1,12 @@
+diff --git a/lib/sketch/canvas/element.ex b/lib/sketch/canvas/element.ex
+index ebb141e..d0ec825 100644
+--- a/lib/sketch/canvas/element.ex
++++ b/lib/sketch/canvas/element.ex
+@@ -51,7 +51,6 @@ defmodule Sketch.Canvas.Element do
+ 
+     update :commit_shape do
+       accept [:x, :y, :width, :height]
+-      change atomic_update(:version, expr(version + 1))
+     end
+ 
+     read :list_for_board do

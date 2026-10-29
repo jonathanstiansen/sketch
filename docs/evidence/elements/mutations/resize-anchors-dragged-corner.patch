@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas_logic.ts b/assets/js/hooks/canvas_logic.ts
+index 261b0f3..495c424 100644
+--- a/assets/js/hooks/canvas_logic.ts
++++ b/assets/js/hooks/canvas_logic.ts
+@@ -83,7 +83,7 @@ export function cornerPoint(box: Box, corner: Corner): Point {
+ const OPPOSITE: Record<Corner, Corner> = { nw: "se", ne: "sw", sw: "ne", se: "nw" }
+ 
+ export function resizedBox(box: Box, corner: Corner, pointer: Point, canvas: Size): Box {
+-  return drawnBox(cornerPoint(box, OPPOSITE[corner]), pointer, canvas)
++  return drawnBox(cornerPoint(box, corner), pointer, canvas)
+ }
+ 
+ export function sameBox(a: Box, b: Box): boolean {
