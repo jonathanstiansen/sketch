@@ -2,6 +2,7 @@ defmodule Sketch.Canvas.Element do
   @moduledoc """
   A shape on a board (ADR 0003): its `kind`, bounding box, for point kinds such as lines its points
   relative to the box origin, and for text kinds its text. `version` is the server-ordered tag of the shape (ADR 0001).
+  `erase` hard-deletes it and publishes `%{id, board_id}`, a tombstone every client applies over any version.
   """
   use Ash.Resource,
     otp_app: :sketch,
@@ -96,6 +97,8 @@ defmodule Sketch.Canvas.Element do
       change atomic_update(:version, expr(version + 1))
     end
 
+    destroy :erase
+
     read :list_for_board do
       argument :board_id, :uuid, allow_nil?: false
       filter expr(board_id == ^arg(:board_id))
@@ -110,6 +113,7 @@ defmodule Sketch.Canvas.Element do
     publish :create, [:board_id], transform: &__MODULE__.event_payload/1
     publish :commit_position, [:board_id], transform: &__MODULE__.event_payload/1
     publish :commit_shape, [:board_id], transform: &__MODULE__.event_payload/1
+    publish :erase, [:board_id], transform: &__MODULE__.erase_payload/1
   end
 
   validations do
@@ -181,6 +185,8 @@ defmodule Sketch.Canvas.Element do
   end
 
   def event_payload(%{data: element}), do: to_event(element)
+
+  def erase_payload(%{data: element}), do: Map.take(element, [:id, :board_id])
 
   def to_event(element) do
     element

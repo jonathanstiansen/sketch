@@ -5,6 +5,7 @@ import {
   cornerPoint,
   drawnBox,
   endpointPoint,
+  eraserHits,
   isBlankText,
   isDrag,
   movedBox,
@@ -38,6 +39,7 @@ import {
 import { TextEditor } from "./text_editor"
 import {
   DEFAULT_TOOL,
+  deletesSelection,
   drawnKind,
   isPointKind,
   isPreviewKind,
@@ -57,6 +59,7 @@ import {
 const STALE_PREVIEW_MS = 2000
 const TEXT_KEEPALIVE_MS = 1000
 const DRAGGING = "data-dragging"
+const ERASING = "data-erasing"
 const TEXT_EDITING = "data-text-editing"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
 const SEGMENT_ATTRIBUTES = ["x1", "y1", "x2", "y2"]
@@ -98,6 +101,12 @@ interface Draw extends Throttled {
 }
 
 type Gesture = Edit | Draw
+
+interface Erase {
+  pointerId: number
+  last: Point
+  pending: Set<string>
+}
 
 interface DrawPreview extends Box {
   kind: PreviewKind
@@ -266,6 +275,7 @@ function subtract(a: Point, b: Point): Point {
 }
 
 export function keepDraggedPosition(fromEl: Element, toEl: Element): void {
+  if (fromEl.hasAttribute(ERASING)) toEl.setAttribute(ERASING, "")
   if (fromEl.hasAttribute(DRAGGING)) {
     toEl.setAttribute(DRAGGING, "")
   } else if (fromEl.parentElement?.closest(`[${DRAGGING}]`) == null) {
@@ -295,6 +305,7 @@ function editedShape(edit: Edit, pointer: Point, canvas: Size): Shape {
 
 export class Canvas extends ViewHook {
   private gesture: Gesture | undefined
+  private erase: Erase | undefined
   private textSession: TextSession | undefined
   private textEditor: TextEditor | undefined
   private remotePreviews = new RemotePreviews()
@@ -345,6 +356,9 @@ export class Canvas extends ViewHook {
     this.handleEvent("draw_end", (payload: unknown) => {
       if (isRecord(payload) && typeof payload.drag_id === "string") this.endRemoteDraw(payload.drag_id)
     })
+    this.handleEvent("erased", (payload: unknown) => {
+      if (isRecord(payload) && typeof payload.id === "string") this.onErased(payload.id)
+    })
     this.handleEvent("revert", (payload: unknown) => {
       if (isRecord(payload) && typeof payload.element_id === "string") {
         this.revert(payload.element_id)
@@ -355,6 +369,7 @@ export class Canvas extends ViewHook {
   override disconnected(): void {
     this.online = false
     if (this.gesture !== undefined) this.abandonGesture(this.gesture)
+    this.cancelErase()
     this.textEditor?.commit()
   }
 
@@ -380,7 +395,7 @@ export class Canvas extends ViewHook {
       }
       return
     }
-    if (this.gesture !== undefined || this.pan !== undefined) return
+    if (this.gesture !== undefined || this.erase !== undefined || this.pan !== undefined) return
     const target = event.target instanceof Element ? event.target : null
     const rect = target?.closest<SVGElement>("[data-element]") ?? null
     const handle = target?.closest<SVGRectElement>("rect[data-handle]")?.dataset.handle
@@ -395,6 +410,7 @@ export class Canvas extends ViewHook {
     const kind = drawnKind(this.tool)
     if (action === "draw" && kind !== undefined) this.startDraw(event, kind)
     if (action === "text") this.openText(event, rect)
+    if (action === "erase") this.startErase(event)
     if (action === "deselect") this.select(undefined)
     if (action === "move" && rect !== null) this.startEdit(event, rect, { mode: "move" })
     if (action === "resize" && isCorner(handle)) this.editSelected(event, { mode: "resize", corner: handle })
@@ -453,10 +469,67 @@ export class Canvas extends ViewHook {
     }
   }
 
+  private startErase(event: PointerEvent): void {
+    if (!this.online) return
+    event.preventDefault()
+    this.el.setPointerCapture(event.pointerId)
+    const start = this.canvasPoint(event)
+    this.erase = { pointerId: event.pointerId, last: start, pending: new Set() }
+    this.eraseAlong(this.erase, [start])
+  }
+
+  private eraseAlong(erase: Erase, path: Point[]): void {
+    const elements = [...this.el.querySelectorAll<SVGElement>("#elements [data-element]")].flatMap((shape) => {
+      const id = shape.dataset.element
+      return id === undefined || erase.pending.has(id) ? [] : [{ id, box: renderedBox(shape) }]
+    })
+    for (const id of eraserHits(elements, path)) {
+      erase.pending.add(id)
+      this.elementFor(id)?.setAttribute(ERASING, "")
+    }
+    erase.last = path[path.length - 1] ?? erase.last
+  }
+
+  private finishErase(erase: Erase): void {
+    this.endErase(erase)
+    if (erase.pending.size === 0) return
+    const elementIds = [...erase.pending]
+    void this.pushEvent("erase", { element_ids: elementIds }).finally(() => {
+      this.unfade(elementIds)
+    })
+  }
+
+  private cancelErase(): void {
+    const erase = this.erase
+    if (erase === undefined) return
+    this.endErase(erase)
+    this.unfade(erase.pending)
+  }
+
+  private endErase(erase: Erase): void {
+    this.erase = undefined
+    if (this.el.hasPointerCapture(erase.pointerId)) this.el.releasePointerCapture(erase.pointerId)
+  }
+
+  private unfade(elementIds: Iterable<string>): void {
+    for (const id of elementIds) this.elementFor(id)?.removeAttribute(ERASING)
+  }
+
+  private onErased(elementId: string): void {
+    this.remotePreviews.erase(elementId)
+    this.clearStaleTimer(elementId)
+    this.erase?.pending.delete(elementId)
+    if (this.gesture !== undefined && this.editedElementId() === elementId) this.endGesture(this.gesture)
+  }
+
   private onPointerMove = (event: PointerEvent): void => {
     if (this.pan?.pointerId === event.pointerId) {
       const scroll = panScroll(this.pan.startScroll, this.pan.startPointer, clientPoint(event))
       this.el.scrollTo(scroll.x, scroll.y)
+      return
+    }
+    if (this.erase?.pointerId === event.pointerId) {
+      this.eraseAlong(this.erase, [this.erase.last, this.canvasPoint(event)])
       return
     }
     const gesture = this.gesture
@@ -499,6 +572,7 @@ export class Canvas extends ViewHook {
 
   private onPointerUp = (event: PointerEvent): void => {
     if (this.pan?.pointerId === event.pointerId) this.endPan()
+    if (this.erase?.pointerId === event.pointerId) this.finishErase(this.erase)
     const gesture = this.gesture
     if (gesture?.pointerId !== event.pointerId) return
     this.endGesture(gesture)
@@ -538,6 +612,7 @@ export class Canvas extends ViewHook {
   private onPointerCancel = (event: PointerEvent): void => {
     if (this.pan?.pointerId === event.pointerId) this.endPan()
     if (this.gesture !== undefined) this.cancelGesture(this.gesture)
+    this.cancelErase()
   }
 
   private cancelGesture(gesture: Gesture): void {
@@ -557,6 +632,7 @@ export class Canvas extends ViewHook {
       return
     }
     if (togglesHelp(input)) this.toggleHelp()
+    if (deletesSelection(input)) this.eraseSelected(event)
     if (input.key === "Escape") this.escape()
     this.useTool(nextTool(this.tool, input))
   }
@@ -564,7 +640,16 @@ export class Canvas extends ViewHook {
   private escape(): void {
     this.hideHelp()
     if (this.gesture !== undefined) this.cancelGesture(this.gesture)
+    this.cancelErase()
     this.select(undefined)
+  }
+
+  private eraseSelected(event: KeyboardEvent): void {
+    const elementId = this.selectedId
+    if (elementId === undefined || this.gesture !== undefined || this.textEditor !== undefined || !this.online) return
+    event.preventDefault()
+    this.select(undefined)
+    void this.pushEvent("erase", { element_ids: [elementId] })
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {

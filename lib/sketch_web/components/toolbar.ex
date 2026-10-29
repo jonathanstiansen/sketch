@@ -16,7 +16,7 @@ defmodule SketchWeb.Toolbar do
     %{id: "draw", label: "Draw", keys: ["P", "7"], enabled: true},
     %{id: "text", label: "Text", keys: ["T", "8"], enabled: true},
     %{id: "note", label: "Note", keys: ["N", "9"], enabled: true},
-    %{id: "eraser", label: "Eraser", keys: ["E", "0"], enabled: false}
+    %{id: "eraser", label: "Eraser", keys: ["E", "0"], enabled: true}
   ]
 
   @icons %{
@@ -148,6 +148,11 @@ defmodule SketchWeb.Toolbar do
             <.key :for={key <- tool.keys}>{key}</.key>
           </dd>
         <% end %>
+        <dt>Delete selected</dt>
+        <dd id="shortcut-delete" class="flex gap-1">
+          <.key>Delete</.key>
+          <.key>Backspace</.key>
+        </dd>
         <dt>Move canvas</dt>
         <dd class="flex items-center gap-1"><.key>Space</.key>+ drag</dd>
         <dt>Back to Selection</dt>

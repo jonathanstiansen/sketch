@@ -1,0 +1,15 @@
+diff --git a/lib/sketch/canvas/board_state.ex b/lib/sketch/canvas/board_state.ex
+index 01796dc..21aafc3 100644
+--- a/lib/sketch/canvas/board_state.ex
++++ b/lib/sketch/canvas/board_state.ex
+@@ -33,7 +33,9 @@ defmodule Sketch.Canvas.BoardState do
+   @spec apply_event(t(), event()) ::
+           {:changed, t(), element_event()} | {:erased, t(), erase_event()} | {:unchanged, t()}
+   def apply_event(%__MODULE__{} = state, %{id: id} = event) do
+-    if erased?(state, id), do: {:unchanged, state}, else: merge(state, event)
++    if erased?(state, id) and not Map.has_key?(event, :version),
++      do: {:unchanged, state},
++      else: merge(state, event)
+   end
+ 
+   @spec erased?(t(), term()) :: boolean()

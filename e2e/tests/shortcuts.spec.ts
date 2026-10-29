@@ -227,6 +227,7 @@ test("every toolbar shortcut and button selects its tool; disabled tools stay un
     "draw",
     "text",
     "note",
+    "eraser",
   ])
   expect(buttons.find(({ tool }) => tool === "diamond")?.keys).toEqual(["D", "3"])
   expect(buttons.find(({ tool }) => tool === "ellipse")?.keys).toEqual(["O", "4"])
@@ -235,6 +236,7 @@ test("every toolbar shortcut and button selects its tool; disabled tools stay un
   expect(buttons.find(({ tool }) => tool === "draw")?.keys).toEqual(["P", "7"])
   expect(buttons.find(({ tool }) => tool === "text")?.keys).toEqual(["T", "8"])
   expect(buttons.find(({ tool }) => tool === "note")?.keys).toEqual(["N", "9"])
+  expect(buttons.find(({ tool }) => tool === "eraser")?.keys).toEqual(["E", "0"])
 
   for (const { tool, keys, enabled } of buttons) {
     for (const key of keys) {
@@ -300,6 +302,7 @@ test("? toggles the shortcuts help and Esc closes it", async ({ page }) => {
   await page.keyboard.press("?")
   await expect(help).toBeVisible()
   await expect(helpButton).toHaveAttribute("aria-expanded", "true")
+  await expect(page.locator("#shortcut-delete kbd")).toHaveText(["Delete", "Backspace"])
   await page.keyboard.press("?")
   await expect(help).toBeHidden()
   await expect(helpButton).toHaveAttribute("aria-expanded", "false")

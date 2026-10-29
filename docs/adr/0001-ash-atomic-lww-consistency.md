@@ -40,3 +40,15 @@ state-based CRDT whose merge is "highest version wins", with the server as the
 single ordering authority. Concurrent drags can visually disagree until the
 next commit, as the spec permits. Revisit if offline editing, multi-node
 deployment or richer shared structures (text, groups) are added.
+
+Deleting (added with the Eraser, ADR 0003) extends the register with a
+tombstone. `erase` is an Ash destroy; its notification, published after the
+transaction commits, carries only `{id, board_id}`. A client records the
+erased id, removes the element and ignores every later or earlier-arriving
+create or commit for it, so the merge stays order-independent, idempotent and
+convergent: the state is the highest version per element that was never
+erased. A commit for an erased element cannot succeed, because the row is gone
+and the update finds nothing. The cost is that a client's set of erased ids
+grows for the life of its LiveView; a reload rebuilds the state from the
+database and starts the set empty. Undo would need soft deletes instead of a
+hard delete and is still excluded.
