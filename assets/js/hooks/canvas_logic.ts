@@ -1,6 +1,7 @@
 export const PREVIEW_INTERVAL_MS = 50
 export const MIN_SIZE = 1
 export const DRAG_THRESHOLD = 3
+export const STROKE_MIN_DISTANCE = 4
 
 export interface Point {
   x: number
@@ -138,6 +139,41 @@ export function movedEndpoint(shape: Shape, endpoint: Endpoint, pointer: Point, 
     absolutePoints(shape).map((point, index) => (index === moved ? pointer : point)),
     canvas,
   )
+}
+
+function distance(a: Point, b: Point): number {
+  return Math.hypot(a.x - b.x, a.y - b.y)
+}
+
+function thinBy(points: readonly Point[], minDistance: number): Point[] {
+  const [first, ...rest] = points
+  if (first === undefined) return []
+  const last = rest.pop()
+  const kept = [first]
+  for (const point of rest) {
+    const previous = kept[kept.length - 1]
+    if (previous !== undefined && distance(previous, point) >= minDistance) kept.push(point)
+  }
+  return last === undefined ? kept : [...kept, last]
+}
+
+export function thinStroke(points: readonly Point[], minDistance: number, max: number): Point[] {
+  let spacing = minDistance
+  let thinned = thinBy(points, spacing)
+  while (thinned.length > Math.max(max, 2)) {
+    spacing *= 2
+    thinned = thinBy(points, spacing)
+  }
+  return thinned
+}
+
+export function scalePoints(points: readonly Point[], from: Size, to: Size): Point[] {
+  const scale = (value: number, fromLength: number, toLength: number): number =>
+    fromLength === 0 ? 0 : Math.round((value * toLength) / fromLength)
+  return points.map(({ x, y }) => ({
+    x: scale(x, from.width, to.width),
+    y: scale(y, from.height, to.height),
+  }))
 }
 
 export function previewDelay(

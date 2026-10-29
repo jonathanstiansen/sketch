@@ -129,6 +129,12 @@
   pointer-events: none;
 }
 
+polyline.draw-preview {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .selection-outline {
   fill: none;
   stroke: var(--color-secondary);

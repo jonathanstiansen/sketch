@@ -28,7 +28,7 @@ export const TOOLS: readonly Tool[] = [
   { id: "ellipse", letter: "o", digit: "4", enabled: true },
   { id: "arrow", letter: "a", digit: "5", enabled: true },
   { id: "line", letter: "l", digit: "6", enabled: true },
-  { id: "draw", letter: "p", digit: "7", enabled: false },
+  { id: "draw", letter: "p", digit: "7", enabled: true },
   { id: "text", letter: "t", digit: "8", enabled: false },
   { id: "note", letter: "n", digit: "9", enabled: false },
   { id: "eraser", letter: "e", digit: "0", enabled: false },
@@ -36,15 +36,24 @@ export const TOOLS: readonly Tool[] = [
 
 export const DEFAULT_TOOL: ToolId = "selection"
 
-export type DrawnKind = "rectangle" | "diamond" | "ellipse" | "arrow" | "line"
+export type DrawnKind = "rectangle" | "diamond" | "ellipse" | "arrow" | "freedraw" | "line"
 
-export const DRAWN_KINDS: readonly DrawnKind[] = ["rectangle", "diamond", "ellipse", "arrow", "line"]
+export const DRAWN_KINDS: readonly DrawnKind[] = ["rectangle", "diamond", "ellipse", "arrow", "freedraw", "line"]
+
+export function isDrawnKind(value: string): value is DrawnKind {
+  return DRAWN_KINDS.some((kind) => kind === value)
+}
 
 export function drawnKind(tool: string): DrawnKind | undefined {
-  return DRAWN_KINDS.find((kind) => kind === tool)
+  if (tool === "draw") return "freedraw"
+  return DRAWN_KINDS.find((kind) => kind === tool && kind !== "freedraw")
 }
 
 export function isPointKind(kind: DrawnKind): boolean {
+  return kind === "line" || kind === "arrow" || kind === "freedraw"
+}
+
+export function hasEndpointHandles(kind: string | undefined): boolean {
   return kind === "line" || kind === "arrow"
 }
 

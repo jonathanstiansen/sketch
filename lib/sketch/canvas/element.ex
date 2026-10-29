@@ -14,7 +14,7 @@ defmodule Sketch.Canvas.Element do
 
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
-  @kinds [:rectangle, :diamond, :ellipse, :arrow, :line]
+  @kinds [:rectangle, :diamond, :ellipse, :arrow, :freedraw, :line]
   @point_kinds Geometry.point_kinds()
   @box_kinds @kinds -- @point_kinds
   @box_min_size Geometry.min_size(:rectangle)

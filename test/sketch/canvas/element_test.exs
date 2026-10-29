@@ -197,6 +197,24 @@ defmodule Sketch.Canvas.ElementTest do
       assert {:error, _} = Canvas.create_element(%{attrs | points: [%{x: 0, y: 0}]})
     end
 
+    test "a freehand stroke has 2 to 500 points inside its box", %{board: board} do
+      stroke = fn count, attrs ->
+        points = for index <- 0..(count - 1), do: %{x: rem(index, 101), y: 0}
+        line(%{board_id: board.id, kind: :freedraw, points: points}) |> Map.merge(attrs)
+      end
+
+      for count <- [2, 3, 500] do
+        assert {:ok, %{kind: :freedraw, points: points}} =
+                 Canvas.create_element(stroke.(count, %{}))
+
+        assert length(points) == count
+      end
+
+      for attrs <- [stroke.(1, %{}), stroke.(501, %{}), stroke.(2, %{width: 0})] do
+        assert {:error, _} = Canvas.create_element(attrs)
+      end
+    end
+
     test "Ash rejects a wrong number of points, points outside the box and boxes of size 0", %{
       board: board
     } do

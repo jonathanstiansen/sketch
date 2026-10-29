@@ -11,7 +11,8 @@ defmodule Sketch.Canvas.Geometry do
   @default_width 120
   @default_height 80
   @min_size 1
-  @point_counts %{arrow: 2..2//1, line: 2..2//1}
+  @max_freedraw_points 500
+  @point_counts %{arrow: 2..2//1, freedraw: 2..@max_freedraw_points//1, line: 2..2//1}
   @max_points @point_counts |> Map.values() |> Enum.map(& &1.last) |> Enum.max()
   @cascade_start 100
   @cascade_step 150

@@ -11,7 +11,10 @@ import {
   previewDelay,
   resizedBox,
   sameShape,
+  scalePoints,
   shapeAround,
+  thinStroke,
+  STROKE_MIN_DISTANCE,
   type Box,
   type Corner,
   type DragRef,
@@ -25,6 +28,8 @@ import { DrawLayer, SelectionOverlay, isCorner, isEndpoint, setShape } from "./s
 import {
   DEFAULT_TOOL,
   drawnKind,
+  hasEndpointHandles,
+  isDrawnKind,
   isPointKind,
   isPanKey,
   nextTool,
@@ -70,6 +75,7 @@ interface Draw extends Throttled {
   start: Point
   dragged: boolean
   shape: Shape
+  path: Point[]
 }
 
 type Gesture = Edit | Draw
@@ -139,7 +145,7 @@ function isDrawPreview(value: unknown): value is DrawPreview {
   return (
     isRecord(value) &&
     typeof value.kind === "string" &&
-    drawnKind(value.kind) !== undefined &&
+    isDrawnKind(value.kind) &&
     typeof value.drag_id === "string" &&
     Number.isInteger(value.seq) &&
     isBox(value) &&
@@ -166,11 +172,15 @@ function renderedBox(rect: Element): Box {
 
 function renderedPoints(shape: Element, box: Box): Point[] {
   const segment = shape.querySelector("line[data-line-stroke]")
-  if (segment === null) return []
-  return [
-    { x: integerAttribute(segment, "x1") - box.x, y: integerAttribute(segment, "y1") - box.y },
-    { x: integerAttribute(segment, "x2") - box.x, y: integerAttribute(segment, "y2") - box.y },
-  ]
+  if (segment !== null) {
+    return [
+      { x: integerAttribute(segment, "x1") - box.x, y: integerAttribute(segment, "y1") - box.y },
+      { x: integerAttribute(segment, "x2") - box.x, y: integerAttribute(segment, "y2") - box.y },
+    ]
+  }
+  const stroke = shape.querySelector("polyline[data-freedraw-stroke]")
+  if (stroke === null) return []
+  return pairs(stroke.getAttribute("points") ?? "").map((at) => subtract(at, box))
 }
 
 function renderedShape(shape: Element): Shape {
@@ -186,9 +196,12 @@ function integerPair(pair: string): Point {
   return { x, y }
 }
 
-function committedPoints(shape: Element): Point[] {
-  const points = shape.getAttribute("data-points") ?? ""
+function pairs(points: string): Point[] {
   return points === "" ? [] : points.split(" ").map(integerPair)
+}
+
+function committedPoints(shape: Element): Point[] {
+  return pairs(shape.getAttribute("data-points") ?? "")
 }
 
 function committedShape(shape: Element): Shape {
@@ -232,7 +245,10 @@ function gripPoint({ box, points }: Shape, grip: Grip): Point {
 
 function editedShape(edit: Edit, pointer: Point, canvas: Size): Shape {
   const { box, points } = edit.origin
-  if (edit.mode === "resize") return { box: resizedBox(box, edit.corner, subtract(pointer, edit.grab), canvas), points }
+  if (edit.mode === "resize") {
+    const resized = resizedBox(box, edit.corner, subtract(pointer, edit.grab), canvas)
+    return { box: resized, points: scalePoints(points, box, resized) }
+  }
   if (edit.mode === "endpoint") return movedEndpoint(edit.origin, edit.endpoint, subtract(pointer, edit.grab), canvas)
   return { box: movedBox(box, pointer, edit.grab, canvas), points }
 }
@@ -373,6 +389,7 @@ export class Canvas extends ViewHook {
       start,
       dragged: false,
       shape: this.drawnShape(kind, start, start),
+      path: [start],
       dragId: crypto.randomUUID(),
       pointerId: event.pointerId,
       seq: 0,
@@ -406,7 +423,12 @@ export class Canvas extends ViewHook {
   private updateDraw(draw: Draw, pointer: Point): void {
     draw.dragged ||= isDrag(draw.start, pointer)
     if (!draw.dragged) return
-    draw.shape = this.drawnShape(draw.kind, draw.start, pointer)
+    if (draw.kind === "freedraw") {
+      draw.path = thinStroke([...draw.path, pointer], STROKE_MIN_DISTANCE, this.maxPoints())
+      draw.shape = shapeAround(draw.path, this.canvasSize())
+    } else {
+      draw.shape = this.drawnShape(draw.kind, draw.start, pointer)
+    }
     showShape(this.draws.shape(draw.dragId, draw.kind), draw.shape)
     this.schedulePreview(draw)
   }
@@ -557,7 +579,7 @@ export class Canvas extends ViewHook {
       this.selection.hide()
     } else {
       const { box, points } = renderedShape(rect)
-      this.selection.show(box, points)
+      this.selection.show(box, points, hasEndpointHandles(rect.dataset.kind))
     }
   }
 
@@ -683,6 +705,10 @@ export class Canvas extends ViewHook {
       width: integerAttribute(this.el, "data-canvas-width"),
       height: integerAttribute(this.el, "data-canvas-height"),
     }
+  }
+
+  private maxPoints(): number {
+    return integerAttribute(this.el, "data-max-points")
   }
 
   private defaultSize(): Size {

@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas_logic.ts b/assets/js/hooks/canvas_logic.ts
+index ef2f17b..71ea6f1 100644
+--- a/assets/js/hooks/canvas_logic.ts
++++ b/assets/js/hooks/canvas_logic.ts
+@@ -154,7 +154,7 @@ function thinBy(points: readonly Point[], minDistance: number): Point[] {
+     const previous = kept[kept.length - 1]
+     if (previous !== undefined && distance(previous, point) >= minDistance) kept.push(point)
+   }
+-  return last === undefined ? kept : [...kept, last]
++  return kept
+ }
+ 
+ export function thinStroke(points: readonly Point[], minDistance: number, max: number): Point[] {
