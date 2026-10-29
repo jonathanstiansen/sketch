@@ -246,7 +246,7 @@ defmodule SketchWeb.BoardLiveTest do
     for {event, x, version} <- [{"commit_position", 70, 1}, {"create", 5, 0}] do
       send(view.pid, %Phoenix.Socket.Broadcast{
         event: event,
-        payload: rectangle(%{id: id, board_id: board.id, x: x, y: x, version: version})
+        payload: rectangle_event(%{id: id, board_id: board.id, x: x, y: x, version: version})
       })
     end
 

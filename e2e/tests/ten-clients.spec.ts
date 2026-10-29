@@ -4,7 +4,7 @@ import { connected, createBoard, grabRectangle, openBoard, rectangleStates } fro
 const clientCount = 10
 const viewport = { width: 1000, height: 700 }
 const screenshotDir = process.env.E2E_SCREENSHOT_DIR
-const rectangles = "rect[data-element]"
+const rectangles = "[data-element][data-kind='rectangle']"
 
 test("ten concurrent browsers share creates and simultaneous drags", async ({ browser }) => {
   const contexts: BrowserContext[] = []

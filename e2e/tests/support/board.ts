@@ -34,7 +34,7 @@ export async function grabRectangle(page: Page, rectangle: Locator): Promise<{ x
 }
 
 export async function rectangleStates(page: Page): Promise<RectangleState[]> {
-  return page.locator("rect[data-element]").evaluateAll((rects) =>
+  return page.locator("[data-element][data-kind='rectangle']").evaluateAll((rects) =>
     rects
       .map((rect) => ({
         id: rect.getAttribute("data-element"),

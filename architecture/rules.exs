@@ -185,10 +185,12 @@
       rule: "Kind-specific branching lives only in kind modules, element renderers and generated files",
       status: :enforced,
       enforcement:
-        "lib and assets/js may not compare kind with a literal element kind (kind == :x or kind === \"x\", in either order or negated), use kind in [, match kind: :x, select data-kind=\"x\" or compare dataset.kind outside kind_branching_paths. legacy_kind_files lists the old code paths of kinds still in Sketch.Canvas.Kinds.Legacy; every entry must still match and the list must be empty exactly when Legacy has no kinds (ADR 0004). SketchWeb.Tools fails to compile if a tool creates an unknown kind, and mix sketch.gen.manifest --check fails in mix ci and CI if the client manifest is stale",
+        "lib and assets/js may not compare kind with a literal element kind (kind == :x or kind === \"x\", in either order or negated), use kind in [, match kind: :x, select data-kind=\"x\" or compare dataset.kind outside kind_branching_paths. legacy_kind_files lists the old code paths of kinds still in Sketch.Canvas.Kinds.Legacy; every entry must still match and the list must be empty exactly when Legacy has no kinds (ADR 0004). SketchWeb.Tools fails to compile if a tool creates an unknown kind, and mix sketch.gen.manifest --check fails in mix ci and CI if the client manifest is stale. SketchWeb.Elements fails to compile unless its renderers cover exactly the kinds outside Legacy; the client RENDERERS table satisfies Record<MigratedKind, Renderer> from the manifest, so tsc fails if either side lacks a renderer; mix sketch.gen.render_fixtures --check fails in mix ci and CI if the parity fixture is stale, and assets/test/render_parity.test.ts fails if a client renderer draws a different node tree",
       verified_by: [
         "test/architecture/source_policy_test.exs",
-        "test/sketch/canvas/kind_contract_test.exs"
+        "test/sketch/canvas/kind_contract_test.exs",
+        "test/sketch_web/elements_test.exs",
+        "assets/test/render_parity.test.ts"
       ]
     }
   ],

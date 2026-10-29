@@ -146,7 +146,8 @@ defmodule SketchWeb.BoardLiveDragTest do
       %Phoenix.Socket.Broadcast{
         topic: "board:#{board.id}",
         event: "commit_position",
-        payload: rectangle(%{id: rectangle.id, board_id: board.id, x: x, y: 50, version: version})
+        payload:
+          rectangle_event(%{id: rectangle.id, board_id: board.id, x: x, y: 50, version: version})
       }
     end
 

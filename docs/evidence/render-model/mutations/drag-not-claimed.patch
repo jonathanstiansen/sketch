@@ -1,0 +1,12 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index bb13222..ed11294 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -281,7 +281,6 @@ export function keepGestureMarkers(fromEl: Element, toEl: Element): void {
+ // version) and leaves its other attributes and children to the gesture, whatever the kind.
+ function claimElement(element: Element): void {
+   element.setAttribute(DRAGGING, "")
+-  element.setAttribute(PHX_UPDATE, "ignore")
+ }
+ 
+ function releaseElement(element: Element): void {

@@ -1,0 +1,57 @@
+import type { Box, Point } from "../hooks/canvas_logic.ts"
+import { attributeString, type Renderer, type SvgNode } from "./renderer.ts"
+
+const SVG_NS = "http://www.w3.org/2000/svg"
+const LIVEVIEW_ATTRIBUTE_PREFIX = "data-phx-"
+
+function setAttributes(element: Element, attrs: SvgNode["attrs"]): void {
+  for (const [name, value] of Object.entries(attrs)) {
+    const rendered = attributeString(value)
+    if (element.getAttribute(name) !== rendered) element.setAttribute(name, rendered)
+  }
+}
+
+function syncAttributes(element: Element, attrs: SvgNode["attrs"]): void {
+  for (const name of element.getAttributeNames()) {
+    if (!(name in attrs) && !name.startsWith(LIVEVIEW_ATTRIBUTE_PREFIX)) element.removeAttribute(name)
+  }
+  setAttributes(element, attrs)
+}
+
+function syncNode(element: Element, node: SvgNode): void {
+  syncAttributes(element, node.attrs)
+  if (node.text === undefined) {
+    renderNodes(element, node.children ?? [])
+  } else if (element.textContent !== node.text) {
+    element.textContent = node.text
+  }
+}
+
+function createNode(node: SvgNode): Element {
+  const element = document.createElementNS(SVG_NS, node.tag)
+  syncNode(element, node)
+  return element
+}
+
+export function renderNodes(parent: Element, nodes: readonly SvgNode[]): void {
+  nodes.forEach((node, index) => {
+    const existing = parent.children.item(index)
+    if (existing === null) {
+      parent.append(createNode(node))
+    } else if (existing.localName === node.tag) {
+      syncNode(existing, node)
+    } else {
+      existing.replaceWith(createNode(node))
+    }
+  })
+  for (const extra of [...parent.children].slice(nodes.length)) extra.remove()
+}
+
+export function placeElement(wrapper: Element, { x, y, width, height }: Box): void {
+  setAttributes(wrapper, { x, y, width, height, transform: `translate(${String(x)} ${String(y)})` })
+}
+
+export function renderElement(wrapper: Element, renderer: Renderer, box: Box, points: readonly Point[], text: string): void {
+  placeElement(wrapper, box)
+  renderNodes(wrapper, renderer({ width: box.width, height: box.height, points, text }))
+}

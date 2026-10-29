@@ -11,6 +11,9 @@ import {
   type Point,
 } from "./canvas_logic"
 import type { PreviewKind, SelectionHandles } from "./tools"
+import { isMigratedKind, rendererFor } from "../elements"
+import { renderElement } from "../elements/dom"
+import type { MigratedKind } from "../generated/manifest"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
@@ -64,6 +67,11 @@ export function setBox(shape: Element, box: Box): void {
 }
 
 export function setShape(shape: Element, box: Box, points: readonly Point[], layout: TextLayout): void {
+  const renderer = rendererFor(shape.getAttribute("data-kind"))
+  if (renderer !== undefined) {
+    renderElement(shape, renderer, box, points, shape.getAttribute("data-text") ?? "")
+    return
+  }
   setBox(shape, box)
   const absolute = absolutePoints({ box, points })
   setSegments(shape, absolute)
@@ -152,7 +160,6 @@ function setEllipse(shape: Element, { x, y, width, height }: Box): void {
 }
 
 const PREVIEW_TAGS = {
-  rectangle: "rect",
   diamond: "polygon",
   ellipse: "ellipse",
   arrow: "line",
@@ -239,13 +246,17 @@ function noteGroup(id: string): SVGGElement {
   return group
 }
 
+function localPreview(id: string, kind: MigratedKind): SVGGElement {
+  return svgShape("g", { "data-draw": id, "data-kind": kind, class: "local-preview" })
+}
+
 export class DrawLayer {
   constructor(private readonly layer: Element) {}
 
   shape(id: string, kind: PreviewKind): SVGElement {
     const existing = this.find(id)
     if (existing !== null) return existing
-    const shape = kind === "note" ? noteGroup(id) : this.previewShape(id, kind)
+    const shape = this.newShape(id, kind)
     if (kind === "arrow") shape.setAttribute("marker-end", "url(#arrowhead)")
     this.layer.append(shape)
     return shape
@@ -259,7 +270,12 @@ export class DrawLayer {
     this.find(id)?.setAttribute("data-text-editing", "")
   }
 
-  private previewShape(id: string, kind: Exclude<PreviewKind, "note">): SVGElement {
+  private newShape(id: string, kind: PreviewKind): SVGElement {
+    if (isMigratedKind(kind)) return localPreview(id, kind)
+    return kind === "note" ? noteGroup(id) : this.previewShape(id, kind)
+  }
+
+  private previewShape(id: string, kind: Exclude<PreviewKind, "note" | MigratedKind>): SVGElement {
     return svgShape(PREVIEW_TAGS[kind], {
       "data-draw": id,
       class: kind === "text" ? "draw-preview text-element" : "draw-preview",

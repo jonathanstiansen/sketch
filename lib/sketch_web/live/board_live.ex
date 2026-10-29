@@ -12,6 +12,7 @@ defmodule SketchWeb.BoardLive do
   @line_height Sketch.Canvas.geometry().line_height
   @text_baseline Sketch.Canvas.geometry().text_baseline
   @note_padding Sketch.Canvas.geometry().note_padding
+  @rendered_kinds Map.from_keys(SketchWeb.Elements.kinds(), true)
 
   defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
 
@@ -297,6 +298,9 @@ defmodule SketchWeb.BoardLive do
   attr :dom_id, :string, required: true
   attr :element, :map, required: true
 
+  defp element_shape(%{element: %{kind: kind}} = assigns) when is_map_key(@rendered_kinds, kind),
+    do: SketchWeb.Elements.element(assigns)
+
   defp element_shape(%{element: %{kind: :diamond}} = assigns) do
     ~H"""
     <polygon
@@ -504,27 +508,6 @@ defmodule SketchWeb.BoardLive do
         </text>
       </svg>
     </g>
-    """
-  end
-
-  defp element_shape(assigns) do
-    ~H"""
-    <rect
-      id={@dom_id}
-      x={@element.x}
-      y={@element.y}
-      width={@element.width}
-      height={@element.height}
-      data-element={@element.id}
-      data-kind={@element.kind}
-      data-x={@element.x}
-      data-y={@element.y}
-      data-width={@element.width}
-      data-height={@element.height}
-      data-version={@element.version}
-      stroke-width="2"
-      class="fill-primary stroke-base-content cursor-grab touch-none"
-    />
     """
   end
 

@@ -63,9 +63,8 @@ const DRAGGING = "data-dragging"
 const ERASING = "data-erasing"
 const TEXT_EDITING = "data-text-editing"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
-const SEGMENT_ATTRIBUTES = ["x1", "y1", "x2", "y2"]
-const BOX_ATTRIBUTES = ["x", "y", "width", "height", "points", "cx", "cy", "rx", "ry", "transform", ...SEGMENT_ATTRIBUTES]
-const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", "data-text", ...SEGMENT_ATTRIBUTES]
+const PHX_UPDATE = "phx-update"
+const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", "data-text", "x1", "y1", "x2", "y2"]
 const TEXT_KIND_SELECTOR = TEXT_KINDS.map((kind) => `[data-element][data-kind="${kind}"]`).join(", ")
 
 interface PreviewClock {
@@ -272,17 +271,22 @@ function subtract(a: Point, b: Point): Point {
   return { x: a.x - b.x, y: a.y - b.y }
 }
 
-export function keepDraggedPosition(fromEl: Element, toEl: Element): void {
-  if (fromEl.hasAttribute(ERASING)) toEl.setAttribute(ERASING, "")
-  if (fromEl.hasAttribute(DRAGGING)) {
-    toEl.setAttribute(DRAGGING, "")
-  } else if (fromEl.parentElement?.closest(`[${DRAGGING}]`) == null) {
-    return
+export function keepGestureMarkers(fromEl: Element, toEl: Element): void {
+  for (const marker of [ERASING, DRAGGING]) {
+    if (fromEl.hasAttribute(marker)) toEl.setAttribute(marker, "")
   }
-  for (const name of BOX_ATTRIBUTES) {
-    const value = fromEl.getAttribute(name)
-    if (value !== null) toEl.setAttribute(name, value)
-  }
+}
+
+// While ignored, LiveView patches only the element's data-* attributes (the committed box and
+// version) and leaves its other attributes and children to the gesture, whatever the kind.
+function claimElement(element: Element): void {
+  element.setAttribute(DRAGGING, "")
+  element.setAttribute(PHX_UPDATE, "ignore")
+}
+
+function releaseElement(element: Element): void {
+  element.removeAttribute(DRAGGING)
+  element.removeAttribute(PHX_UPDATE)
 }
 
 function gripPoint({ box, points }: Shape, grip: Grip): Point {
@@ -427,7 +431,7 @@ export class Canvas extends ViewHook {
     event.preventDefault()
     this.select(elementId)
     this.el.setPointerCapture(event.pointerId)
-    rect.setAttribute(DRAGGING, "")
+    claimElement(rect)
     this.clearRemoteDrag(elementId)
     const shape = renderedShape(rect)
     this.gesture = {
@@ -582,7 +586,10 @@ export class Canvas extends ViewHook {
   }
 
   private finishEdit(edit: Edit): void {
-    if (sameShape(edit.shape, edit.origin)) return
+    if (sameShape(edit.shape, edit.origin)) {
+      this.revert(edit.elementId)
+      return
+    }
     const ref = { element_id: edit.elementId, drag_id: edit.dragId }
     if (edit.mode === "move") {
       void this.pushEvent("commit", { ...ref, x: edit.shape.box.x, y: edit.shape.box.y })
@@ -741,7 +748,7 @@ export class Canvas extends ViewHook {
   private endGesture(gesture: Gesture): void {
     this.gesture = undefined
     window.clearTimeout(gesture.previewTimer)
-    if (gesture.mode !== "draw") gesture.rect.removeAttribute(DRAGGING)
+    if (gesture.mode !== "draw") releaseElement(gesture.rect)
     if (this.el.hasPointerCapture(gesture.pointerId)) this.el.releasePointerCapture(gesture.pointerId)
   }
 

@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/elements.ex b/lib/sketch_web/elements.ex
+index 129bd7f..9bbfeb7 100644
+--- a/lib/sketch_web/elements.ex
++++ b/lib/sketch_web/elements.ex
+@@ -11,7 +11,7 @@ defmodule SketchWeb.Elements do
+ 
+   alias SketchWeb.Elements.Rectangle
+ 
+-  @renderers [rectangle: Rectangle]
++  @renderers []
+ 
+   @kinds Keyword.keys(@renderers)
+   @expected Sketch.Canvas.element_kinds() -- Sketch.Canvas.legacy_kinds()

@@ -39,6 +39,10 @@ defmodule Sketch.Canvas do
   @spec kind_specs() :: [Sketch.Canvas.Kind.t()]
   defdelegate kind_specs, to: Kinds, as: :all
 
+  @doc "The kinds whose spec, and therefore rendering, has not moved off the legacy paths yet (ADR 0004)."
+  @spec legacy_kinds() :: [atom()]
+  defdelegate legacy_kinds, to: Kinds, as: :legacy_ids
+
   defdelegate geometry, to: Sketch.Canvas.Geometry, as: :dimensions
 
   defdelegate default_box(element_count), to: Sketch.Canvas.Geometry

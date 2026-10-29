@@ -55,7 +55,7 @@ the only path excluded from the A21 scan.
 | A19 | Accepted rules stay active until explicitly changed. The registry test requires A01-A22 exactly once with valid statuses and existing verification files. | Unverified (addendum D6) |
 | A20 | E2E tests contain no fixed sleeps (`waitForTimeout`, `setTimeout`, `sleep(`). | Enforced |
 | A21 | No suppression directives for ESLint, TypeScript, Credo or Dialyzer and no Dialyzer ignore file (addendum D5). | Enforced |
-| A22 | Kind-specific branching lives only in kind modules (`lib/sketch/canvas/kinds/`), element renderers (`lib/sketch_web/elements/`, `assets/js/elements/`) and generated files (`assets/js/generated/`) (ADR 0004). The scan of `lib` and `assets/js` rejects `kind == :x` and `kind === "x"` (either order, negated), `kind in [`, `kind: :x`, `data-kind="x"` and `dataset.kind` comparisons for any element kind. Files of kinds still in `Sketch.Canvas.Kinds.Legacy` are listed in `legacy_kind_files`; each entry must still match, and the list must be empty exactly when `Legacy` is. Element kinds are declared once in `Sketch.Canvas.Kinds`; `SketchWeb.Tools` fails to compile if a tool creates an unknown kind, and `mix sketch.gen.manifest --check` fails `mix ci` and CI if `assets/js/generated/manifest.ts` is stale. | Enforced |
+| A22 | Kind-specific branching lives only in kind modules (`lib/sketch/canvas/kinds/`), element renderers (`lib/sketch_web/elements/`, `assets/js/elements/`) and generated files (`assets/js/generated/`) (ADR 0004). The scan of `lib` and `assets/js` rejects `kind == :x` and `kind === "x"` (either order, negated), `kind in [`, `kind: :x`, `data-kind="x"` and `dataset.kind` comparisons for any element kind. Files of kinds still in `Sketch.Canvas.Kinds.Legacy` are listed in `legacy_kind_files`; each entry must still match, and the list must be empty exactly when `Legacy` is. Element kinds are declared once in `Sketch.Canvas.Kinds`; `SketchWeb.Tools` fails to compile if a tool creates an unknown kind, and `mix sketch.gen.manifest --check` fails `mix ci` and CI if `assets/js/generated/manifest.ts` is stale. Renderers are forced equal: `SketchWeb.Elements` fails to compile unless its renderers cover exactly the kinds outside `Legacy`, the client `RENDERERS` table `satisfies Record<MigratedKind, Renderer>` (generated from the server map, so `tsc` fails if either side lacks one), `mix sketch.gen.render_fixtures --check` fails `mix ci` and CI if `assets/test/fixtures/render_parity.json` is stale, and `assets/test/render_parity.test.ts` fails if a client renderer draws a different node tree from the server for any fixture shape. | Enforced |
 
 ## Known limits
 
@@ -65,6 +65,10 @@ the only path excluded from the A21 scan.
 - The `elements` CHECK constraints list point kinds in the order the existing migration was
   generated with (`line`, `arrow`, `freedraw`), not registry order. `Element` keeps that order so the
   SQL text, and therefore `ash.codegen --check`, does not change; a new point kind is appended.
+- Render parity is checked on a fixed set of shapes per kind (sizes 0, 1, 2, 119, 120, 3999 and
+  4000 in both directions, plus point sets and texts derived from the kind's spec). Two renderers
+  that agree on all of them but differ elsewhere are not caught. Odd and even sizes are both included,
+  so a renderer that halves a size is checked on whole and fractional results.
 
 - The BEAM checks see static calls and module references. A module name built at runtime (for
   example with `Module.concat/1` or `String.to_existing_atom/1`) would not be seen. Code review

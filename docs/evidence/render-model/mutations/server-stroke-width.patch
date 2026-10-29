@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/elements/rectangle.ex b/lib/sketch_web/elements/rectangle.ex
+index 601f0d8..749d821 100644
+--- a/lib/sketch_web/elements/rectangle.ex
++++ b/lib/sketch_web/elements/rectangle.ex
+@@ -12,7 +12,7 @@ defmodule SketchWeb.Elements.Rectangle do
+           {"y", 0},
+           {"width", width},
+           {"height", height},
+-          {"stroke-width", 2},
++          {"stroke-width", 3},
+           {"class", "fill-primary stroke-base-content"}
+         ]
+       }
