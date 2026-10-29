@@ -104,7 +104,7 @@
 
 /* This file is for your main application CSS */
 
-#canvas-viewport:is([data-tool="rectangle"], [data-tool="diamond"], [data-tool="ellipse"], [data-tool="line"]) {
+#canvas-viewport:is([data-tool="rectangle"], [data-tool="diamond"], [data-tool="ellipse"], [data-tool="arrow"], [data-tool="line"]) {
   cursor: crosshair;
 }
 

@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index eea6435..1175096 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -58,6 +58,8 @@ defmodule SketchWeb.BoardLive do
+       when is_kind(kind) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
+     case points(params) do
+       {:ok, points} ->
++        points = if kind == "arrow", do: Enum.reverse(points), else: points
++
+         shape =
+           kind
+           |> String.to_existing_atom()

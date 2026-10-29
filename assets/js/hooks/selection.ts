@@ -69,7 +69,7 @@ function setEllipse(shape: Element, { x, y, width, height }: Box): void {
   shape.setAttribute("ry", String(height / 2))
 }
 
-const PREVIEW_TAGS = { rectangle: "rect", diamond: "polygon", ellipse: "ellipse", line: "line" } as const
+const PREVIEW_TAGS = { rectangle: "rect", diamond: "polygon", ellipse: "ellipse", arrow: "line", line: "line" } as const
 
 export function isCorner(value: string | undefined): value is Corner {
   return CORNERS.some((corner) => corner === value)
@@ -149,6 +149,7 @@ export class DrawLayer {
       "data-draw": id,
       class: "draw-preview",
     })
+    if (kind === "arrow") shape.setAttribute("marker-end", "url(#arrowhead)")
     this.layer.append(shape)
     return shape
   }

@@ -188,6 +188,15 @@ defmodule Sketch.Canvas.ElementTest do
       assert {:ok, _} = Canvas.create_element(Map.put(vertical, :board_id, board.id))
     end
 
+    test "an arrow is stored like a line, with its points in drawing order", %{board: board} do
+      attrs = line(%{board_id: board.id, kind: :arrow, points: [%{x: 100, y: 0}, %{x: 0, y: 0}]})
+
+      assert {:ok, %{kind: :arrow, points: [%{x: 100, y: 0}, %{x: 0, y: 0}]}} =
+               Canvas.create_element(attrs)
+
+      assert {:error, _} = Canvas.create_element(%{attrs | points: [%{x: 0, y: 0}]})
+    end
+
     test "Ash rejects a wrong number of points, points outside the box and boxes of size 0", %{
       board: board
     } do

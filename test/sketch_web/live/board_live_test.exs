@@ -286,6 +286,28 @@ defmodule SketchWeb.BoardLiveTest do
       end
     end
 
+    test "a drawn arrow keeps its start and end and renders an arrowhead on the end", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 200, y: 220, width: 200, height: 80}
+      params = box |> line_params([{200, 80}, {0, 0}]) |> Map.put("kind", "arrow")
+
+      render_hook(view, "create_element", params)
+
+      assert [%{kind: :arrow, id: id} = arrow] = Canvas.list_elements_for_board!(board.id)
+      assert Enum.map(arrow.points, &{&1.x, &1.y}) == [{200, 80}, {0, 0}]
+
+      assert has_element?(
+               view,
+               "g#element-#{id}[data-kind='arrow'][data-points='200,80 0,0'] " <>
+                 "line[data-line-stroke][marker-end='url(#arrowhead)'][x1='400'][y1='300'][x2='200'][y2='220']"
+             )
+
+      assert has_element?(view, "#canvas defs marker#arrowhead")
+    end
+
     test "the server rebuilds a line's box around its points clamped into the canvas", %{
       conn: conn,
       board: board

@@ -240,6 +240,19 @@ defmodule SketchWeb.BoardLive do
             viewBox={"0 0 #{@geometry.canvas_width} #{@geometry.canvas_height}"}
             class="block select-none bg-base-100"
           >
+            <defs>
+              <marker
+                id="arrowhead"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path d="M0 0L10 5L0 10z" class="fill-base-content" />
+              </marker>
+            </defs>
             <g id="elements" phx-update="stream">
               <.element_shape
                 :for={{dom_id, element} <- @streams.elements}
@@ -306,7 +319,7 @@ defmodule SketchWeb.BoardLive do
     """
   end
 
-  defp element_shape(%{element: %{kind: :line}} = assigns) do
+  defp element_shape(%{element: %{kind: kind}} = assigns) when kind in [:line, :arrow] do
     ~H"""
     <g
       id={@dom_id}
@@ -330,6 +343,7 @@ defmodule SketchWeb.BoardLive do
         data-line-stroke
         stroke-width="2"
         pointer-events="none"
+        marker-end={if @element.kind == :arrow, do: "url(#arrowhead)"}
         class="stroke-base-content"
       />
     </g>
@@ -358,7 +372,7 @@ defmodule SketchWeb.BoardLive do
   end
 
   attr :element, :map, required: true
-  attr :rest, :global, include: ~w(stroke stroke-width pointer-events)
+  attr :rest, :global, include: ~w(stroke stroke-width pointer-events marker-end)
 
   defp line_segment(%{element: %{x: x, y: y, points: [start, finish]}} = assigns) do
     assigns =
