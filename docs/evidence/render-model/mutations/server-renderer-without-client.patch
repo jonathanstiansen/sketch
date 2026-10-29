@@ -1,0 +1,87 @@
+diff --git a/lib/sketch/canvas/kinds.ex b/lib/sketch/canvas/kinds.ex
+index 8766875..a33697e 100644
+--- a/lib/sketch/canvas/kinds.ex
++++ b/lib/sketch/canvas/kinds.ex
+@@ -5,9 +5,9 @@ defmodule Sketch.Canvas.Kinds do
+   """
+ 
+   alias Sketch.Canvas.Kind
+-  alias Sketch.Canvas.Kinds.{Legacy, Rectangle}
++  alias Sketch.Canvas.Kinds.{Ellipse, Legacy, Rectangle}
+ 
+-  @registry [Rectangle, :diamond, :ellipse, :arrow, :freedraw, :line, :text, :note]
++  @registry [Rectangle, :diamond, Ellipse, :arrow, :freedraw, :line, :text, :note]
+ 
+   @legacy Map.new(Legacy.specs(), &{&1.id, &1})
+   @legacy_ids Enum.filter(@registry, &is_map_key(@legacy, &1))
+diff --git a/lib/sketch/canvas/kinds/ellipse.ex b/lib/sketch/canvas/kinds/ellipse.ex
+new file mode 100644
+index 0000000..d5c8bbb
+--- /dev/null
++++ b/lib/sketch/canvas/kinds/ellipse.ex
+@@ -0,0 +1,10 @@
++defmodule Sketch.Canvas.Kinds.Ellipse do
++  @moduledoc "An ellipse inscribed in its box, without text."
++  @behaviour Sketch.Canvas.Kind
++
++  alias Sketch.Canvas.Kind
++
++  @impl true
++  def spec,
++    do: %Kind{id: :ellipse, geometry: :box, text: :none, default_size: %{width: 120, height: 80}}
++end
+diff --git a/lib/sketch/canvas/kinds/legacy.ex b/lib/sketch/canvas/kinds/legacy.ex
+index 44827e7..630b2c9 100644
+--- a/lib/sketch/canvas/kinds/legacy.ex
++++ b/lib/sketch/canvas/kinds/legacy.ex
+@@ -13,7 +13,6 @@ defmodule Sketch.Canvas.Kinds.Legacy do
+   def specs do
+     [
+       %Kind{id: :diamond, geometry: :box, text: :none, default_size: @default_size},
+-      %Kind{id: :ellipse, geometry: :box, text: :none, default_size: @default_size},
+       %Kind{id: :arrow, geometry: {:points, 2..2//1}, text: :none, default_size: @default_size},
+       %Kind{
+         id: :freedraw,
+diff --git a/lib/sketch_web/elements.ex b/lib/sketch_web/elements.ex
+index 129bd7f..fb9dc71 100644
+--- a/lib/sketch_web/elements.ex
++++ b/lib/sketch_web/elements.ex
+@@ -9,9 +9,9 @@ defmodule SketchWeb.Elements do
+   """
+   use Phoenix.Component
+ 
+-  alias SketchWeb.Elements.Rectangle
++  alias SketchWeb.Elements.{Ellipse, Rectangle}
+ 
+-  @renderers [rectangle: Rectangle]
++  @renderers [rectangle: Rectangle, ellipse: Ellipse]
+ 
+   @kinds Keyword.keys(@renderers)
+   @expected Sketch.Canvas.element_kinds() -- Sketch.Canvas.legacy_kinds()
+diff --git a/lib/sketch_web/elements/ellipse.ex b/lib/sketch_web/elements/ellipse.ex
+new file mode 100644
+index 0000000..48703ae
+--- /dev/null
++++ b/lib/sketch_web/elements/ellipse.ex
+@@ -0,0 +1,21 @@
++defmodule SketchWeb.Elements.Ellipse do
++  @moduledoc "Renders an ellipse inscribed in its box."
++  @behaviour SketchWeb.ElementRenderer
++
++  @impl true
++  def render(%{width: width, height: height}) do
++    [
++      %{
++        tag: "ellipse",
++        attrs: [
++          {"cx", width / 2},
++          {"cy", height / 2},
++          {"rx", width / 2},
++          {"ry", height / 2},
++          {"stroke-width", 2},
++          {"class", "fill-primary stroke-base-content"}
++        ]
++      }
++    ]
++  end
++end

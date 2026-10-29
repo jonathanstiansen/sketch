@@ -1,0 +1,29 @@
+diff --git a/assets/js/elements/ellipse.ts b/assets/js/elements/ellipse.ts
+new file mode 100644
+index 0000000..2d346b3
+--- /dev/null
++++ b/assets/js/elements/ellipse.ts
+@@ -0,0 +1,8 @@
++import type { Renderer } from "./renderer.ts"
++
++export const ellipse: Renderer = ({ width, height }) => [
++  {
++    tag: "ellipse",
++    attrs: { cx: width / 2, cy: height / 2, rx: width / 2, ry: height / 2, "stroke-width": 2, class: "fill-primary stroke-base-content" },
++  },
++]
+diff --git a/assets/js/elements/index.ts b/assets/js/elements/index.ts
+index 4a6a581..c4a9310 100644
+--- a/assets/js/elements/index.ts
++++ b/assets/js/elements/index.ts
+@@ -1,8 +1,9 @@
+ import { MIGRATED_KINDS, type MigratedKind } from "../generated/manifest.ts"
++import { ellipse } from "./ellipse.ts"
+ import { rectangle } from "./rectangle.ts"
+ import type { Renderer } from "./renderer.ts"
+ 
+-export const RENDERERS = { rectangle } as const satisfies Record<MigratedKind, Renderer>
++export const RENDERERS = { rectangle, ellipse } as const satisfies Record<MigratedKind, Renderer>
+ 
+ export function isMigratedKind(kind: string | null | undefined): kind is MigratedKind {
+   return MIGRATED_KINDS.some((migrated) => migrated === kind)

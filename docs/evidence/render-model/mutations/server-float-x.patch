@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/elements/rectangle.ex b/lib/sketch_web/elements/rectangle.ex
+index 601f0d8..6c857be 100644
+--- a/lib/sketch_web/elements/rectangle.ex
++++ b/lib/sketch_web/elements/rectangle.ex
+@@ -8,7 +8,7 @@ defmodule SketchWeb.Elements.Rectangle do
+       %{
+         tag: "rect",
+         attrs: [
+-          {"x", 0},
++          {"x", 0.0},
+           {"y", 0},
+           {"width", width},
+           {"height", height},
