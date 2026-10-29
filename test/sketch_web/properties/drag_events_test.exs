@@ -39,9 +39,9 @@ defmodule SketchWeb.Properties.DragEventsTest do
     end)
   end
 
-  defp in_bounds?(%{x: x, y: y, width: width, height: height}) do
-    x >= 0 and y >= 0 and width >= 1 and height >= 1 and x + width <= @canvas_width and
-      y + height <= @canvas_height
+  defp in_bounds?(%{x: x, y: y, width: width, height: height}, min_size \\ 1) do
+    x >= 0 and y >= 0 and width >= min_size and height >= min_size and
+      x + width <= @canvas_width and y + height <= @canvas_height
   end
 
   defp commits?(%{kind: :commit} = event, stored),
@@ -101,7 +101,7 @@ defmodule SketchWeb.Properties.DragEventsTest do
   defp preview(event, rectangle) do
     event
     |> Map.take([:drag_id, :seq, :base_version, :x, :y, :width, :height])
-    |> Map.put(:element_id, rectangle.id)
+    |> Map.merge(%{element_id: rectangle.id, points: []})
   end
 
   defp params(event, rectangle),
@@ -137,13 +137,13 @@ defmodule SketchWeb.Properties.DragEventsTest do
   defp expected_reply(_event, _rectangle, _stored), do: []
 
   defp expected_queries(%{kind: :commit, x: x, y: y}, sender, _stored) do
-    if x in 0..(@canvas_width - 1) and y in 0..(@canvas_height - 1),
+    if x in 0..@canvas_width and y in 0..@canvas_height,
       do: [{sender.pid, :update}],
       else: []
   end
 
   defp expected_queries(%{kind: :commit_shape} = event, sender, _stored) do
-    if in_bounds?(event), do: [{sender.pid, :update}], else: []
+    if in_bounds?(event, 0), do: [{sender.pid, :update}], else: []
   end
 
   defp expected_queries(_event, _sender, _stored), do: []

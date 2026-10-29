@@ -97,7 +97,8 @@ defmodule Sketch.Canvas.ElementTest do
                  x: 1,
                  y: 1,
                  width: 5,
-                 height: 5
+                 height: 5,
+                 points: []
                })
 
       assert {:error, _} =
@@ -111,7 +112,13 @@ defmodule Sketch.Canvas.ElementTest do
       SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
 
       assert {:ok, %{x: 20, y: 30, width: 300, height: 5, version: 1}} =
-               Canvas.commit_shape(element.id, board.id, %{x: 20, y: 30, width: 300, height: 5})
+               Canvas.commit_shape(element.id, board.id, %{
+                 x: 20,
+                 y: 30,
+                 width: 300,
+                 height: 5,
+                 points: []
+               })
 
       assert_receive %Phoenix.Socket.Broadcast{
         event: "commit_shape",
@@ -124,7 +131,7 @@ defmodule Sketch.Canvas.ElementTest do
       SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
 
       for box <- [%{x: 3000, y: 0, width: 1001, height: 5}, %{x: 0, y: 0, width: 5, height: 0}] do
-        assert {:error, _} = Canvas.commit_shape(element.id, board.id, box)
+        assert {:error, _} = Canvas.commit_shape(element.id, board.id, Map.put(box, :points, []))
       end
 
       refute_receive %Phoenix.Socket.Broadcast{}, 100
@@ -146,6 +153,121 @@ defmodule Sketch.Canvas.ElementTest do
 
       assert {:ok, %{x: 3000, version: 1}} =
                Canvas.commit_position(element.id, board.id, %{x: 3000, y: 0})
+    end
+  end
+
+  describe "line points (A08)" do
+    defp line(attrs) do
+      Map.merge(
+        %{
+          kind: :line,
+          x: 10,
+          y: 20,
+          width: 100,
+          height: 0,
+          points: [%{x: 0, y: 0}, %{x: 100, y: 0}]
+        },
+        attrs
+      )
+    end
+
+    test "a line has two points inside its box and may be 0 wide or tall", %{board: board} do
+      SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
+
+      assert {:ok, %{width: 100, height: 0} = line} =
+               Canvas.create_element(line(%{board_id: board.id}))
+
+      assert [%Sketch.Canvas.Point{x: 0, y: 0}, %Sketch.Canvas.Point{x: 100, y: 0}] = line.points
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        event: "create",
+        payload: %{kind: :line, points: [%{x: 0, y: 0}, %{x: 100, y: 0}]}
+      }
+
+      vertical = line(%{width: 0, height: 50, points: [%{x: 0, y: 50}, %{x: 0, y: 0}]})
+      assert {:ok, _} = Canvas.create_element(Map.put(vertical, :board_id, board.id))
+    end
+
+    test "Ash rejects a wrong number of points, points outside the box and boxes of size 0", %{
+      board: board
+    } do
+      for attrs <- [
+            line(%{points: []}),
+            line(%{points: [%{x: 0, y: 0}]}),
+            line(%{points: [%{x: 0, y: 0}, %{x: 1, y: 0}, %{x: 2, y: 0}]}),
+            line(%{points: [%{x: 0, y: 0}, %{x: 101, y: 0}]}),
+            line(%{points: [%{x: -1, y: 0}, %{x: 100, y: 0}]}),
+            line(%{points: [%{x: 0, y: 1}, %{x: 100, y: 0}]}),
+            line(%{points: [%{x: 0, y: 0}, %{x: 1.5, y: 0}]}),
+            line(%{points: [%{x: 0}, %{x: 100, y: 0}]}),
+            line(%{width: -1}),
+            rectangle(%{x: 1, y: 1, points: [%{x: 0, y: 0}, %{x: 1, y: 1}]}),
+            rectangle(%{x: 1, y: 1, width: 0}),
+            rectangle(%{x: 1, y: 1, height: 0})
+          ] do
+        assert {:error, _} = Canvas.create_element(Map.put(attrs, :board_id, board.id)),
+               inspect(attrs)
+      end
+    end
+
+    test "commit_position moves the box and the relative points with it", %{board: board} do
+      element = Canvas.create_element!(line(%{board_id: board.id}))
+
+      assert {:ok, %{x: 3900, y: 4000, version: 1, points: [%{x: 0, y: 0}, %{x: 100, y: 0}]}} =
+               Canvas.commit_position(element.id, board.id, %{x: 3900, y: 4000})
+
+      assert {:error, _} = Canvas.commit_position(element.id, board.id, %{x: 3901, y: 0})
+    end
+
+    test "commit_shape sets the box and points together and broadcasts both", %{board: board} do
+      element = Canvas.create_element!(line(%{board_id: board.id}))
+      SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
+      shape = %{x: 5, y: 6, width: 30, height: 40, points: [%{x: 30, y: 0}, %{x: 0, y: 40}]}
+
+      assert {:ok, %{version: 1, width: 30}} = Canvas.commit_shape(element.id, board.id, shape)
+
+      assert_receive %Phoenix.Socket.Broadcast{
+        event: "commit_shape",
+        payload: %{version: 1, points: [%{x: 30, y: 0}, %{x: 0, y: 40}]}
+      }
+
+      for invalid <- [
+            Map.delete(shape, :points),
+            %{shape | points: [%{x: 31, y: 0}, %{x: 0, y: 40}]},
+            %{shape | points: [%{x: 0, y: 0}]}
+          ] do
+        assert {:error, _} = Canvas.commit_shape(element.id, board.id, invalid), inspect(invalid)
+      end
+
+      assert [%{version: 1, points: [%{x: 30, y: 0}, %{x: 0, y: 40}]}] =
+               Canvas.list_elements_for_board!(board.id)
+    end
+
+    test "the database rejects malformed or misplaced points", %{board: board} do
+      board_id = Ecto.UUID.dump!(board.id)
+
+      for {kind, width, height, points, constraint} <- [
+            {"line", 100, 0, [%{x: 0, y: 0}], "points_match_kind"},
+            {"rectangle", 100, 10, [%{x: 0, y: 0}, %{x: 1, y: 1}], "points_match_kind"},
+            {"line", 100, 0, [%{x: 0, y: 0}, %{x: 101, y: 0}], "points_within_box"},
+            {"line", 100, 0, [%{x: 0, y: 0}, %{x: 50, y: 1}], "points_within_box"},
+            {"line", 100, 0, [%{x: 0, y: 0}, %{x: 0.5, y: 0}], "points_within_box"},
+            {"line", 100, 0, [%{x: 0, y: 0}, %{x: "1", y: 0}], "points_within_box"},
+            {"line", 100, 0, [%{x: 0, y: 0}, %{x: 1}], "points_within_box"},
+            {"rectangle", 0, 10, [], "width_at_least_min"},
+            {"rectangle", 10, 0, [], "height_at_least_min"}
+          ] do
+        assert {:error,
+                %Postgrex.Error{postgres: %{code: :check_violation, constraint: ^constraint}}} =
+                 Sketch.Repo.query(
+                   """
+                   INSERT INTO elements (kind, x, y, width, height, points, board_id)
+                   VALUES ($1, 0, 0, $2, $3, $4, $5)
+                   """,
+                   [kind, width, height, points, board_id]
+                 ),
+               inspect({kind, points})
+      end
     end
   end
 

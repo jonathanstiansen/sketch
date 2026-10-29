@@ -27,14 +27,20 @@ Generalise `Sketch.Canvas.Rectangle` into `Sketch.Canvas.Element`
 - `kind`: `:rectangle | :diamond | :ellipse | :arrow | :line | :freedraw | :text | :note`, immutable after create.
   The first PR allows only `:rectangle`; each tool's PR extends the `one_of` constraint.
 - `x`, `y`, `width`, `height`: the bounding box, all integers. Width and height
-  are at least 1, and the box must stay inside the canvas (Ash constraints plus
+  are at least 1 for box kinds and at least 0 for point kinds (a horizontal or
+  vertical line has a flat box), and the box must stay inside the canvas (Ash constraints plus
   a PostgreSQL CHECK that combines them). The `x + width` and `y + height` checks
   are an Ash validation with an atomic form, so `commit_position` checks the new
   position against the stored size inside the same UPDATE. All bounds derive from
   `Sketch.Canvas.Geometry`.
 - `points` (added with the line, arrow and draw tools): for `:line`, `:arrow` and
-  `:freedraw`, a list of `[dx, dy]` integer pairs relative to `x`/`y`, bounded in
-  length. Empty for other kinds.
+  `:freedraw`, a list of the embedded resource `Sketch.Canvas.Point` (`x`, `y`
+  integers) relative to `x`/`y`, each inside `[0, width] x [0, height]`. The count
+  per kind comes from `Geometry.point_count/1` (a line has exactly 2). Empty for
+  other kinds. It is stored as `jsonb[]`, the AshPostgres default for an array of
+  embeds: a single `jsonb` column breaks atomic updates, which cast the value to
+  `jsonb[]`. The `PointsFitShape` validation and two CHECK constraints
+  (`points_match_kind`, `points_within_box`) enforce count, shape and bounds.
 - `text` (added with the text and note tools): for `:text` and `:note`, bounded
   length. Empty for other kinds.
 - `version`: unchanged semantics (ADR 0001).
@@ -42,7 +48,9 @@ Generalise `Sketch.Canvas.Rectangle` into `Sketch.Canvas.Element`
 Actions: `create` (accepts kind, box, points, text, board), `commit_position`
 (moves the box; points are relative so they move with it), `commit_shape`
 (box, points and text from a finished edit), and `erase` (destroy, added with the eraser). The first PR ships `create`,
-`commit_position`, `commit_shape` (box only) and `list_for_board`. Every
+`commit_position`, `commit_shape` (box only) and `list_for_board`; the line
+PR makes `commit_shape` take the box and points together, so a size change
+always arrives with points that fit it. Every
 update increments `version` atomically, and every action publishes on the board
 topic. `erase` publishes a removal that clients apply regardless of version.
 

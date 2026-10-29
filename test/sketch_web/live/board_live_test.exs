@@ -252,4 +252,177 @@ defmodule SketchWeb.BoardLiveTest do
 
     assert has_element?(view, "#element-#{id}[data-x='70'][data-version='1']")
   end
+
+  describe "lines" do
+    defp line_params(box, points) do
+      %{"kind" => "line", "drag_id" => @drag_id}
+      |> Map.merge(Map.new(box, fn {key, value} -> {to_string(key), value} end))
+      |> Map.put("points", Enum.map(points, fn {x, y} -> %{"x" => x, "y" => y} end))
+    end
+
+    defp line_selector(id, {x1, y1, x2, y2}, version) do
+      "g#element-#{id}[data-kind='line'][data-version='#{version}'] " <>
+        "line[data-line-stroke][x1='#{x1}'][y1='#{y1}'][x2='#{x2}'][y2='#{y2}']"
+    end
+
+    test "a drawn line is stored with its relative points and rendered in every view", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 200, y: 220, width: 200, height: 80}
+
+      render_hook(creator, "create_element", line_params(box, [{200, 80}, {0, 0}]))
+
+      assert [%{kind: :line, id: id, x: 200, y: 220, width: 200, height: 80} = line] =
+               Canvas.list_elements_for_board!(board.id)
+
+      assert Enum.map(line.points, &{&1.x, &1.y}) == [{200, 80}, {0, 0}]
+
+      for view <- [creator, watcher] do
+        assert has_element?(view, line_selector(id, {400, 300, 200, 220}, 0))
+        assert has_element?(view, "#element-#{id}[data-points='200,80 0,0'] line[data-line-hit]")
+      end
+    end
+
+    test "the server rebuilds a line's box around its points clamped into the canvas", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 3900, y: 10, width: 300, height: 5}
+
+      render_hook(view, "create_element", line_params(box, [{0, 5}, {300, 5}]))
+
+      assert [%{id: id, x: 3900, y: 15, width: 100, height: 0}] =
+               Canvas.list_elements_for_board!(board.id)
+
+      assert has_element?(view, line_selector(id, {3900, 15, 4000, 15}, 0))
+    end
+
+    test "a line with too few, too many or malformed points creates nothing", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 10, y: 10, width: 10, height: 10}
+
+      for params <- [
+            line_params(box, []),
+            line_params(box, [{0, 0}]),
+            line_params(box, [{0, 0}, {5, 5}, {10, 10}]),
+            line_params(box, [{0, 0}, {5.5, 5}]),
+            %{line_params(box, []) | "points" => [%{"x" => 1}, %{"x" => 2, "y" => 2}]},
+            %{line_params(box, []) | "points" => "0,0 10,10"}
+          ] do
+        render_hook(view, "create_element", params)
+      end
+
+      assert Canvas.list_elements_for_board!(board.id) == []
+    end
+
+    test "a line draw preview carries its points to other views, even when 0 tall", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+      params = line_params(%{x: 10, y: 20, width: 30, height: 0}, [{30, 0}, {0, 0}])
+
+      render_hook(creator, "draw_preview", Map.put(params, "seq", 1))
+
+      assert_push_event(watcher, "draw_preview", %{
+        kind: "line",
+        seq: 1,
+        width: 30,
+        height: 0,
+        points: [%{x: 30, y: 0}, %{x: 0, y: 0}]
+      })
+
+      render_hook(creator, "draw_preview", %{Map.put(params, "seq", 2) | "kind" => "rectangle"})
+      refute_push_event(watcher, "draw_preview", %{seq: 2})
+      assert Canvas.list_elements_for_board!(board.id) == []
+    end
+
+    test "dragging an endpoint previews to other views and commit_shape stores the new shape", %{
+      conn: conn,
+      board: board
+    } do
+      line =
+        Canvas.create_element!(%{
+          kind: :line,
+          x: 100,
+          y: 100,
+          width: 100,
+          height: 0,
+          points: [%{x: 0, y: 0}, %{x: 100, y: 0}],
+          board_id: board.id
+        })
+
+      {:ok, editor, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+
+      shape = %{
+        "element_id" => line.id,
+        "drag_id" => @drag_id,
+        "x" => 100,
+        "y" => 50,
+        "width" => 100,
+        "height" => 50,
+        "points" => [%{"x" => 0, "y" => 50}, %{"x" => 100, "y" => 0}]
+      }
+
+      render_hook(editor, "preview", Map.merge(shape, %{"seq" => 1, "base_version" => 0}))
+
+      assert_push_event(watcher, "preview", %{
+        element_id: element_id,
+        height: 50,
+        points: [%{x: 0, y: 50}, %{x: 100, y: 0}]
+      })
+
+      assert element_id == line.id
+
+      render_hook(editor, "commit_shape", shape)
+
+      for view <- [editor, watcher] do
+        assert has_element?(view, line_selector(line.id, {100, 100, 200, 50}, 1))
+      end
+
+      render_hook(editor, "commit_shape", %{
+        shape
+        | "points" => [%{"x" => 0, "y" => 51}, %{"x" => 100, "y" => 0}]
+      })
+
+      assert_push_event(editor, "revert", %{element_id: ^element_id})
+      assert [%{version: 1, height: 50}] = Canvas.list_elements_for_board!(board.id)
+    end
+
+    test "moving a line commits only its position; the points move with it", %{
+      conn: conn,
+      board: board
+    } do
+      line =
+        Canvas.create_element!(%{
+          kind: :line,
+          x: 100,
+          y: 100,
+          width: 0,
+          height: 40,
+          points: [%{x: 0, y: 40}, %{x: 0, y: 0}],
+          board_id: board.id
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+
+      render_hook(view, "commit", %{
+        "element_id" => line.id,
+        "drag_id" => @drag_id,
+        "x" => 4000,
+        "y" => 0
+      })
+
+      assert has_element?(view, line_selector(line.id, {4000, 40, 4000, 0}, 1))
+    end
+  end
 end

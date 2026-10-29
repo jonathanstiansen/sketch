@@ -1,8 +1,9 @@
 defmodule Sketch.Canvas.Geometry do
   @moduledoc """
-  Canvas and element dimensions (addendum D1, D8). Every bound on an element's box derives from here:
-  `x >= 0`, `y >= 0`, `width >= 1`, `height >= 1`, `x + width <= canvas_width` and
-  `y + height <= canvas_height`.
+  Canvas and element dimensions (addendum D1, D8). Every bound on an element's box and points
+  derives from here: `x >= 0`, `y >= 0`, `x + width <= canvas_width`, `y + height <= canvas_height`,
+  a size of at least `min_size(kind)`, and for point kinds a bounded number of points, each relative
+  to the box origin and inside `[0, width] x [0, height]`.
   """
 
   @canvas_width 4000
@@ -10,6 +11,8 @@ defmodule Sketch.Canvas.Geometry do
   @default_width 120
   @default_height 80
   @min_size 1
+  @point_counts %{line: 2..2//1}
+  @max_points @point_counts |> Map.values() |> Enum.map(& &1.last) |> Enum.max()
   @cascade_start 100
   @cascade_step 150
   @cascade_length 20
@@ -21,12 +24,15 @@ defmodule Sketch.Canvas.Geometry do
           height: integer()
         }
 
+  @type point :: %{x: integer(), y: integer()}
+
   @type t :: %{
           canvas_width: pos_integer(),
           canvas_height: pos_integer(),
           default_width: pos_integer(),
           default_height: pos_integer(),
-          min_size: pos_integer()
+          min_size: pos_integer(),
+          max_points: pos_integer()
         }
 
   @spec canvas_width() :: pos_integer()
@@ -35,8 +41,46 @@ defmodule Sketch.Canvas.Geometry do
   @spec canvas_height() :: pos_integer()
   def canvas_height, do: @canvas_height
 
-  @spec min_size() :: pos_integer()
-  def min_size, do: @min_size
+  @doc "The smallest width and height of a box kind; point kinds may be 0 wide or tall."
+  @spec min_size(atom()) :: non_neg_integer()
+  def min_size(kind) when is_map_key(@point_counts, kind), do: 0
+  def min_size(_box_kind), do: @min_size
+
+  @doc "The kinds whose shape is a list of points inside their box."
+  @spec point_kinds() :: [atom()]
+  def point_kinds, do: Map.keys(@point_counts)
+
+  @doc "How many points an element of `kind` has; box kinds have none."
+  @spec point_count(atom()) :: Range.t()
+  def point_count(kind), do: Map.get(@point_counts, kind, 0..0//1)
+
+  @spec max_points() :: pos_integer()
+  def max_points, do: @max_points
+
+  @doc "Whether every point lies inside `[0, width] x [0, height]`."
+  @spec points_inside?([point()], non_neg_integer(), non_neg_integer()) :: boolean()
+  def points_inside?(points, width, height),
+    do: Enum.all?(points, fn %{x: x, y: y} -> x in 0..width//1 and y in 0..height//1 end)
+
+  @doc """
+  The box around absolute canvas points, each clamped into the canvas first, with the points made
+  relative to the box origin.
+  """
+  @spec around_points([point(), ...]) :: %{box: box(), points: [point()]}
+  def around_points(absolute_points) do
+    clamped =
+      Enum.map(absolute_points, fn %{x: x, y: y} ->
+        %{x: clamp(x, 0, @canvas_width), y: clamp(y, 0, @canvas_height)}
+      end)
+
+    {min_x, max_x} = clamped |> Enum.map(& &1.x) |> Enum.min_max()
+    {min_y, max_y} = clamped |> Enum.map(& &1.y) |> Enum.min_max()
+
+    %{
+      box: %{x: min_x, y: min_y, width: max_x - min_x, height: max_y - min_y},
+      points: Enum.map(clamped, &%{x: &1.x - min_x, y: &1.y - min_y})
+    }
+  end
 
   @doc "The default-sized box of the next new element on a board that already has `count` elements."
   @spec default_box(non_neg_integer()) :: box()
@@ -61,6 +105,20 @@ defmodule Sketch.Canvas.Geometry do
 
   defp clamp(value, min, max), do: value |> max(min) |> min(max)
 
+  @doc """
+  The stored shape of a finished drawing: a box kind's box is clamped into the canvas, while a point
+  kind's box is rebuilt around its points, each clamped into the canvas first.
+  """
+  @spec fit_shape(atom(), box(), [point()]) :: map()
+  def fit_shape(kind, %{x: x, y: y}, [_ | _] = points) when is_map_key(@point_counts, kind) do
+    %{box: box, points: points} =
+      points |> Enum.map(&%{x: x + &1.x, y: y + &1.y}) |> around_points()
+
+    Map.put(box, :points, points)
+  end
+
+  def fit_shape(_kind, box, points), do: box |> clamp_box() |> Map.put(:points, points)
+
   @spec dimensions() :: t()
   def dimensions do
     %{
@@ -68,7 +126,8 @@ defmodule Sketch.Canvas.Geometry do
       canvas_height: @canvas_height,
       default_width: @default_width,
       default_height: @default_height,
-      min_size: @min_size
+      min_size: @min_size,
+      max_points: @max_points
     }
   end
 end

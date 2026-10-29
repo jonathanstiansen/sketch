@@ -4,7 +4,9 @@ defmodule SketchWeb.BoardLive do
   @canvas_width Sketch.Canvas.geometry().canvas_width
   @canvas_height Sketch.Canvas.geometry().canvas_height
   @min_size Sketch.Canvas.geometry().min_size
+  @max_points Sketch.Canvas.geometry().max_points
   @kinds Enum.map(Sketch.Canvas.element_kinds(), &Atom.to_string/1)
+  @point_kinds Enum.map(Sketch.Canvas.point_kinds(), &Atom.to_string/1)
 
   defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
 
@@ -14,8 +16,11 @@ defmodule SketchWeb.BoardLive do
 
   defguardp is_box(x, y, width, height)
             when is_integer(x) and is_integer(y) and is_integer(width) and is_integer(height) and
-                   x >= 0 and y >= 0 and width >= @min_size and height >= @min_size and
+                   x >= 0 and y >= 0 and width >= 0 and height >= 0 and
                    x + width <= @canvas_width and y + height <= @canvas_height
+
+  defguardp fits_kind(kind, width, height)
+            when kind in @point_kinds or (width >= @min_size and height >= @min_size)
 
   defguardp is_integer_box(x, y, width, height)
             when is_integer(x) and is_integer(y) and is_integer(width) and is_integer(height)
@@ -47,15 +52,24 @@ defmodule SketchWeb.BoardLive do
           "y" => y,
           "width" => width,
           "height" => height
-        },
+        } = params,
         socket
       )
       when is_kind(kind) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
-    box = Sketch.Canvas.clamp_box(%{x: x, y: y, width: width, height: height})
+    case points(params) do
+      {:ok, points} ->
+        shape =
+          kind
+          |> String.to_existing_atom()
+          |> Sketch.Canvas.fit_shape(%{x: x, y: y, width: width, height: height}, points)
 
-    socket
-    |> create_element(kind, box)
-    |> broadcast_preview("draw_end", %{drag_id: drag_id})
+        socket
+        |> create_element(kind, shape)
+        |> broadcast_preview("draw_end", %{drag_id: drag_id})
+
+      :error ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event(
@@ -68,11 +82,12 @@ defmodule SketchWeb.BoardLive do
           "y" => y,
           "width" => width,
           "height" => height
-        },
+        } = params,
         socket
       )
-      when is_kind(kind) and is_uuid(drag_id) and is_seq(seq) and is_box(x, y, width, height) do
-    broadcast_preview(socket, "draw_preview", %{
+      when is_kind(kind) and is_uuid(drag_id) and is_seq(seq) and is_box(x, y, width, height) and
+             fits_kind(kind, width, height) do
+    relay_with_points(socket, "draw_preview", params, %{
       kind: kind,
       drag_id: drag_id,
       seq: seq,
@@ -98,12 +113,12 @@ defmodule SketchWeb.BoardLive do
           "y" => y,
           "width" => width,
           "height" => height
-        },
+        } = params,
         socket
       )
       when is_uuid(element_id) and is_uuid(drag_id) and is_seq(seq) and is_seq(base_version) and
              is_box(x, y, width, height) do
-    broadcast_preview(socket, "preview", %{
+    relay_with_points(socket, "preview", params, %{
       element_id: element_id,
       drag_id: drag_id,
       seq: seq,
@@ -140,18 +155,25 @@ defmodule SketchWeb.BoardLive do
           "y" => y,
           "width" => width,
           "height" => height
-        },
+        } = params,
         socket
       )
       when is_uuid(element_id) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
-    element_id
-    |> Sketch.Canvas.commit_shape(socket.assigns.board_id, %{
-      x: x,
-      y: y,
-      width: width,
-      height: height
-    })
-    |> committed(socket, element_id, drag_id, "Could not resize element")
+    case points(params) do
+      {:ok, points} ->
+        element_id
+        |> Sketch.Canvas.commit_shape(socket.assigns.board_id, %{
+          x: x,
+          y: y,
+          width: width,
+          height: height,
+          points: points
+        })
+        |> committed(socket, element_id, drag_id, "Could not resize element")
+
+      :error ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event(event, _params, socket)
@@ -284,6 +306,36 @@ defmodule SketchWeb.BoardLive do
     """
   end
 
+  defp element_shape(%{element: %{kind: :line}} = assigns) do
+    ~H"""
+    <g
+      id={@dom_id}
+      x={@element.x}
+      y={@element.y}
+      width={@element.width}
+      height={@element.height}
+      data-element={@element.id}
+      data-kind={@element.kind}
+      data-x={@element.x}
+      data-y={@element.y}
+      data-width={@element.width}
+      data-height={@element.height}
+      data-points={points_attribute(@element.points)}
+      data-version={@element.version}
+      class="cursor-grab touch-none"
+    >
+      <.line_segment element={@element} data-line-hit stroke="transparent" stroke-width="14" />
+      <.line_segment
+        element={@element}
+        data-line-stroke
+        stroke-width="2"
+        pointer-events="none"
+        class="stroke-base-content"
+      />
+    </g>
+    """
+  end
+
   defp element_shape(assigns) do
     ~H"""
     <rect
@@ -305,6 +357,30 @@ defmodule SketchWeb.BoardLive do
     """
   end
 
+  attr :element, :map, required: true
+  attr :rest, :global, include: ~w(stroke stroke-width pointer-events)
+
+  defp line_segment(%{element: %{x: x, y: y, points: [start, finish]}} = assigns) do
+    assigns =
+      assign(assigns,
+        start: %{x: x + start.x, y: y + start.y},
+        finish: %{x: x + finish.x, y: y + finish.y}
+      )
+
+    ~H"""
+    <line
+      x1={@start.x}
+      y1={@start.y}
+      x2={@finish.x}
+      y2={@finish.y}
+      stroke-linecap="round"
+      {@rest}
+    />
+    """
+  end
+
+  defp points_attribute(points), do: Enum.map_join(points, " ", &"#{&1.x},#{&1.y}")
+
   defp diamond_points(%{x: x, y: y, width: width, height: height}) do
     mid_x = coordinate(x + width / 2)
     mid_y = coordinate(y + height / 2)
@@ -314,9 +390,36 @@ defmodule SketchWeb.BoardLive do
   defp coordinate(value) when value == trunc(value), do: trunc(value)
   defp coordinate(value), do: value
 
-  defp create_element(socket, kind, box) do
+  defp points(%{"points" => points}) when is_list(points) and length(points) <= @max_points do
+    if Enum.all?(points, &point?/1),
+      do: {:ok, Enum.map(points, &%{x: &1["x"], y: &1["y"]})},
+      else: :error
+  end
+
+  defp points(%{"points" => _invalid}), do: :error
+  defp points(_without_points), do: {:ok, []}
+
+  defp point?(%{"x" => x, "y" => y} = point),
+    do: map_size(point) == 2 and is_integer(x) and is_integer(y)
+
+  defp point?(_point), do: false
+
+  defp relay_with_points(socket, event, params, payload) do
+    case points(params) do
+      {:ok, [_ | _] = points} ->
+        broadcast_preview(socket, event, Map.put(payload, :points, points))
+
+      {:ok, []} when payload.width >= @min_size and payload.height >= @min_size ->
+        broadcast_preview(socket, event, Map.put(payload, :points, []))
+
+      _invalid ->
+        {:noreply, socket}
+    end
+  end
+
+  defp create_element(socket, kind, shape) do
     case Sketch.Canvas.create_element(
-           Map.merge(box, %{board_id: socket.assigns.board_id, kind: kind})
+           Map.merge(shape, %{board_id: socket.assigns.board_id, kind: kind})
          ) do
       {:ok, _element} -> socket
       {:error, _error} -> put_flash(socket, :error, "Could not add element")

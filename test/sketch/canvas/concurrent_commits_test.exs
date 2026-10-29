@@ -29,7 +29,14 @@ defmodule Sketch.Canvas.ConcurrentCommitsTest do
     do: Canvas.commit_position(element.id, board.id, %{x: n, y: 2 * n})
 
   defp commit(element, board, n),
-    do: Canvas.commit_shape(element.id, board.id, %{x: n, y: 2 * n, width: n, height: 3 * n})
+    do:
+      Canvas.commit_shape(element.id, board.id, %{
+        x: n,
+        y: 2 * n,
+        width: n,
+        height: 3 * n,
+        points: []
+      })
 
   test "concurrent moves and resizes never lose a version increment (A09)", ctx do
     %{board: board, rectangle: rectangle} = ctx
