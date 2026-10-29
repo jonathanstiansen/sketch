@@ -78,7 +78,9 @@ defmodule Sketch.Properties.GeometryTest do
     %{board: Canvas.create_board!()}
   end
 
-  property "Ash alone accepts a box iff it is at least 1 x 1 and inside the canvas", %{board: board} do
+  property "Ash alone accepts a box iff it is at least 1 x 1 and inside the canvas", %{
+    board: board
+  } do
     check all box <- any_box(), max_runs: 300 do
       assert ash_accepts?(board, box) == in_bounds?(box), inspect(box)
     end

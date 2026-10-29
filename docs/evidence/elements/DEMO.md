@@ -31,7 +31,7 @@ Result: 1 passed
 ```
 
 ```bash
-docs/evidence/pbt-drag-share/run-tests.sh test/sketch/properties test/sketch_web/properties --seed 1 --trace
+for f in test/sketch/properties/*_test.exs test/sketch_web/properties/*_test.exs; do docs/evidence/pbt-drag-share/run-tests.sh "$f" --seed 1 --trace || exit 1; done
 ```
 
 ```output
@@ -40,14 +40,26 @@ docs/evidence/pbt-drag-share/run-tests.sh test/sketch/properties test/sketch_web
 Sketch.Properties.BoardIsolationTest [test/sketch/properties/board_isolation_test.exs]
   * property each board lists exactly its own elements (A05) [L#9]
 
+
+Result: 1 passed
+
+
 Sketch.Properties.CommitModelTest [test/sketch/properties/commit_model_test.exs]
   * property the database and the broadcasts follow a model of successful commits (A08, A09, A11) [L#109]
 
+
+Result: 1 passed
+
+
 Sketch.Properties.GeometryTest [test/sketch/properties/geometry_test.exs]
-  * property clamp_box always yields a box inside the canvas, and keeps one already inside [L#95]
-  * property the default box of the next element is inside the canvas [L#103]
-  * property PostgreSQL alone accepts a box iff it is at least 1 x 1 and inside the canvas [L#87]
+  * property clamp_box always yields a box inside the canvas, and keeps one already inside [L#97]
+  * property the default box of the next element is inside the canvas [L#105]
+  * property PostgreSQL alone accepts a box iff it is at least 1 x 1 and inside the canvas [L#89]
   * property Ash alone accepts a box iff it is at least 1 x 1 and inside the canvas [L#81]
+
+
+Result: 4 passed
+
 
 Sketch.Properties.LwwMergeTest [test/sketch/properties/lww_merge_test.exs]
   * property the state per element is its highest-version event, whichever action produced it [L#64]
@@ -56,14 +68,22 @@ Sketch.Properties.LwwMergeTest [test/sketch/properties/lww_merge_test.exs]
   * property applying an event twice equals applying it once [L#55]
   * property every delivery order of the same events yields the same state [L#49]
 
-SketchWeb.Properties.SharingTest [test/sketch_web/properties/sharing_test.exs]
-  * property a shared link shows exactly that board, and a bad link creates nothing [L#67]
+
+Result: 5 passed
+
 
 SketchWeb.Properties.DragEventsTest [test/sketch_web/properties/drag_events_test.exs]
   * property previews and cancels never touch the database and stay on their board (A07, A10) [L#173]
 
 
-Result: 13 passed
+Result: 1 passed
+
+
+SketchWeb.Properties.SharingTest [test/sketch_web/properties/sharing_test.exs]
+  * property a shared link shows exactly that board, and a bad link creates nothing [L#67]
+
+
+Result: 1 passed
 ```
 
 ```bash
@@ -129,10 +149,10 @@ docs/evidence/elements/mutate.sh box-check-drops-size docs/evidence/pbt-drag-sha
      %{x: 1, y: 2, width: 4000, height: 3998}
      code: check all box <- any_box(), max_runs: 300 do
      stacktrace:
-       test/sketch/properties/geometry_test.exs:83: anonymous fn/3 in Sketch.Properties.GeometryTest."property Ash alone accepts a box iff it is at least 1 x 1 and inside the canvas"/1
+       test/sketch/properties/geometry_test.exs:85: anonymous fn/3 in Sketch.Properties.GeometryTest."property Ash alone accepts a box iff it is at least 1 x 1 and inside the canvas"/1
        (stream_data 1.4.0) lib/stream_data.ex:2585: StreamData.shrink_failure/5
        (stream_data 1.4.0) lib/stream_data.ex:2551: StreamData.check_all/7
-       test/sketch/properties/geometry_test.exs:82: (test)
+       test/sketch/properties/geometry_test.exs:84: (test)
 
 
 
