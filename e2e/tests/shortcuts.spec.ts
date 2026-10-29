@@ -4,7 +4,7 @@ import { createBoard, openBoard } from "./support/board"
 
 const recordingDir = process.env.E2E_RECORD_DIR
 const recordingSize = { width: 960, height: 600 }
-const rectangle = "rect[data-rect]"
+const rectangle = "rect[data-element]"
 const viewport = "#canvas-viewport"
 
 interface Session {

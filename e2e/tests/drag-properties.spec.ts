@@ -2,7 +2,7 @@ import fc from "fast-check"
 import { expect, test, type Page } from "@playwright/test"
 import { createBoard, grabRectangle, openBoard } from "./support/board"
 
-const rectangle = "rect[data-rect]"
+const rectangle = "rect[data-element]"
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
 
 interface Offset {
@@ -64,8 +64,12 @@ test("any drag path converges in the other browser to its clamped end, one versi
     await expect(pageB.locator(rectangle)).toHaveCount(1)
 
     const max = {
-      x: await integerAttribute(pageA, "#canvas-viewport", "data-max-x"),
-      y: await integerAttribute(pageA, "#canvas-viewport", "data-max-y"),
+      x:
+        (await integerAttribute(pageA, "#canvas-viewport", "data-canvas-width")) -
+        (await integerAttribute(pageA, rectangle, "width")),
+      y:
+        (await integerAttribute(pageA, "#canvas-viewport", "data-canvas-height")) -
+        (await integerAttribute(pageA, rectangle, "height")),
     }
     let screenshotTaken = false
 

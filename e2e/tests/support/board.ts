@@ -34,10 +34,10 @@ export async function grabRectangle(page: Page, rectangle: Locator): Promise<{ x
 }
 
 export async function rectangleStates(page: Page): Promise<RectangleState[]> {
-  return page.locator("rect[data-rect]").evaluateAll((rects) =>
+  return page.locator("rect[data-element]").evaluateAll((rects) =>
     rects
       .map((rect) => ({
-        id: rect.getAttribute("data-rect"),
+        id: rect.getAttribute("data-element"),
         x: rect.getAttribute("x"),
         y: rect.getAttribute("y"),
         version: rect.getAttribute("data-version"),

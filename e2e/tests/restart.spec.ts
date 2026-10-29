@@ -59,7 +59,7 @@ test("completed positions survive a server restart", async ({ browser, request }
 
   const context = await browser.newContext({ baseURL: origin })
   const page = await context.newPage()
-  const rectangle = page.locator("rect[data-rect]")
+  const rectangle = page.locator("rect[data-element]")
   const path = await createBoard(page)
   await page.locator("#add-rectangle").click()
   await expect(rectangle).toHaveAttribute("x", "100")
@@ -80,7 +80,7 @@ test("completed positions survive a server restart", async ({ browser, request }
   const reopened = await browser.newContext({ baseURL: origin, viewport: { width: 640, height: 480 } })
   const restarted = await reopened.newPage()
   await openBoard(restarted, path)
-  const restoredRectangle = restarted.locator("rect[data-rect]")
+  const restoredRectangle = restarted.locator("rect[data-element]")
   await expect(restoredRectangle).toHaveAttribute("x", "350")
   await expect(restoredRectangle).toHaveAttribute("y", "220")
   await expect(restoredRectangle).toHaveAttribute("data-version", "1")

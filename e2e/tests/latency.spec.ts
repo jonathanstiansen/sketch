@@ -9,7 +9,7 @@ const previewIntervalMs = 50
 const dragSettleMs = previewIntervalMs + 10
 const dragDistance = 40
 const outputFile = process.env.LATENCY_OUT ?? "test-results/latency.json"
-const rectangles = "rect[data-rect]"
+const rectangles = "rect[data-element]"
 
 interface Summary {
   samples: number
@@ -53,7 +53,7 @@ async function observeAdditions(page: Page): Promise<void> {
       const at = performance.timeOrigin + performance.now()
       for (const record of records) {
         for (const node of record.addedNodes) {
-          if (node instanceof Element && node.matches("rect[data-rect]")) window.observed.push(at)
+          if (node instanceof Element && node.matches("rect[data-element]")) window.observed.push(at)
         }
       }
     }).observe(document.body, { childList: true, subtree: true })

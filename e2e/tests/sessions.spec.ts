@@ -4,7 +4,7 @@ import { expect, test, type Page } from "@playwright/test"
 const recordingDir = process.env.E2E_RECORD_DIR
 const videoSize = { width: 800, height: 500 }
 const boardPath = /\/b\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-const rectangles = "rect[id^='rect-']"
+const rectangles = "rect[id^='element-']"
 
 async function createBoard(page: Page): Promise<string> {
   await page.goto("/")
