@@ -10,8 +10,9 @@ import {
 } from "./support/canvas"
 
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
-const element = "ellipse[data-element]"
-const drawPreview = "ellipse[data-draw]"
+const element = "[data-element][data-kind='ellipse']"
+const drawPreview = "[data-draw][data-kind='ellipse']"
+const body = "ellipse"
 
 interface Ellipse {
   cx: number
@@ -20,13 +21,13 @@ interface Ellipse {
   ry: number
 }
 
-function ellipseOf({ x, y, width, height }: Box): Ellipse {
-  return { cx: x + width / 2, cy: y + height / 2, rx: width / 2, ry: height / 2 }
+function ellipseOf({ width, height }: Box): Ellipse {
+  return { cx: width / 2, cy: height / 2, rx: width / 2, ry: height / 2 }
 }
 
 async function expectEllipseGeometry(page: Page, selector: string, box: Box): Promise<void> {
   for (const [name, value] of Object.entries(ellipseOf(box))) {
-    await expect(page.locator(selector)).toHaveAttribute(name, String(value))
+    await expect(page.locator(selector).locator(body)).toHaveAttribute(name, String(value))
   }
 }
 
@@ -121,6 +122,47 @@ test("a click with the Ellipse tool creates a default-sized ellipse", async ({ b
     await clickAt(pageA, 600, 350)
     const clicked = { x: 600, y: 350, width: 120, height: 80 }
     for (const page of [pageA, pageB]) await expectEllipse(page, clicked, 0)
+  } finally {
+    await closeSession(session)
+  }
+})
+
+test("an ellipse is a translated wrapper: a move changes only the transform and a resize redraws the ellipse, in both browsers", async ({
+  browser,
+}) => {
+  const session = await openSharedBoard(browser, "ellipse-move")
+  const { pageA, pageB } = session
+  const wrapperAt = ({ x, y }: Box) => `translate(${String(x)} ${String(y)})`
+  try {
+    await pageA.keyboard.press("o")
+    await pressAt(pageA, 100, 100)
+    await moveTo(pageA, 221, 181)
+    await pageA.mouse.up()
+    const drawn = { x: 100, y: 100, width: 121, height: 81 }
+    for (const page of [pageA, pageB]) await expectEllipse(page, drawn, 0)
+
+    await pageA.keyboard.press("v")
+    await pressAt(pageA, 160, 140)
+    await moveTo(pageA, 360, 190)
+    const moved = { ...drawn, x: 300, y: 150 }
+    for (const page of [pageA, pageB]) {
+      await expect(page.locator(element)).toHaveAttribute("transform", wrapperAt(moved))
+      await expectEllipseGeometry(page, element, drawn)
+      await expect(page.locator(element)).toHaveAttribute("data-x", "100")
+    }
+    await pageA.mouse.up()
+    for (const page of [pageA, pageB]) await expectEllipse(page, moved, 1)
+
+    await pressAt(pageA, 421, 231)
+    await moveTo(pageA, 502, 301)
+    const resized = { ...moved, width: 202, height: 151 }
+    for (const page of [pageA, pageB]) {
+      await expect(page.locator(element)).toHaveAttribute("transform", wrapperAt(moved))
+      await expectEllipseGeometry(page, element, resized)
+      await expect(page.locator(element)).toHaveAttribute("data-width", "121")
+    }
+    await pageA.mouse.up()
+    for (const page of [pageA, pageB]) await expectEllipse(page, resized, 2)
   } finally {
     await closeSession(session)
   }

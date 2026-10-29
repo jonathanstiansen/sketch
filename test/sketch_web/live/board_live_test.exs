@@ -92,7 +92,7 @@ defmodule SketchWeb.BoardLiveTest do
     end
   end
 
-  test "a drawn ellipse is stored with its kind and rendered inscribed in its box in every view",
+  test "a drawn ellipse is stored with its kind and rendered as a local ellipse in every view",
        %{
          conn: conn,
          board: board
@@ -110,7 +110,7 @@ defmodule SketchWeb.BoardLiveTest do
     for view <- [creator, watcher] do
       assert has_element?(
                view,
-               "ellipse#element-#{id}[data-kind='ellipse'][cx='60.5'][cy='40'][rx='50.5'][ry='20']"
+               "g#element-#{id}[data-kind='ellipse'][x='10'][width='101'][transform='translate(10 20)'] > ellipse[cx='50.5'][cy='20'][rx='50.5'][ry='20']"
              )
     end
   end

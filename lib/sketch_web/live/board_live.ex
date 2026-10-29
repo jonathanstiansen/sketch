@@ -301,31 +301,6 @@ defmodule SketchWeb.BoardLive do
   defp element_shape(%{element: %{kind: kind}} = assigns) when is_map_key(@rendered_kinds, kind),
     do: SketchWeb.Elements.element(assigns)
 
-  defp element_shape(%{element: %{kind: :ellipse}} = assigns) do
-    ~H"""
-    <ellipse
-      id={@dom_id}
-      cx={coordinate(@element.x + @element.width / 2)}
-      cy={coordinate(@element.y + @element.height / 2)}
-      rx={coordinate(@element.width / 2)}
-      ry={coordinate(@element.height / 2)}
-      x={@element.x}
-      y={@element.y}
-      width={@element.width}
-      height={@element.height}
-      data-element={@element.id}
-      data-kind={@element.kind}
-      data-x={@element.x}
-      data-y={@element.y}
-      data-width={@element.width}
-      data-height={@element.height}
-      data-version={@element.version}
-      stroke-width="2"
-      class="fill-primary stroke-base-content cursor-grab touch-none"
-    />
-    """
-  end
-
   defp element_shape(%{element: %{kind: kind}} = assigns) when kind in [:line, :arrow] do
     ~H"""
     <g
@@ -529,9 +504,6 @@ defmodule SketchWeb.BoardLive do
   end
 
   defp points_attribute(points), do: Enum.map_join(points, " ", &"#{&1.x},#{&1.y}")
-
-  defp coordinate(value) when value == trunc(value), do: trunc(value)
-  defp coordinate(value), do: value
 
   defp points(%{"points" => points}) when is_list(points) and length(points) <= @max_points do
     if Enum.all?(points, &point?/1),

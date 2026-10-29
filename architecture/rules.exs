@@ -222,7 +222,7 @@
       {"assets/js/generated/", "Files written by mix tasks, never edited by hand (A22, ADR 0004)"}
     ],
     legacy_kind_files: [
-      {"lib/sketch_web/live/board_live.ex", "Legacy kinds: element_shape clauses for ellipse, line, arrow, freedraw, text and note"},
+      {"lib/sketch_web/live/board_live.ex", "Legacy kinds: element_shape clauses for line, arrow, freedraw, text and note"},
       {"assets/js/hooks/canvas.ts", "Legacy kinds: freedraw strokes, text and note editing and the note default size"},
       {"assets/js/hooks/selection.ts", "Legacy kinds: draw previews for note, arrow and text"}
     ],

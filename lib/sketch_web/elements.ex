@@ -9,9 +9,9 @@ defmodule SketchWeb.Elements do
   """
   use Phoenix.Component
 
-  alias SketchWeb.Elements.{Diamond, Rectangle}
+  alias SketchWeb.Elements.{Diamond, Ellipse, Rectangle}
 
-  @renderers [rectangle: Rectangle, diamond: Diamond]
+  @renderers [rectangle: Rectangle, diamond: Diamond, ellipse: Ellipse]
 
   @kinds Keyword.keys(@renderers)
   @expected Sketch.Canvas.element_kinds() -- Sketch.Canvas.legacy_kinds()
