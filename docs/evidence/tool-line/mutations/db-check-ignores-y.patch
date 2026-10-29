@@ -1,0 +1,13 @@
+diff --git a/priv/repo/migrations/20261029090747_line_points.exs b/priv/repo/migrations/20261029090747_line_points.exs
+index 35485e6..03253f1 100644
+--- a/priv/repo/migrations/20261029090747_line_points.exs
++++ b/priv/repo/migrations/20261029090747_line_points.exs
+@@ -40,7 +40,7 @@ defmodule Sketch.Repo.Migrations.LinePoints do
+                NOT jsonb_path_exists(array_to_json(points)::jsonb, '$[*] ? (@.type() != "object" || !exists(@.x) || !exists(@.y) ||
+                @.x.type() != "number" || @.y.type() != "number" ||
+                @.x.floor() != @.x || @.y.floor() != @.y ||
+-               @.x < 0 || @.y < 0 || @.x > $w || @.y > $h)',
++               @.x < 0 || @.x > $w)',
+                jsonb_build_object('w', width, 'h', height))
+ 
+              """

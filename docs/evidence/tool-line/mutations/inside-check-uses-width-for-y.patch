@@ -1,0 +1,13 @@
+diff --git a/lib/sketch/canvas/geometry.ex b/lib/sketch/canvas/geometry.ex
+index a9573c5..593fb44 100644
+--- a/lib/sketch/canvas/geometry.ex
++++ b/lib/sketch/canvas/geometry.ex
+@@ -60,7 +60,7 @@ defmodule Sketch.Canvas.Geometry do
+   @doc "Whether every point lies inside `[0, width] x [0, height]`."
+   @spec points_inside?([point()], non_neg_integer(), non_neg_integer()) :: boolean()
+   def points_inside?(points, width, height),
+-    do: Enum.all?(points, fn %{x: x, y: y} -> x in 0..width//1 and y in 0..height//1 end)
++    do: Enum.all?(points, fn %{x: x, y: y} -> x in 0..width//1 and y in 0..width//1 end)
+ 
+   @doc """
+   The box around absolute canvas points, each clamped into the canvas first, with the points made
