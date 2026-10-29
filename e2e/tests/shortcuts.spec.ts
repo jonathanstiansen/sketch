@@ -226,6 +226,7 @@ test("every toolbar shortcut and button selects its tool; disabled tools stay un
     "line",
     "draw",
     "text",
+    "note",
   ])
   expect(buttons.find(({ tool }) => tool === "diamond")?.keys).toEqual(["D", "3"])
   expect(buttons.find(({ tool }) => tool === "ellipse")?.keys).toEqual(["O", "4"])
@@ -233,6 +234,7 @@ test("every toolbar shortcut and button selects its tool; disabled tools stay un
   expect(buttons.find(({ tool }) => tool === "line")?.keys).toEqual(["L", "6"])
   expect(buttons.find(({ tool }) => tool === "draw")?.keys).toEqual(["P", "7"])
   expect(buttons.find(({ tool }) => tool === "text")?.keys).toEqual(["T", "8"])
+  expect(buttons.find(({ tool }) => tool === "note")?.keys).toEqual(["N", "9"])
 
   for (const { tool, keys, enabled } of buttons) {
     for (const key of keys) {

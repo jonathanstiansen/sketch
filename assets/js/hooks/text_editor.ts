@@ -6,6 +6,7 @@ export interface TextEditorOptions {
   layout: TextLayout
   maxLength: number
   canvas: Size
+  note?: { frame: Box; padding: number } | undefined
   onInput: (text: string, box: Box) => void
   onCommit: (text: string, box: Box) => void
 }
@@ -25,11 +26,11 @@ export class TextEditor {
     private readonly options: TextEditorOptions,
   ) {
     this.textarea = document.createElement("textarea")
-    this.textarea.className = "text-editor"
+    this.textarea.className = options.note === undefined ? "text-editor" : "text-editor note-editor"
     this.textarea.setAttribute("data-text-editor", "")
     this.textarea.setAttribute("aria-label", "Text")
     this.textarea.spellcheck = false
-    this.textarea.wrap = "off"
+    this.textarea.wrap = options.note === undefined ? "off" : "soft"
     this.textarea.maxLength = options.maxLength
     this.textarea.value = initialText
     this.textarea.style.fontSize = `${String(options.layout.fontSize)}px`
@@ -53,6 +54,7 @@ export class TextEditor {
   }
 
   box(): Box {
+    if (this.options.note !== undefined) return this.options.note.frame
     return textBox(
       this.origin,
       this.text(),
@@ -86,11 +88,21 @@ export class TextEditor {
 
   private place(): Box {
     const box = this.box()
+    const { note } = this.options
+    if (note !== undefined) return this.placeInNote(box, note.padding)
     const { fontSize } = this.options.layout
     this.textarea.style.left = `${String(box.x)}px`
     this.textarea.style.top = `${String(box.y)}px`
     this.textarea.style.width = `${String(box.width + fontSize)}px`
     this.textarea.style.height = `${String(box.height)}px`
+    return box
+  }
+
+  private placeInNote(box: Box, padding: number): Box {
+    this.textarea.style.left = `${String(box.x + padding)}px`
+    this.textarea.style.top = `${String(box.y + padding)}px`
+    this.textarea.style.width = `${String(Math.max(0, box.width - 2 * padding))}px`
+    this.textarea.style.height = `${String(Math.max(0, box.height - 2 * padding))}px`
     return box
   }
 

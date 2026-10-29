@@ -171,6 +171,10 @@ defmodule Sketch.Properties.GeometryTest do
       String.replace(text, [" ", "\t", "\n", "\r"], "") != ""
   end
 
+  defp text_fits?(:note, text) do
+    length(String.codepoints(text)) <= @max_text_length and not String.contains?(text, "\u0000")
+  end
+
   defp text_fits?(_kind, text), do: text == ""
 
   defp min_size(kind) when kind in [:arrow, :freedraw, :line], do: 0

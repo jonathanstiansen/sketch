@@ -391,6 +391,60 @@ defmodule Sketch.Canvas.ElementTest do
     end
   end
 
+  describe "note text (A08)" do
+    defp note(attrs) do
+      Map.merge(%{kind: :note, x: 10, y: 20, width: 200, height: 160, text: "sticky"}, attrs)
+    end
+
+    test "a note may be empty, whitespace or up to the maximum length", %{board: board} do
+      max = Geometry.max_text_length()
+
+      for text <- ["", " \n ", "<b>x</b>", String.duplicate("a", max)] do
+        assert {:ok, %{kind: :note, text: ^text}} =
+                 Canvas.create_element(note(%{text: text, board_id: board.id}))
+      end
+    end
+
+    test "a note needs a box of at least 1 by 1 and text within the maximum", %{board: board} do
+      max = Geometry.max_text_length()
+
+      for attrs <- [
+            note(%{width: 0}),
+            note(%{height: 0}),
+            note(%{text: String.duplicate("a", max + 1)}),
+            note(%{text: "a\u0000"})
+          ] do
+        assert {:error, _} = Canvas.create_element(Map.put(attrs, :board_id, board.id))
+      end
+    end
+
+    test "commit_shape resizes a note and may clear its text", %{board: board} do
+      element = Canvas.create_element!(note(%{board_id: board.id}))
+      box = %{x: 10, y: 20, width: 90, height: 60, points: []}
+
+      assert {:ok, %{width: 90, text: "sticky", version: 1}} =
+               Canvas.commit_shape(element.id, board.id, box)
+
+      assert {:ok, %{text: "", version: 2}} =
+               Canvas.commit_shape(element.id, board.id, Map.put(box, :text, ""))
+    end
+
+    test "the database accepts empty notes and rejects overlong ones", %{board: board} do
+      insert = fn text ->
+        Sketch.Repo.query(
+          "INSERT INTO elements (kind, x, y, width, height, text, board_id) VALUES ('note', 0, 0, 10, 10, $1, $2)",
+          [text, Ecto.UUID.dump!(board.id)],
+          mode: :savepoint
+        )
+      end
+
+      assert {:ok, _} = insert.("")
+
+      assert {:error, %Postgrex.Error{postgres: %{constraint: "text_length"}}} =
+               insert.(String.duplicate("a", Geometry.max_text_length() + 1))
+    end
+  end
+
   describe "version" do
     test "defaults to 0", %{board: board} do
       assert Canvas.create_element!(rectangle(%{x: 1, y: 2, board_id: board.id})).version == 0
