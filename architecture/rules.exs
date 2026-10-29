@@ -56,8 +56,12 @@
       id: "A08",
       rule: "Invalid coordinates and sizes cannot be persisted",
       status: :enforced,
-      enforcement: "Ash attribute constraints and the atomic FitsCanvas validation plus PostgreSQL CHECK constraints (addendum D1, D8); property tests compare Ash and raw SQL inserts over arbitrary boxes",
-      verified_by: ["test/sketch/canvas/element_test.exs", "test/sketch/properties/geometry_test.exs"]
+      enforcement: "Ash attribute constraints, the atomic FitsCanvas and PointsFitShape validations and per-kind minimum sizes, plus PostgreSQL CHECK constraints on the box and on line points (addendum D1, D8, ADR 0003); property tests compare Ash and raw SQL inserts over arbitrary boxes and points",
+      verified_by: [
+        "test/sketch/canvas/element_test.exs",
+        "test/sketch/properties/geometry_test.exs",
+        "test/sketch/properties/commit_model_test.exs"
+      ]
     },
     %{
       id: "A09",

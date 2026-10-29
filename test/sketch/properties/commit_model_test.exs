@@ -6,7 +6,8 @@ defmodule Sketch.Properties.CommitModelTest do
   alias Sketch.Canvas
   alias Sketch.Canvas.Geometry
 
-  @element_count 4
+  @kinds Canvas.element_kinds() ++ [:line]
+  @element_count length(@kinds)
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
 
@@ -14,49 +15,104 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp size(limit), do: one_of([integer(1..limit), member_of([0, 1, limit, limit + 1])])
 
+  defp point_within(width, height) do
+    fixed_map(%{
+      x: one_of([integer(0..max(width, 0)), member_of([-1, width + 1])]),
+      y: one_of([integer(0..max(height, 0)), member_of([-1, height + 1])])
+    })
+  end
+
+  defp box do
+    fixed_map(%{
+      x: coordinate(@canvas_width),
+      y: coordinate(@canvas_height),
+      width: size(@canvas_width),
+      height: size(@canvas_height)
+    })
+  end
+
+  defp shape do
+    bind(box(), fn box ->
+      bind(member_of([0, 1, 2, 2, 2, 3]), fn count ->
+        map(
+          list_of(point_within(box.width, box.height), length: count),
+          &Map.put(box, :points, &1)
+        )
+      end)
+    end)
+  end
+
+  defp canvas_point,
+    do:
+      fixed_map(%{x: integer(-50..(@canvas_width + 50)), y: integer(-50..(@canvas_height + 50))})
+
+  defp line_between_points do
+    map(tuple({canvas_point(), canvas_point()}), fn {a, b} ->
+      %{box: box, points: points} = Geometry.around_points([a, b])
+      Map.put(box, :points, points)
+    end)
+  end
+
   defp op do
+    index = integer(0..(@element_count - 1))
+
     one_of([
       tuple(
-        {member_of([:commit_position, :commit_position_wrong_board]),
-         integer(0..(@element_count - 1)),
+        {member_of([:commit_position, :commit_position_wrong_board]), index,
          fixed_map(%{x: coordinate(@canvas_width), y: coordinate(@canvas_height)})}
       ),
       tuple(
-        {member_of([:commit_shape, :commit_shape_wrong_board]), integer(0..(@element_count - 1)),
-         fixed_map(%{
-           x: coordinate(@canvas_width),
-           y: coordinate(@canvas_height),
-           width: size(@canvas_width),
-           height: size(@canvas_height)
-         })}
+        {member_of([:commit_shape, :commit_shape_wrong_board]), index,
+         one_of([shape(), line_between_points()])}
       )
     ])
   end
 
-  defp in_bounds?(%{x: x, y: y, width: width, height: height}) do
-    x >= 0 and y >= 0 and width >= 1 and height >= 1 and x + width <= @canvas_width and
-      y + height <= @canvas_height
+  defp valid_shape?(%{kind: kind, x: x, y: y, width: width, height: height, points: points}) do
+    min_size = min_size(kind)
+
+    x >= 0 and y >= 0 and width >= min_size and height >= min_size and
+      x + width <= @canvas_width and y + height <= @canvas_height and
+      length(points) == point_count(kind) and inside?(points, width, height)
   end
 
-  defp kind_at(index),
-    do: Enum.at(Canvas.element_kinds(), rem(index, length(Canvas.element_kinds())))
+  defp min_size(:line), do: 0
+  defp min_size(_box_kind), do: 1
+
+  defp point_count(:line), do: 2
+  defp point_count(_box_kind), do: 0
+
+  defp inside?(points, width, height),
+    do: Enum.all?(points, &(&1.x in 0..width//1 and &1.y in 0..height//1))
+
+  defp initial_shape(:line, box),
+    do: %{points: [%{x: 0, y: 0}, %{x: box.width, y: box.height}]}
+
+  defp initial_shape(_box_kind, _box), do: %{}
 
   defp seed_board do
     board = Canvas.create_board!()
     other_board = Canvas.create_board!()
 
     elements =
-      for index <- 0..(@element_count - 1) do
-        Canvas.create_element!(
-          Map.merge(Canvas.default_box(index), %{board_id: board.id, kind: kind_at(index)})
-        )
+      for {kind, index} <- Enum.with_index(@kinds) do
+        box = Canvas.default_box(index)
+
+        box
+        |> Map.merge(%{board_id: board.id, kind: kind})
+        |> Map.merge(initial_shape(kind, box))
+        |> Canvas.create_element!()
       end
 
     model = Map.new(Enum.with_index(elements), fn {element, i} -> {i, stored_box(element)} end)
     {board, other_board, elements, model}
   end
 
-  defp stored_box(element), do: Map.take(element, [:kind, :x, :y, :width, :height, :version])
+  defp stored_box(element) do
+    element
+    |> Canvas.element_event()
+    |> Map.take([:kind, :x, :y, :width, :height, :points, :version])
+  end
 
   defp run({action, index, input} = op, ctx, model) do
     element = Enum.at(ctx.elements, index)
@@ -74,7 +130,7 @@ defmodule Sketch.Properties.CommitModelTest do
        when action in [:commit_position, :commit_shape] do
     moved = Map.merge(model[index], input)
 
-    if in_bounds?(moved),
+    if valid_shape?(moved),
       do: Map.put(model, index, %{moved | version: moved.version + 1}),
       else: model
   end
@@ -101,7 +157,8 @@ defmodule Sketch.Properties.CommitModelTest do
       %Broadcast{topic: ^topic, event: event, payload: payload}
       when event in ["commit_position", "commit_shape"] ->
         index = Enum.find_index(ctx.elements, &(&1.id == payload.id))
-        [{event, index, stored_box(payload)} | received_commits(ctx, board)]
+        shape = Map.take(payload, [:kind, :x, :y, :width, :height, :points, :version])
+        [{event, index, shape} | received_commits(ctx, board)]
     after
       0 -> []
     end

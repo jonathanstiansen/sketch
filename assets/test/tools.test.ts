@@ -24,10 +24,12 @@ const expectedBindings: Record<string, ToolId> = {
   "3": "diamond",
   o: "ellipse",
   "4": "ellipse",
+  l: "line",
+  "6": "line",
   Escape: "selection",
 }
 
-const disabledTools = new Set<ToolId>(["arrow", "line", "draw", "text", "note", "eraser"])
+const disabledTools = new Set<ToolId>(["arrow", "draw", "text", "note", "eraser"])
 
 function modelTool(current: ToolId, input: KeyInput): ToolId {
   if (input.editable || input.ctrlKey || input.metaKey || input.altKey) return current
@@ -140,7 +142,7 @@ const pointerInput = fc.record({
   onHandle: fc.boolean(),
 })
 
-void test("the middle button, Space and Hand pan; Rectangle, Diamond and Ellipse draw; Selection resizes, moves or deselects", () => {
+void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse and Line draw; Selection resizes, moves or deselects", () => {
   fc.assert(
     fc.property(pointerInput, (input) => {
       const action = pointerAction(input)
@@ -148,7 +150,8 @@ void test("the middle button, Space and Hand pan; Rectangle, Diamond and Ellipse
       const pans = input.button === 1 || (primary && (input.spaceHeld || input.tool === "hand"))
       const selecting = primary && !pans && input.tool === "selection"
       assert.equal(action === "pan", pans)
-      assert.equal(action === "draw", primary && !pans && (input.tool === "rectangle" || input.tool === "diamond" || input.tool === "ellipse"))
+      const drawing = ["rectangle", "diamond", "ellipse", "line"].includes(input.tool)
+      assert.equal(action === "draw", primary && !pans && drawing)
       assert.equal(action === "resize", selecting && input.onHandle)
       assert.equal(action === "move", selecting && !input.onHandle && input.onElement)
       assert.equal(action === "deselect", selecting && !input.onHandle && !input.onElement)

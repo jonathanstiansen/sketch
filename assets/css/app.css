@@ -104,7 +104,7 @@
 
 /* This file is for your main application CSS */
 
-#canvas-viewport:is([data-tool="rectangle"], [data-tool="diamond"], [data-tool="ellipse"]) {
+#canvas-viewport:is([data-tool="rectangle"], [data-tool="diamond"], [data-tool="ellipse"], [data-tool="line"]) {
   cursor: crosshair;
 }
 
@@ -151,4 +151,9 @@
 .selection-handle-ne,
 .selection-handle-sw {
   cursor: nesw-resize;
+}
+
+.selection-handle-start,
+.selection-handle-end {
+  cursor: move;
 }

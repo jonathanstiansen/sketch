@@ -4,22 +4,28 @@ import {
   clickBox,
   cornerPoint,
   drawnBox,
+  endpointPoint,
   isDrag,
   movedBox,
+  movedEndpoint,
   previewDelay,
   resizedBox,
-  sameBox,
+  sameShape,
+  shapeAround,
   type Box,
   type Corner,
   type DragRef,
+  type Endpoint,
   type Point,
   type Preview,
+  type Shape,
   type Size,
 } from "./canvas_logic"
-import { DrawLayer, SelectionOverlay, isCorner, setBox } from "./selection"
+import { DrawLayer, SelectionOverlay, isCorner, isEndpoint, setShape } from "./selection"
 import {
   DEFAULT_TOOL,
   drawnKind,
+  isPointKind,
   isPanKey,
   nextTool,
   panScroll,
@@ -34,8 +40,9 @@ import {
 const STALE_PREVIEW_MS = 2000
 const DRAGGING = "data-dragging"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
-const BOX_ATTRIBUTES = ["x", "y", "width", "height", "points", "cx", "cy", "rx", "ry"]
-const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height"]
+const SEGMENT_ATTRIBUTES = ["x1", "y1", "x2", "y2"]
+const BOX_ATTRIBUTES = ["x", "y", "width", "height", "points", "cx", "cy", "rx", "ry", ...SEGMENT_ATTRIBUTES]
+const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", ...SEGMENT_ATTRIBUTES]
 
 interface Throttled {
   dragId: string
@@ -45,35 +52,33 @@ interface Throttled {
   previewTimer: number | undefined
 }
 
-interface Edit extends Throttled {
-  mode: "move" | "resize"
-  rect: SVGElement
-  elementId: string
-  baseVersion: number
-  grab: Point
-  corner: Corner
-  origin: Box
-  box: Box
-}
+type Grip = { mode: "move" } | { mode: "resize"; corner: Corner } | { mode: "endpoint"; endpoint: Endpoint }
+
+type Edit = Throttled &
+  Grip & {
+    rect: SVGElement
+    elementId: string
+    baseVersion: number
+    grab: Point
+    origin: Shape
+    shape: Shape
+  }
 
 interface Draw extends Throttled {
   mode: "draw"
   kind: DrawnKind
   start: Point
   dragged: boolean
-  box: Box
+  shape: Shape
 }
 
 type Gesture = Edit | Draw
 
-interface DrawPreview {
+interface DrawPreview extends Box {
   kind: DrawnKind
   drag_id: string
   seq: number
-  x: number
-  y: number
-  width: number
-  height: number
+  points: readonly Point[]
 }
 
 interface Pan {
@@ -111,6 +116,10 @@ function isBox(value: Record<string, unknown>): boolean {
   return ["x", "y", "width", "height"].every((key) => Number.isInteger(value[key]))
 }
 
+function isPoints(value: unknown): value is readonly Point[] {
+  return Array.isArray(value) && value.every((point) => isRecord(point) && Number.isInteger(point.x) && Number.isInteger(point.y))
+}
+
 function isDragRef(value: unknown): value is DragRef {
   return isRecord(value) && typeof value.element_id === "string" && typeof value.drag_id === "string"
 }
@@ -121,17 +130,20 @@ function isPreview(value: unknown): value is Preview {
     isRecord(value) &&
     Number.isInteger(value.seq) &&
     Number.isInteger(value.base_version) &&
-    isBox(value)
+    isBox(value) &&
+    isPoints(value.points)
   )
 }
 
 function isDrawPreview(value: unknown): value is DrawPreview {
   return (
     isRecord(value) &&
-    (value.kind === "rectangle" || value.kind === "diamond" || value.kind === "ellipse") &&
+    typeof value.kind === "string" &&
+    drawnKind(value.kind) !== undefined &&
     typeof value.drag_id === "string" &&
     Number.isInteger(value.seq) &&
-    isBox(value)
+    isBox(value) &&
+    isPoints(value.points)
   )
 }
 
@@ -152,13 +164,48 @@ function renderedBox(rect: Element): Box {
   }
 }
 
-function committedBox(rect: Element): Box {
-  return {
-    x: integerAttribute(rect, "data-x"),
-    y: integerAttribute(rect, "data-y"),
-    width: integerAttribute(rect, "data-width"),
-    height: integerAttribute(rect, "data-height"),
+function renderedPoints(shape: Element, box: Box): Point[] {
+  const segment = shape.querySelector("line[data-line-stroke]")
+  if (segment === null) return []
+  return [
+    { x: integerAttribute(segment, "x1") - box.x, y: integerAttribute(segment, "y1") - box.y },
+    { x: integerAttribute(segment, "x2") - box.x, y: integerAttribute(segment, "y2") - box.y },
+  ]
+}
+
+function renderedShape(shape: Element): Shape {
+  const box = renderedBox(shape)
+  return { box, points: renderedPoints(shape, box) }
+}
+
+function integerPair(pair: string): Point {
+  const [x, y] = pair.split(",").map(Number)
+  if (x === undefined || y === undefined || !Number.isInteger(x) || !Number.isInteger(y)) {
+    throw new Error("data-points must be integer pairs")
   }
+  return { x, y }
+}
+
+function committedPoints(shape: Element): Point[] {
+  const points = shape.getAttribute("data-points") ?? ""
+  return points === "" ? [] : points.split(" ").map(integerPair)
+}
+
+function committedShape(shape: Element): Shape {
+  const points = committedPoints(shape)
+  return {
+    box: {
+      x: integerAttribute(shape, "data-x"),
+      y: integerAttribute(shape, "data-y"),
+      width: integerAttribute(shape, "data-width"),
+      height: integerAttribute(shape, "data-height"),
+    },
+    points,
+  }
+}
+
+function showShape(element: Element, { box, points }: Shape): void {
+  setShape(element, box, points)
 }
 
 function subtract(a: Point, b: Point): Point {
@@ -166,12 +213,28 @@ function subtract(a: Point, b: Point): Point {
 }
 
 export function keepDraggedPosition(fromEl: Element, toEl: Element): void {
-  if (!fromEl.hasAttribute(DRAGGING)) return
-  toEl.setAttribute(DRAGGING, "")
+  if (fromEl.hasAttribute(DRAGGING)) {
+    toEl.setAttribute(DRAGGING, "")
+  } else if (fromEl.parentElement?.hasAttribute(DRAGGING) !== true) {
+    return
+  }
   for (const name of BOX_ATTRIBUTES) {
     const value = fromEl.getAttribute(name)
     if (value !== null) toEl.setAttribute(name, value)
   }
+}
+
+function gripPoint({ box, points }: Shape, grip: Grip): Point {
+  if (grip.mode === "resize") return cornerPoint(box, grip.corner)
+  if (grip.mode === "endpoint") return endpointPoint({ box, points }, grip.endpoint) ?? box
+  return box
+}
+
+function editedShape(edit: Edit, pointer: Point, canvas: Size): Shape {
+  const { box, points } = edit.origin
+  if (edit.mode === "resize") return { box: resizedBox(box, edit.corner, subtract(pointer, edit.grab), canvas), points }
+  if (edit.mode === "endpoint") return movedEndpoint(edit.origin, edit.endpoint, subtract(pointer, edit.grab), canvas)
+  return { box: movedBox(box, pointer, edit.grab, canvas), points }
 }
 
 export class Canvas extends ViewHook {
@@ -250,28 +313,29 @@ export class Canvas extends ViewHook {
     if (this.gesture !== undefined || this.pan !== undefined) return
     const target = event.target instanceof Element ? event.target : null
     const rect = target?.closest<SVGElement>("[data-element]") ?? null
-    const corner = target?.closest<SVGRectElement>("rect[data-handle]")?.dataset.handle
+    const handle = target?.closest<SVGRectElement>("rect[data-handle]")?.dataset.handle
     const action = pointerAction({
       button: event.button,
       tool: this.tool,
       spaceHeld: this.spaceHeld,
       onElement: rect !== null,
-      onHandle: isCorner(corner),
+      onHandle: isCorner(handle) || isEndpoint(handle),
     })
     if (action === "pan") this.startPan(event)
     const kind = drawnKind(this.tool)
     if (action === "draw" && kind !== undefined) this.startDraw(event, kind)
     if (action === "deselect") this.select(undefined)
-    if (action === "move" && rect !== null) this.startEdit(event, rect, "move", "nw")
-    if (action === "resize" && isCorner(corner)) this.startResize(event, corner)
+    if (action === "move" && rect !== null) this.startEdit(event, rect, { mode: "move" })
+    if (action === "resize" && isCorner(handle)) this.editSelected(event, { mode: "resize", corner: handle })
+    if (action === "resize" && isEndpoint(handle)) this.editSelected(event, { mode: "endpoint", endpoint: handle })
   }
 
-  private startResize(event: PointerEvent, corner: Corner): void {
+  private editSelected(event: PointerEvent, grip: Grip): void {
     const rect = this.selectedId === undefined ? null : this.elementFor(this.selectedId)
-    if (rect !== null) this.startEdit(event, rect, "resize", corner)
+    if (rect !== null) this.startEdit(event, rect, grip)
   }
 
-  private startEdit(event: PointerEvent, rect: SVGElement, mode: Edit["mode"], corner: Corner): void {
+  private startEdit(event: PointerEvent, rect: SVGElement, grip: Grip): void {
     const elementId = rect.dataset.element
     if (!this.online || elementId === undefined) return
 
@@ -280,19 +344,17 @@ export class Canvas extends ViewHook {
     this.el.setPointerCapture(event.pointerId)
     rect.setAttribute(DRAGGING, "")
     this.clearRemoteDrag(elementId)
-    const box = renderedBox(rect)
-    const anchor = mode === "move" ? box : cornerPoint(box, corner)
+    const shape = renderedShape(rect)
     this.gesture = {
-      mode,
+      ...grip,
       rect,
       elementId,
-      corner,
       dragId: crypto.randomUUID(),
       pointerId: event.pointerId,
       baseVersion: integerAttribute(rect, "data-version"),
-      grab: subtract(this.canvasPoint(event), anchor),
-      origin: box,
-      box,
+      grab: subtract(this.canvasPoint(event), gripPoint(shape, grip)),
+      origin: shape,
+      shape,
       seq: 0,
       lastSentAt: -Infinity,
       previewTimer: undefined,
@@ -310,7 +372,7 @@ export class Canvas extends ViewHook {
       kind,
       start,
       dragged: false,
-      box: drawnBox(start, start, this.canvasSize()),
+      shape: this.drawnShape(kind, start, start),
       dragId: crypto.randomUUID(),
       pointerId: event.pointerId,
       seq: 0,
@@ -336,21 +398,22 @@ export class Canvas extends ViewHook {
   }
 
   private updateEdit(edit: Edit, pointer: Point): void {
-    const canvas = this.canvasSize()
-    edit.box =
-      edit.mode === "move"
-        ? movedBox(edit.origin, pointer, edit.grab, canvas)
-        : resizedBox(edit.origin, edit.corner, subtract(pointer, edit.grab), canvas)
-    setBox(edit.rect, edit.box)
+    edit.shape = editedShape(edit, pointer, this.canvasSize())
+    showShape(edit.rect, edit.shape)
     this.schedulePreview(edit)
   }
 
   private updateDraw(draw: Draw, pointer: Point): void {
     draw.dragged ||= isDrag(draw.start, pointer)
     if (!draw.dragged) return
-    draw.box = drawnBox(draw.start, pointer, this.canvasSize())
-    setBox(this.draws.shape(draw.dragId, draw.kind), draw.box)
+    draw.shape = this.drawnShape(draw.kind, draw.start, pointer)
+    showShape(this.draws.shape(draw.dragId, draw.kind), draw.shape)
     this.schedulePreview(draw)
+  }
+
+  private drawnShape(kind: DrawnKind, start: Point, end: Point): Shape {
+    const canvas = this.canvasSize()
+    return isPointKind(kind) ? shapeAround([start, end], canvas) : { box: drawnBox(start, end, canvas), points: [] }
   }
 
   private onPointerUp = (event: PointerEvent): void => {
@@ -366,18 +429,21 @@ export class Canvas extends ViewHook {
   }
 
   private finishEdit(edit: Edit): void {
-    if (sameBox(edit.box, edit.origin)) return
+    if (sameShape(edit.shape, edit.origin)) return
     const ref = { element_id: edit.elementId, drag_id: edit.dragId }
     if (edit.mode === "move") {
-      void this.pushEvent("commit", { ...ref, x: edit.box.x, y: edit.box.y })
+      void this.pushEvent("commit", { ...ref, x: edit.shape.box.x, y: edit.shape.box.y })
     } else {
-      void this.pushEvent("commit_shape", { ...ref, ...edit.box })
+      void this.pushEvent("commit_shape", { ...ref, ...edit.shape.box, points: edit.shape.points })
     }
   }
 
   private finishDraw(draw: Draw): void {
-    const box = draw.dragged ? draw.box : clickBox(draw.start, this.defaultSize(), this.canvasSize())
-    void this.pushEvent("create_element", { kind: draw.kind, drag_id: draw.dragId, ...box }).finally(
+    if (!draw.dragged && isPointKind(draw.kind)) return
+    const { box, points } = draw.dragged
+      ? draw.shape
+      : { box: clickBox(draw.start, this.defaultSize(), this.canvasSize()), points: [] }
+    void this.pushEvent("create_element", { kind: draw.kind, drag_id: draw.dragId, ...box, points }).finally(
       () => {
         this.draws.remove(draw.dragId)
       },
@@ -490,7 +556,8 @@ export class Canvas extends ViewHook {
       this.selectedId = undefined
       this.selection.hide()
     } else {
-      this.selection.show(renderedBox(rect))
+      const { box, points } = renderedShape(rect)
+      this.selection.show(box, points)
     }
   }
 
@@ -499,7 +566,7 @@ export class Canvas extends ViewHook {
     if (gesture.mode === "draw") {
       this.draws.remove(gesture.dragId)
     } else {
-      setBox(gesture.rect, gesture.origin)
+      showShape(gesture.rect, gesture.origin)
     }
   }
 
@@ -528,7 +595,8 @@ export class Canvas extends ViewHook {
         kind: gesture.kind,
         drag_id: gesture.dragId,
         seq: gesture.seq,
-        ...gesture.box,
+        ...gesture.shape.box,
+        points: gesture.shape.points,
       })
     } else {
       void this.pushEvent("preview", {
@@ -536,7 +604,8 @@ export class Canvas extends ViewHook {
         drag_id: gesture.dragId,
         seq: gesture.seq,
         base_version: gesture.baseVersion,
-        ...gesture.box,
+        ...gesture.shape.box,
+        points: gesture.shape.points,
       })
     }
   }
@@ -549,7 +618,7 @@ export class Canvas extends ViewHook {
     this.restartStaleTimer(preview.element_id, () => {
       this.cancelRemoteDrag(preview)
     })
-    setBox(rect, preview)
+    setShape(rect, preview, preview.points)
   }
 
   private applyRemoteDraw(preview: DrawPreview): void {
@@ -559,7 +628,7 @@ export class Canvas extends ViewHook {
     this.restartStaleTimer(preview.drag_id, () => {
       this.endRemoteDraw(preview.drag_id)
     })
-    setBox(this.draws.shape(preview.drag_id, preview.kind), preview)
+    setShape(this.draws.shape(preview.drag_id, preview.kind), preview, preview.points)
   }
 
   private endRemoteDraw(dragId: string): void {
@@ -592,7 +661,7 @@ export class Canvas extends ViewHook {
   private revert(elementId: string): void {
     if (this.editedElementId() === elementId) return
     const rect = this.elementFor(elementId)
-    if (rect !== null) setBox(rect, committedBox(rect))
+    if (rect !== null) showShape(rect, committedShape(rect))
   }
 
   private editedElementId(): string | undefined {

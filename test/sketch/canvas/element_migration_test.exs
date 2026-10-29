@@ -11,8 +11,19 @@ defmodule Sketch.Canvas.ElementMigrationTest do
                     __DIR__
                   )
 
+  @line_points 20_261_029_090_747
+  @line_points_migration Sketch.Repo.Migrations.LinePoints
+  @line_points_file Path.expand(
+                      "../../../priv/repo/migrations/20261029090747_line_points.exs",
+                      __DIR__
+                    )
+
   setup_all do
     unless Code.ensure_loaded?(@migration), do: Code.require_file(@migration_file)
+
+    unless Code.ensure_loaded?(@line_points_migration),
+      do: Code.require_file(@line_points_file)
+
     :ok
   end
 
@@ -47,6 +58,37 @@ defmodule Sketch.Canvas.ElementMigrationTest do
     assert map_size(stored) == 2
 
     assert {:ok, %{version: 8, width: 1}} =
-             Canvas.commit_shape(corner, board.id, %{x: 3999, y: 3999, width: 1, height: 1})
+             Canvas.commit_shape(corner, board.id, %{
+               x: 3999,
+               y: 3999,
+               width: 1,
+               height: 1,
+               points: []
+             })
+  end
+
+  test "adding points gives every existing element an empty list and keeps it committable" do
+    board = Canvas.create_board!()
+
+    existing =
+      Canvas.create_element!(%{
+        kind: :rectangle,
+        x: 1,
+        y: 2,
+        width: 3,
+        height: 4,
+        board_id: board.id
+      })
+
+    assert :ok =
+             Ecto.Migrator.down(Repo, @line_points, @line_points_migration, @migrator_opts)
+
+    assert :ok = Ecto.Migrator.up(Repo, @line_points, @line_points_migration, @migrator_opts)
+
+    assert [%{id: id, points: [], version: 0}] = Canvas.list_elements_for_board!(board.id)
+    assert id == existing.id
+
+    assert {:ok, %{version: 1}} =
+             Canvas.commit_shape(id, board.id, %{x: 1, y: 2, width: 5, height: 5, points: []})
   end
 end

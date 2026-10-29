@@ -40,7 +40,9 @@ defmodule Sketch.Canvas do
 
   defdelegate default_box(element_count), to: Sketch.Canvas.Geometry
 
-  defdelegate clamp_box(box), to: Sketch.Canvas.Geometry
+  defdelegate fit_shape(kind, box, points), to: Sketch.Canvas.Geometry
+
+  defdelegate point_kinds, to: Sketch.Canvas.Geometry
 
   @doc "A client's merged view of a board, built from element events (ADR 0001)."
   defdelegate new_board_state(element_events), to: Sketch.Canvas.BoardState, as: :new

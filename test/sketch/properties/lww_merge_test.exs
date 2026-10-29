@@ -11,15 +11,18 @@ defmodule Sketch.Properties.LwwMergeTest do
   defp payload(_commit, id), do: element_payload(id, integer(1..12))
 
   defp element_payload(id, version) do
-    bind(tuple({integer(1..400), integer(1..400)}), fn {width, height} ->
+    bind(tuple({integer(0..400), integer(0..400)}), fn {width, height} ->
+      point = fixed_map(%{x: integer(0..width), y: integer(0..height)})
+
       fixed_map(%{
         id: constant(id),
-        kind: constant(:rectangle),
+        kind: member_of(Sketch.Canvas.element_kinds()),
         version: version,
         x: integer(0..(Geometry.canvas_width() - width)),
         y: integer(0..(Geometry.canvas_height() - height)),
         width: constant(width),
-        height: constant(height)
+        height: constant(height),
+        points: list_of(point, max_length: Geometry.max_points())
       })
     end)
   end

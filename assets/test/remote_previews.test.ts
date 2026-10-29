@@ -45,6 +45,7 @@ function previewsOf({ dragId, baseVersion, positions }: Drag): Preview[] {
     seq: index + 1,
     base_version: baseVersion,
     ...position,
+    points: [],
   }))
 }
 

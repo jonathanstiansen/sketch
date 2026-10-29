@@ -1,11 +1,23 @@
-import { CORNERS, cornerPoint, type Box, type Corner } from "./canvas_logic"
+import {
+  CORNERS,
+  ENDPOINTS,
+  absolutePoints,
+  cornerPoint,
+  type Box,
+  type Corner,
+  type Endpoint,
+  type Point,
+} from "./canvas_logic"
 import type { DrawnKind } from "./tools"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
 const OUTLINE_GAP = 4
+const LINE_SEGMENTS = "line[data-line-hit], line[data-line-stroke]"
 
-function svgShape<K extends "rect" | "polygon" | "ellipse">(tag: K, attributes: Record<string, string>): SVGElementTagNameMap[K] {
+type ShapeTag = "rect" | "polygon" | "ellipse" | "line"
+
+function svgShape<K extends ShapeTag>(tag: K, attributes: Record<string, string>): SVGElementTagNameMap[K] {
   const shape = document.createElementNS(SVG_NS, tag)
   for (const [name, value] of Object.entries(attributes)) shape.setAttribute(name, value)
   return shape
@@ -35,6 +47,21 @@ export function setBox(shape: Element, box: Box): void {
   if (shape.localName === "ellipse") setEllipse(shape, box)
 }
 
+export function setShape(shape: Element, box: Box, points: readonly Point[]): void {
+  setBox(shape, box)
+  const segments = shape.localName === "line" ? [shape] : shape.querySelectorAll(LINE_SEGMENTS)
+  const [start, end] = absolutePoints({ box, points })
+  if (start === undefined || end === undefined) return
+  for (const segment of segments) setSegment(segment, start, end)
+}
+
+function setSegment(segment: Element, start: Point, end: Point): void {
+  segment.setAttribute("x1", String(start.x))
+  segment.setAttribute("y1", String(start.y))
+  segment.setAttribute("x2", String(end.x))
+  segment.setAttribute("y2", String(end.y))
+}
+
 function setEllipse(shape: Element, { x, y, width, height }: Box): void {
   shape.setAttribute("cx", String(x + width / 2))
   shape.setAttribute("cy", String(y + height / 2))
@@ -42,44 +69,69 @@ function setEllipse(shape: Element, { x, y, width, height }: Box): void {
   shape.setAttribute("ry", String(height / 2))
 }
 
-const PREVIEW_TAGS = { rectangle: "rect", diamond: "polygon", ellipse: "ellipse" } as const
+const PREVIEW_TAGS = { rectangle: "rect", diamond: "polygon", ellipse: "ellipse", line: "line" } as const
 
 export function isCorner(value: string | undefined): value is Corner {
   return CORNERS.some((corner) => corner === value)
 }
 
+export function isEndpoint(value: string | undefined): value is Endpoint {
+  return ENDPOINTS.some((endpoint) => endpoint === value)
+}
+
+function handle(name: Corner | Endpoint): SVGRectElement {
+  return svgRect({
+    "data-handle": name,
+    width: String(HANDLE_SIZE),
+    height: String(HANDLE_SIZE),
+    class: `selection-handle selection-handle-${name}`,
+  })
+}
+
+function placeHandle(rect: SVGRectElement, { x, y }: Point): void {
+  rect.setAttribute("x", String(x - HANDLE_SIZE / 2))
+  rect.setAttribute("y", String(y - HANDLE_SIZE / 2))
+}
+
 export class SelectionOverlay {
   private readonly outline: SVGRectElement
-  private readonly handles: Map<Corner, SVGRectElement>
+  private readonly corners: Map<Corner, SVGRectElement>
+  private readonly endpoints: Map<Endpoint, SVGRectElement>
 
   constructor(private readonly layer: Element) {
     this.outline = svgRect({ "data-selection-outline": "", class: "selection-outline" })
-    this.handles = new Map(
-      CORNERS.map((corner) => [
-        corner,
-        svgRect({
-          "data-handle": corner,
-          width: String(HANDLE_SIZE),
-          height: String(HANDLE_SIZE),
-          class: `selection-handle selection-handle-${corner}`,
-        }),
-      ]),
-    )
+    this.corners = new Map(CORNERS.map((corner) => [corner, handle(corner)]))
+    this.endpoints = new Map(ENDPOINTS.map((endpoint) => [endpoint, handle(endpoint)]))
   }
 
-  show(box: Box): void {
+  show(box: Box, points: readonly Point[]): void {
+    if (points.length > 0) {
+      this.showEndpoints(box, points)
+    } else {
+      this.showBox(box)
+    }
+  }
+
+  private showBox(box: Box): void {
     setBox(this.outline, {
       x: box.x - OUTLINE_GAP,
       y: box.y - OUTLINE_GAP,
       width: box.width + 2 * OUTLINE_GAP,
       height: box.height + 2 * OUTLINE_GAP,
     })
-    for (const [corner, handle] of this.handles) {
-      const { x, y } = cornerPoint(box, corner)
-      handle.setAttribute("x", String(x - HANDLE_SIZE / 2))
-      handle.setAttribute("y", String(y - HANDLE_SIZE / 2))
-    }
-    if (this.outline.parentNode !== this.layer) this.layer.replaceChildren(this.outline, ...this.handles.values())
+    for (const [corner, rect] of this.corners) placeHandle(rect, cornerPoint(box, corner))
+    if (this.outline.parentNode !== this.layer) this.layer.replaceChildren(this.outline, ...this.corners.values())
+  }
+
+  private showEndpoints(box: Box, points: readonly Point[]): void {
+    const absolute = absolutePoints({ box, points })
+    ENDPOINTS.forEach((endpoint, index) => {
+      const rect = this.endpoints.get(endpoint)
+      const at = absolute[index]
+      if (rect !== undefined && at !== undefined) placeHandle(rect, at)
+    })
+    const [first] = this.endpoints.values()
+    if (first?.parentNode !== this.layer) this.layer.replaceChildren(...this.endpoints.values())
   }
 
   hide(): void {

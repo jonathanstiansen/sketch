@@ -1,0 +1,23 @@
+diff --git a/assets/js/hooks/canvas_logic.ts b/assets/js/hooks/canvas_logic.ts
+index 1b4f99c..c2d3219 100644
+--- a/assets/js/hooks/canvas_logic.ts
++++ b/assets/js/hooks/canvas_logic.ts
+@@ -134,10 +134,14 @@ export function endpointPoint(shape: Shape, endpoint: Endpoint): Point | undefin
+ 
+ export function movedEndpoint(shape: Shape, endpoint: Endpoint, pointer: Point, canvas: Size): Shape {
+   const moved = ENDPOINTS.indexOf(endpoint)
+-  return shapeAround(
+-    absolutePoints(shape).map((point, index) => (index === moved ? pointer : point)),
+-    canvas,
+-  )
++  const { box } = shape
++  return {
++    box,
++    points: shapeAround(
++      absolutePoints(shape).map((point, index) => (index === moved ? pointer : point)),
++      canvas,
++    ).points,
++  }
+ }
+ 
+ export function previewDelay(

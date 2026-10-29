@@ -14,6 +14,15 @@ export interface Size {
 
 export interface Box extends Point, Size {}
 
+export interface Shape {
+  box: Box
+  points: readonly Point[]
+}
+
+export type Endpoint = "start" | "end"
+
+export const ENDPOINTS: readonly Endpoint[] = ["start", "end"]
+
 export type Corner = "nw" | "ne" | "sw" | "se"
 
 export const CORNERS: readonly Corner[] = ["nw", "ne", "sw", "se"]
@@ -26,6 +35,7 @@ export interface DragRef {
 export interface Preview extends DragRef, Box {
   seq: number
   base_version: number
+  points: readonly Point[]
 }
 
 export function clamp(value: number, max: number): number {
@@ -88,6 +98,46 @@ export function resizedBox(box: Box, corner: Corner, pointer: Point, canvas: Siz
 
 export function sameBox(a: Box, b: Box): boolean {
   return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+}
+
+function samePoint(a: Point, b: Point | undefined): boolean {
+  return a.x === b?.x && a.y === b.y
+}
+
+export function sameShape(a: Shape, b: Shape): boolean {
+  return (
+    sameBox(a.box, b.box) &&
+    a.points.length === b.points.length &&
+    a.points.every((point, index) => samePoint(point, b.points[index]))
+  )
+}
+
+export function absolutePoints({ box, points }: Shape): Point[] {
+  return points.map(({ x, y }) => ({ x: box.x + x, y: box.y + y }))
+}
+
+export function shapeAround(points: readonly Point[], canvas: Size): Shape {
+  const clamped = points.map((point) => clampToCanvas(point, canvas))
+  const xs = clamped.map(({ x }) => x)
+  const ys = clamped.map(({ y }) => y)
+  const x = Math.min(...xs)
+  const y = Math.min(...ys)
+  return {
+    box: { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y },
+    points: clamped.map((point) => ({ x: point.x - x, y: point.y - y })),
+  }
+}
+
+export function endpointPoint(shape: Shape, endpoint: Endpoint): Point | undefined {
+  return absolutePoints(shape)[ENDPOINTS.indexOf(endpoint)]
+}
+
+export function movedEndpoint(shape: Shape, endpoint: Endpoint, pointer: Point, canvas: Size): Shape {
+  const moved = ENDPOINTS.indexOf(endpoint)
+  return shapeAround(
+    absolutePoints(shape).map((point, index) => (index === moved ? pointer : point)),
+    canvas,
+  )
 }
 
 export function previewDelay(

@@ -12,7 +12,7 @@ defmodule SketchWeb.Toolbar do
     %{id: "diamond", label: "Diamond", keys: ["D", "3"], enabled: true},
     %{id: "ellipse", label: "Ellipse", keys: ["O", "4"], enabled: true},
     %{id: "arrow", label: "Arrow", keys: ["A", "5"], enabled: false},
-    %{id: "line", label: "Line", keys: ["L", "6"], enabled: false},
+    %{id: "line", label: "Line", keys: ["L", "6"], enabled: true},
     %{id: "draw", label: "Draw", keys: ["P", "7"], enabled: false},
     %{id: "text", label: "Text", keys: ["T", "8"], enabled: false},
     %{id: "note", label: "Note", keys: ["N", "9"], enabled: false},
