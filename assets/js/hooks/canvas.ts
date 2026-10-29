@@ -7,9 +7,21 @@ import {
   type Point,
   type Preview,
 } from "./canvas_logic"
+import {
+  DEFAULT_TOOL,
+  isPanKey,
+  nextTool,
+  panScroll,
+  pointerAction,
+  selectTool,
+  togglesHelp,
+  type KeyInput,
+  type ToolId,
+} from "./tools"
 
 const STALE_PREVIEW_MS = 2000
 const DRAGGING = "data-dragging"
+const SELECT_TOOL_EVENT = "sketch:select-tool"
 
 interface LocalDrag {
   rect: SVGRectElement
@@ -24,6 +36,33 @@ interface LocalDrag {
   seq: number
   lastSentAt: number
   previewTimer: number | undefined
+}
+
+interface Pan {
+  pointerId: number
+  startPointer: Point
+  startScroll: Point
+}
+
+function isEditable(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || target.closest("input, textarea, select") !== null)
+  )
+}
+
+function keyInput(event: KeyboardEvent): KeyInput {
+  return {
+    key: event.key,
+    ctrlKey: event.ctrlKey,
+    metaKey: event.metaKey,
+    altKey: event.altKey,
+    editable: event.isComposing || isEditable(event.target),
+  }
+}
+
+function clientPoint(event: PointerEvent): Point {
+  return { x: event.clientX, y: event.clientY }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -86,8 +125,16 @@ export class Canvas extends ViewHook {
   private remotePreviews = new RemotePreviews()
   private staleTimers = new Map<string, number>()
   private online = true
+  private tool: ToolId = DEFAULT_TOOL
+  private spaceHeld = false
+  private pannedWithSpace = false
+  private pan: Pan | undefined
 
   override mounted(): void {
+    window.addEventListener("keydown", this.onKeyDown)
+    window.addEventListener("keyup", this.onKeyUp)
+    window.addEventListener("blur", this.releaseSpace)
+    this.el.addEventListener(SELECT_TOOL_EVENT, this.onSelectTool)
     this.el.addEventListener("pointerdown", this.onPointerDown)
     this.el.addEventListener("pointermove", this.onPointerMove)
     this.el.addEventListener("pointerup", this.onPointerUp)
@@ -116,15 +163,30 @@ export class Canvas extends ViewHook {
   }
 
   override destroyed(): void {
+    window.removeEventListener("keydown", this.onKeyDown)
+    window.removeEventListener("keyup", this.onKeyUp)
+    window.removeEventListener("blur", this.releaseSpace)
     if (this.drag !== undefined) window.clearTimeout(this.drag.previewTimer)
     for (const timer of this.staleTimers.values()) window.clearTimeout(timer)
   }
 
   private onPointerDown = (event: PointerEvent): void => {
-    if (!this.online || this.drag !== undefined || event.button !== 0) return
+    if (this.drag !== undefined || this.pan !== undefined) return
     const rect = event.target instanceof SVGRectElement ? event.target : null
-    const rectangleId = rect?.dataset.rect
-    if (rect === null || rectangleId === undefined) return
+    const action = pointerAction({
+      button: event.button,
+      tool: this.tool,
+      spaceHeld: this.spaceHeld,
+      onRectangle: rect?.dataset.rect !== undefined,
+    })
+    if (action === "pan") this.startPan(event)
+    if (action === "create") this.createAt(event)
+    if (action === "drag" && rect !== null) this.startDrag(event, rect)
+  }
+
+  private startDrag(event: PointerEvent, rect: SVGRectElement): void {
+    const rectangleId = rect.dataset.rect
+    if (!this.online || rectangleId === undefined) return
 
     event.preventDefault()
     rect.setPointerCapture(event.pointerId)
@@ -149,6 +211,11 @@ export class Canvas extends ViewHook {
   }
 
   private onPointerMove = (event: PointerEvent): void => {
+    if (this.pan?.pointerId === event.pointerId) {
+      const scroll = panScroll(this.pan.startScroll, this.pan.startPointer, clientPoint(event))
+      this.el.scrollTo(scroll.x, scroll.y)
+      return
+    }
     const drag = this.drag
     if (drag?.pointerId !== event.pointerId) return
     drag.position = dragPosition(this.canvasPoint(event), drag.grab, drag.max)
@@ -157,6 +224,7 @@ export class Canvas extends ViewHook {
   }
 
   private onPointerUp = (event: PointerEvent): void => {
+    if (this.pan?.pointerId === event.pointerId) this.endPan()
     const drag = this.drag
     if (drag?.pointerId !== event.pointerId) return
     this.endDrag(drag)
@@ -170,11 +238,93 @@ export class Canvas extends ViewHook {
     })
   }
 
-  private onPointerCancel = (): void => {
+  private onPointerCancel = (event: PointerEvent): void => {
+    if (this.pan?.pointerId === event.pointerId) this.endPan()
     const drag = this.drag
     if (drag === undefined) return
     this.abandonDrag(drag)
     void this.pushEvent("drag_cancel", { rectangle_id: drag.rectangleId, drag_id: drag.dragId })
+  }
+
+  private onKeyDown = (event: KeyboardEvent): void => {
+    const input = keyInput(event)
+    if (isPanKey(input)) {
+      if (!(event.target instanceof HTMLButtonElement)) event.preventDefault()
+      this.setSpaceHeld(true)
+      return
+    }
+    if (togglesHelp(input)) this.toggleHelp()
+    if (input.key === "Escape") this.hideHelp()
+    this.useTool(nextTool(this.tool, input))
+  }
+
+  private onKeyUp = (event: KeyboardEvent): void => {
+    if (event.key !== " ") return
+    if (this.pannedWithSpace) event.preventDefault()
+    this.releaseSpace()
+  }
+
+  private releaseSpace = (): void => {
+    this.pannedWithSpace = false
+    this.setSpaceHeld(false)
+  }
+
+  private onSelectTool = (event: Event): void => {
+    if (event instanceof CustomEvent && isRecord(event.detail) && typeof event.detail.tool === "string") {
+      this.useTool(selectTool(this.tool, event.detail.tool))
+    }
+  }
+
+  private useTool(tool: ToolId): void {
+    if (tool === this.tool) return
+    this.tool = tool
+    this.js().setAttribute(this.el, "data-tool", tool)
+    for (const button of document.querySelectorAll<HTMLElement>("[data-tool-button]")) {
+      this.js().setAttribute(button, "aria-pressed", String(button.dataset.toolButton === tool))
+    }
+  }
+
+  private setSpaceHeld(held: boolean): void {
+    if (held === this.spaceHeld) return
+    this.spaceHeld = held
+    this.js().setAttribute(this.el, "data-space-held", String(held))
+  }
+
+  private toggleHelp(): void {
+    const command = document.getElementById("shortcuts-help-button")?.getAttribute("phx-click")
+    if (command != null) this.js().exec(command)
+  }
+
+  private hideHelp(): void {
+    const command = document.getElementById("shortcuts-help")?.getAttribute("data-hide")
+    if (command != null) this.js().exec(command)
+  }
+
+  private startPan(event: PointerEvent): void {
+    event.preventDefault()
+    this.pannedWithSpace = this.spaceHeld
+    this.el.setPointerCapture(event.pointerId)
+    this.pan = {
+      pointerId: event.pointerId,
+      startPointer: clientPoint(event),
+      startScroll: { x: this.el.scrollLeft, y: this.el.scrollTop },
+    }
+    this.js().setAttribute(this.el, "data-panning", "true")
+  }
+
+  private endPan(): void {
+    const pan = this.pan
+    if (pan === undefined) return
+    this.pan = undefined
+    this.js().setAttribute(this.el, "data-panning", "false")
+    if (this.el.hasPointerCapture(pan.pointerId)) this.el.releasePointerCapture(pan.pointerId)
+  }
+
+  private createAt(event: PointerEvent): void {
+    if (!this.online) return
+    event.preventDefault()
+    const { x, y } = this.canvasPoint(event)
+    void this.pushEvent("create_at", { x: Math.round(x), y: Math.round(y) })
   }
 
   private abandonDrag(drag: LocalDrag): void {

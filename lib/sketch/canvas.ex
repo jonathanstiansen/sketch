@@ -31,6 +31,8 @@ defmodule Sketch.Canvas do
 
   defdelegate default_position(rectangle_count), to: Sketch.Canvas.Geometry
 
+  defdelegate clamp_position(position), to: Sketch.Canvas.Geometry
+
   @doc "A client's merged view of a board, built from rectangle events (ADR 0001)."
   defdelegate new_board_state(rectangle_events), to: Sketch.Canvas.BoardState, as: :new
 

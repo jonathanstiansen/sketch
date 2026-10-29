@@ -33,6 +33,12 @@ defmodule Sketch.Canvas.Geometry do
     {@cascade_start + offset, @cascade_start + offset}
   end
 
+  @doc "The nearest valid rectangle position to `{x, y}`."
+  @spec clamp_position({integer(), integer()}) :: {non_neg_integer(), non_neg_integer()}
+  def clamp_position({x, y}), do: {clamp(x, max_x()), clamp(y, max_y())}
+
+  defp clamp(value, max), do: value |> max(0) |> min(max)
+
   @spec dimensions() :: t()
   def dimensions do
     %{

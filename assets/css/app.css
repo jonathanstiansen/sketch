@@ -103,3 +103,20 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+#canvas-viewport[data-tool="rectangle"] {
+  cursor: crosshair;
+}
+
+#canvas-viewport:is([data-tool="hand"], [data-space-held="true"]) {
+  cursor: grab;
+}
+
+#canvas-viewport[data-panning="true"] {
+  cursor: grabbing;
+}
+
+#canvas-viewport:not([data-tool="selection"]) rect[data-rect],
+#canvas-viewport:is([data-space-held="true"], [data-panning="true"]) rect[data-rect] {
+  cursor: inherit;
+}

@@ -20,15 +20,17 @@ defmodule SketchWeb.BoardLive do
 
   @impl true
   def handle_event("add-rectangle", _params, socket) do
-    {x, y} =
-      Sketch.Canvas.default_position(
-        Sketch.Canvas.board_rectangle_count(socket.assigns.board_state)
-      )
+    socket.assigns.board_state
+    |> Sketch.Canvas.board_rectangle_count()
+    |> Sketch.Canvas.default_position()
+    |> create_rectangle(socket)
+  end
 
-    case Sketch.Canvas.create_rectangle(%{board_id: socket.assigns.board_id, x: x, y: y}) do
-      {:ok, _rectangle} -> {:noreply, socket}
-      {:error, _error} -> {:noreply, put_flash(socket, :error, "Could not add rectangle")}
-    end
+  def handle_event("create_at", %{"x" => x, "y" => y}, socket)
+      when is_integer(x) and is_integer(y) do
+    {x, y}
+    |> Sketch.Canvas.clamp_position()
+    |> create_rectangle(socket)
   end
 
   def handle_event(
@@ -78,7 +80,8 @@ defmodule SketchWeb.BoardLive do
     end
   end
 
-  def handle_event(event, _params, socket) when event in ~w(preview drag_cancel commit) do
+  def handle_event(event, _params, socket)
+      when event in ~w(create_at preview drag_cancel commit) do
     {:noreply, socket}
   end
 
@@ -107,18 +110,27 @@ defmodule SketchWeb.BoardLive do
     ~H"""
     <Layouts.app flash={@flash}>
       <div class="flex h-screen flex-col">
-        <div class="flex flex-wrap items-center gap-4 p-4">
-          <button id="add-rectangle" class="btn btn-primary" phx-click="add-rectangle">
+        <div class="relative flex flex-wrap items-center justify-center gap-4 p-4 md:grid md:grid-cols-[1fr_auto_1fr]">
+          <button
+            id="add-rectangle"
+            class="btn btn-primary md:justify-self-start"
+            phx-click="add-rectangle"
+          >
             Add rectangle
           </button>
-          <p>
+          <SketchWeb.Toolbar.toolbar />
+          <p class="min-w-0 text-sm md:justify-self-end md:text-right">
             Share this board:
-            <a id="board-url" class="link" href={~p"/b/#{@board_id}"}>{url(~p"/b/#{@board_id}")}</a>
+            <a id="board-url" class="link block truncate" href={~p"/b/#{@board_id}"}>
+              {url(~p"/b/#{@board_id}")}
+            </a>
           </p>
+          <SketchWeb.Toolbar.shortcuts_help />
         </div>
         <div
           id="canvas-viewport"
           phx-hook="Canvas"
+          data-tool="selection"
           data-max-x={@geometry.max_x}
           data-max-y={@geometry.max_y}
           class="min-h-0 flex-1 overflow-auto border-t border-base-300"
@@ -151,6 +163,13 @@ defmodule SketchWeb.BoardLive do
       </div>
     </Layouts.app>
     """
+  end
+
+  defp create_rectangle({x, y}, socket) do
+    case Sketch.Canvas.create_rectangle(%{board_id: socket.assigns.board_id, x: x, y: y}) do
+      {:ok, _rectangle} -> {:noreply, socket}
+      {:error, _error} -> {:noreply, put_flash(socket, :error, "Could not add rectangle")}
+    end
   end
 
   defp broadcast_preview(socket, event, payload) do
