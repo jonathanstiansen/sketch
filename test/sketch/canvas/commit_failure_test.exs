@@ -2,19 +2,19 @@ defmodule Sketch.Canvas.CommitFailureTest do
   use Sketch.DataCase
 
   alias Sketch.Canvas
-  alias Sketch.Canvas.Rectangle
+  alias Sketch.Canvas.Element
 
   setup do
     board = Canvas.create_board!()
     :ok = SketchWeb.Endpoint.subscribe("board:#{board.id}")
-    rectangle = Canvas.create_rectangle!(%{x: 100, y: 100, board_id: board.id})
+    rectangle = Canvas.create_element!(rectangle(%{x: 100, y: 100, board_id: board.id}))
     assert_receive %Phoenix.Socket.Broadcast{event: "create"}
     %{board: board, rectangle: rectangle}
   end
 
   defp stored_version(board, rectangle) do
     board.id
-    |> Canvas.list_rectangles_for_board!()
+    |> Canvas.list_elements_for_board!()
     |> Enum.find(&(&1.id == rectangle.id))
     |> Map.take([:x, :y, :version])
   end
@@ -31,9 +31,9 @@ defmodule Sketch.Canvas.CommitFailureTest do
   test "a commit rolled back with its transaction sends no notification", ctx do
     %{board: board, rectangle: rectangle} = ctx
 
-    Ash.transact(Rectangle, fn ->
+    Ash.transact(Element, fn ->
       Canvas.commit_position!(rectangle.id, board.id, %{x: 500, y: 500})
-      Ash.DataLayer.rollback(Rectangle, :abort)
+      Ash.DataLayer.rollback(Element, :abort)
     end)
 
     refute_receive %Phoenix.Socket.Broadcast{}, 100

@@ -21,6 +21,18 @@
       "references": null,
       "scale": null,
       "size": null,
+      "source": "kind",
+      "type": "text"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
       "source": "x",
       "type": "bigint"
     },
@@ -34,6 +46,30 @@
       "scale": null,
       "size": null,
       "source": "y",
+      "type": "bigint"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "width",
+      "type": "bigint"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "height",
       "type": "bigint"
     },
     {
@@ -71,7 +107,7 @@
         "destination_attribute": "id",
         "destination_attribute_default": null,
         "destination_attribute_generated": null,
-        "index?": false,
+        "index?": true,
         "index_where": null,
         "match_tenant?": false,
         "match_type": null,
@@ -81,7 +117,7 @@
           "global": null,
           "strategy": null
         },
-        "name": "rectangles_board_id_fkey",
+        "name": "elements_board_id_fkey",
         "on_delete": "delete",
         "on_update": null,
         "primary_key?": true,
@@ -101,7 +137,7 @@
         "x"
       ],
       "base_filter": null,
-      "check": "x >= 0 AND x <= 3880",
+      "check": "x >= 0 AND x + width <= 4000",
       "name": "x_within_canvas"
     },
     {
@@ -109,8 +145,24 @@
         "y"
       ],
       "base_filter": null,
-      "check": "y >= 0 AND y <= 3920",
+      "check": "y >= 0 AND y + height <= 4000",
       "name": "y_within_canvas"
+    },
+    {
+      "attribute": [
+        "width"
+      ],
+      "base_filter": null,
+      "check": "width >= 1",
+      "name": "width_at_least_min"
+    },
+    {
+      "attribute": [
+        "height"
+      ],
+      "base_filter": null,
+      "check": "height >= 1",
+      "name": "height_at_least_min"
     },
     {
       "attribute": [
@@ -125,7 +177,7 @@
   "custom_indexes": [],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "B6C06FD2A02B2EC33EC4D68230ED6046773ED9B2A0E8B34BFE3C6BC4043AC9E4",
+  "hash": "AFE1C47304546120692B91A67D23FC01004370566A28339E48D99379AB3728B9",
   "identities": [],
   "multitenancy": {
     "attribute": null,
@@ -134,6 +186,6 @@
   },
   "repo": "Elixir.Sketch.Repo",
   "schema": null,
-  "table": "rectangles",
+  "table": "elements",
   "temporal": null
 }

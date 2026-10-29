@@ -10,8 +10,8 @@ defmodule Sketch.Canvas.SessionsTest do
     %{
       board_a: board_a,
       board_b: board_b,
-      rectangle_a: Canvas.create_rectangle!(%{x: 10, y: 10, board_id: board_a.id}),
-      rectangle_b: Canvas.create_rectangle!(%{x: 20, y: 20, board_id: board_b.id})
+      rectangle_a: Canvas.create_element!(rectangle(%{x: 10, y: 10, board_id: board_a.id})),
+      rectangle_b: Canvas.create_element!(rectangle(%{x: 20, y: 20, board_id: board_b.id}))
     }
   end
 
@@ -36,7 +36,7 @@ defmodule Sketch.Canvas.SessionsTest do
         assert {:error, _} = Canvas.commit_position(rectangle.id, board.id, %{x: x, y: y})
       end
 
-      assert [%{version: 0, x: 10, y: 10}] = Canvas.list_rectangles_for_board!(board.id)
+      assert [%{version: 0, x: 10, y: 10}] = Canvas.list_elements_for_board!(board.id)
     end
   end
 
@@ -53,9 +53,9 @@ defmodule Sketch.Canvas.SessionsTest do
                  board_id: board_b.id
                })
 
-      assert [%{id: id, version: 0}] = Canvas.list_rectangles_for_board!(board_a.id)
+      assert [%{id: id, version: 0}] = Canvas.list_elements_for_board!(board_a.id)
       assert id == rectangle.id
-      assert Canvas.list_rectangles_for_board!(board_b.id) |> Enum.all?(&(&1.id != rectangle.id))
+      assert Canvas.list_elements_for_board!(board_b.id) |> Enum.all?(&(&1.id != rectangle.id))
     end
   end
 
@@ -67,18 +67,18 @@ defmodule Sketch.Canvas.SessionsTest do
     } do
       SketchWeb.Endpoint.subscribe("board:#{board_a.id}")
 
-      Canvas.create_rectangle!(%{x: 1, y: 1, board_id: board_b.id})
+      Canvas.create_element!(rectangle(%{x: 1, y: 1, board_id: board_b.id}))
       Canvas.commit_position!(rectangle_b.id, board_b.id, %{x: 2, y: 2})
 
       refute_receive %Phoenix.Socket.Broadcast{}
     end
 
-    test "list_rectangles_for_board never returns other boards' rectangles", %{
+    test "list_elements_for_board never returns other boards' rectangles", %{
       board_a: board_a,
       rectangle_a: rectangle_a,
       rectangle_b: rectangle_b
     } do
-      assert [%{id: id}] = Canvas.list_rectangles_for_board!(board_a.id)
+      assert [%{id: id}] = Canvas.list_elements_for_board!(board_a.id)
       assert id == rectangle_a.id
       refute id == rectangle_b.id
     end
@@ -94,7 +94,7 @@ defmodule Sketch.Canvas.SessionsTest do
       assert {:error, _} = Canvas.commit_position(rectangle_b.id, board_a.id, %{x: 99, y: 99})
 
       refute_receive %Phoenix.Socket.Broadcast{}
-      assert [%{x: 20, y: 20, version: 0}] = Canvas.list_rectangles_for_board!(board_b.id)
+      assert [%{x: 20, y: 20, version: 0}] = Canvas.list_elements_for_board!(board_b.id)
     end
   end
 end

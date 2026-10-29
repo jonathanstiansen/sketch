@@ -5,14 +5,12 @@ defmodule SketchWeb.Properties.SharingTest do
   import Phoenix.LiveViewTest
 
   alias Sketch.Canvas
-  alias Sketch.Canvas.{Board, Rectangle}
+  alias Sketch.Canvas.Board
 
   defp seed_board(rectangle_count) do
     board = Canvas.create_board!()
 
-    Rectangle
-    |> Ash.Generator.changeset_generator(:create, defaults: [board_id: board.id])
-    |> Ash.Generator.generate_many(rectangle_count)
+    generate_rectangles(board.id, rectangle_count)
 
     board
   end
@@ -45,13 +43,13 @@ defmodule SketchWeb.Properties.SharingTest do
     view
     |> render()
     |> LazyHTML.from_fragment()
-    |> LazyHTML.query("rect[data-rect]")
-    |> LazyHTML.attribute("data-rect")
+    |> LazyHTML.query("rect[data-element]")
+    |> LazyHTML.attribute("data-element")
     |> Enum.sort()
   end
 
   defp stored_rectangle_ids(board) do
-    board.id |> Canvas.list_rectangles_for_board!() |> Enum.map(& &1.id) |> Enum.sort()
+    board.id |> Canvas.list_elements_for_board!() |> Enum.map(& &1.id) |> Enum.sort()
   end
 
   defp assert_shared_board(conn, board) do

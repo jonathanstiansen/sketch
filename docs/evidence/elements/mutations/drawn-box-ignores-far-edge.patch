@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas_logic.ts b/assets/js/hooks/canvas_logic.ts
+index 261b0f3..ab5399d 100644
+--- a/assets/js/hooks/canvas_logic.ts
++++ b/assets/js/hooks/canvas_logic.ts
+@@ -47,7 +47,7 @@ function clampToCanvas(point: Point, canvas: Size): Point {
+ 
+ function span(a: number, b: number, limit: number): { start: number; length: number } {
+   const length = Math.max(Math.abs(b - a), MIN_SIZE)
+-  return { start: Math.min(a, b, limit - length), length }
++  return { start: Math.min(a, b), length }
+ }
+ 
+ export function drawnBox(start: Point, end: Point, canvas: Size): Box {

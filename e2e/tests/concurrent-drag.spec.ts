@@ -4,7 +4,7 @@ import { createBoard, grabRectangle, openBoard } from "./support/board"
 
 const recordingDir = process.env.E2E_RECORD_DIR
 const videoSize = { width: 640, height: 480 }
-const rectangle = "rect[data-rect]"
+const rectangle = "rect[data-element]"
 const steps = 40
 const targetA = { dx: 350, dy: 0 }
 const targetB = { dx: 0, dy: 150 }

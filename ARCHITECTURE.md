@@ -37,12 +37,12 @@ the only path excluded from the A21 scan.
 | A01 | Domain operations go through `Sketch.Canvas` code interfaces. Web modules may call no application module in the `Sketch` namespace other than `Sketch.Canvas`. | Enforced |
 | A02 | Web modules do not call or reference `Sketch.Repo`, Ecto, Postgrex, AshPostgres or Ash data layers. | Enforced |
 | A03 | No resource mutation outside Ash actions. Web modules do not call the `Ash` API or build `Ash.Changeset`/`Ash.Query`/`Ash.ActionInput`; no `lib` module except `Sketch.Repo` calls the Repo, Ecto or Postgrex directly. Action-level tests come with the resources. | Enforced (static) |
-| A04 | Board and Rectangle use AshPostgres. | Enforced |
-| A05 | Every Rectangle belongs to exactly one Board. | Enforced |
+| A04 | Board and Element use AshPostgres. | Enforced |
+| A05 | Every Element belongs to exactly one Board. | Enforced |
 | A06 | Board membership is immutable. | Enforced |
 | A07 | Queries and events are scoped to the selected board. | Enforced |
-| A08 | Invalid coordinates cannot be persisted (addendum D1). | Enforced |
-| A09 | Durable movement increments `version` atomically (ADR 0001). `commit_position` uses `atomic_update(:version, expr(version + 1))`; a non-sandboxed test runs 50 commits across 25 concurrent connections and requires versions `1..50` with no duplicates and stored x/y equal to the commit that returned version 50. | Enforced |
+| A08 | Invalid coordinates and sizes cannot be persisted (addendum D1, D8): `x, y >= 0`, `width, height >= 1`, `x + width` and `y + height` within the canvas. `Sketch.Canvas.Geometry` holds the bounds; the `FitsCanvas` validation (atomic, so it also checks the stored size during `commit_position`) and PostgreSQL CHECK constraints both derive from it, and a property test compares Ash and raw SQL over arbitrary boxes. | Enforced |
+| A09 | Durable movement and resizing increment `version` atomically (ADR 0001, ADR 0003). `commit_position` and `commit_shape` use `atomic_update(:version, expr(version + 1))`; a non-sandboxed test runs 50 interleaved moves and resizes across 25 concurrent connections and requires versions `1..50` with no duplicates and a stored box equal to the commit that returned version 50. | Enforced |
 | A10 | Transient previews never trigger persistence. Previews and cancels are relayed with `SketchWeb.Endpoint.broadcast_from/4`; an instrumented LiveView test asserts they cause zero Repo queries. | Enforced |
 | A11 | Durable events originate from successful Ash changes. | Enforced |
 | A12 | No custom GenServer, event broker or repository layer: no `lib` module implements GenServer, `:gen_server`, `:gen_statem`, `:gen_event` or GenStage, uses Agent, Registry or `:pg`, or is named `*Repository*`. | Enforced |
@@ -64,7 +64,7 @@ the only path excluded from the A21 scan.
 - A16 and A19 depend on repository settings the code cannot enforce: a ruleset on `main` requiring
   a pull request, passing CI and CODEOWNERS review, with agents pushing under an identity distinct
   from the reviewer. Until a human enables that, both are reported as unverified in every PR.
-- Rectangle has an unscoped primary `read` action because the atomic `commit_position` update
+- Element has an unscoped primary `read` action because the atomic `commit_position` update
   looks the record up through it. A07 still holds: no code interface exposes that read and web
   modules can only call `Sketch.Canvas`. A follow-up will add an actor and Ash policies so the
   scoping no longer depends on the code interface alone.
@@ -79,7 +79,7 @@ the only path excluded from the A21 scan.
   rewrite `priv/static` and trigger LiveReload in every open browser page; parallel workers made
   that reload land mid-drag. The restart test also waits for the spawned server's asset watchers to
   finish before opening a page.
-- Simultaneous drags of one rectangle can show different positions in different browsers until
+- Simultaneous drags of one element can show different positions in different browsers until
   both commits land. See [docs/LIMITATIONS.md](docs/LIMITATIONS.md) for the measurements.
 - SPEC section 8 item 7 (Docker Compose deployment smoke test) is the `compose-smoke` job in
   `.github/workflows/ci.yml`; the registry lists it under `ci_requirements`. It builds the image,

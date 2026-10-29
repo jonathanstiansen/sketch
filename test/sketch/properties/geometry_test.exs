@@ -3,30 +3,74 @@ defmodule Sketch.Properties.GeometryTest do
   use ExUnitProperties
 
   alias Sketch.Canvas
-  alias Sketch.Canvas.Geometry
+  alias Sketch.Canvas.{Element, Geometry}
 
   @raw_insert """
-  INSERT INTO rectangles (id, board_id, x, y) VALUES (gen_random_uuid(), $1, $2, $3)
+  INSERT INTO elements (id, board_id, kind, x, y, width, height)
+  VALUES (gen_random_uuid(), $1, 'rectangle', $2, $3, $4, $5)
   """
 
-  defp coordinate(max) do
+  @canvas_width Geometry.canvas_width()
+  @canvas_height Geometry.canvas_height()
+
+  defp integer_near_bounds(limit) do
     one_of([
-      member_of([-1, 0, max, max + 1]),
-      integer(-3..3),
-      integer((max - 3)..(max + 3)),
-      integer(0..max),
-      integer(-10_000..10_000)
+      member_of([-1, 0, 1, limit - 1, limit, limit + 1]),
+      integer(-10_000..10_000),
+      integer(-1_000_000_000..1_000_000_000)
     ])
   end
 
-  defp in_bounds?(x, y), do: x in 0..Geometry.max_x() and y in 0..Geometry.max_y()
-
-  defp ash_accepts?(board, x, y) do
-    match?({:ok, _rectangle}, Canvas.create_rectangle(%{board_id: board.id, x: x, y: y}))
+  defp valid_box do
+    bind(tuple({integer(1..@canvas_width), integer(1..@canvas_height)}), fn {width, height} ->
+      fixed_map(%{
+        x: integer(0..(@canvas_width - width)),
+        y: integer(0..(@canvas_height - height)),
+        width: constant(width),
+        height: constant(height)
+      })
+    end)
   end
 
-  defp database_accepts?(board, x, y) do
-    params = [Ecto.UUID.dump!(board.id), x, y]
+  defp touching_edges(box),
+    do: %{box | width: @canvas_width - box.x, height: @canvas_height - box.y}
+
+  defp nudged(box) do
+    bind(tuple({member_of([:x, :y, :width, :height]), integer(-2..2)}), fn {field, delta} ->
+      constant(Map.update!(box, field, &(&1 + delta)))
+    end)
+  end
+
+  defp replaced(box) do
+    bind(member_of([:x, :y, :width, :height]), fn field ->
+      map(integer_near_bounds(@canvas_width), &Map.put(box, field, &1))
+    end)
+  end
+
+  defp any_box do
+    bind(valid_box(), fn box ->
+      one_of([
+        constant(box),
+        constant(touching_edges(box)),
+        nudged(box),
+        nudged(touching_edges(box)),
+        replaced(box)
+      ])
+    end)
+  end
+
+  defp in_bounds?(%{x: x, y: y, width: width, height: height}) do
+    x >= 0 and y >= 0 and width >= 1 and height >= 1 and x + width <= @canvas_width and
+      y + height <= @canvas_height
+  end
+
+  defp ash_accepts?(board, box) do
+    attrs = Map.merge(box, %{board_id: board.id, kind: :rectangle})
+    Ash.Changeset.for_create(Element, :create, attrs).valid?
+  end
+
+  defp database_accepts?(board, %{x: x, y: y, width: width, height: height}) do
+    params = [Ecto.UUID.dump!(board.id), x, y, width, height]
     match?({:ok, _result}, Repo.query(@raw_insert, params, mode: :savepoint))
   end
 
@@ -34,24 +78,33 @@ defmodule Sketch.Properties.GeometryTest do
     %{board: Canvas.create_board!()}
   end
 
-  property "Ash accepts a position iff it is within the geometry bounds", %{board: board} do
-    check all x <- coordinate(Geometry.max_x()), y <- coordinate(Geometry.max_y()), max_runs: 100 do
-      assert ash_accepts?(board, x, y) == in_bounds?(x, y)
-    end
-  end
-
-  property "PostgreSQL alone accepts a position iff it is within the geometry bounds", %{
+  property "Ash alone accepts a box iff it is at least 1 x 1 and inside the canvas", %{
     board: board
   } do
-    check all x <- coordinate(Geometry.max_x()), y <- coordinate(Geometry.max_y()), max_runs: 100 do
-      assert database_accepts?(board, x, y) == in_bounds?(x, y)
+    check all box <- any_box(), max_runs: 300 do
+      assert ash_accepts?(board, box) == in_bounds?(box), inspect(box)
     end
   end
 
-  property "the default position of the next rectangle is within bounds" do
+  property "PostgreSQL alone accepts a box iff it is at least 1 x 1 and inside the canvas", %{
+    board: board
+  } do
+    check all box <- any_box(), max_runs: 300 do
+      assert database_accepts?(board, box) == in_bounds?(box), inspect(box)
+    end
+  end
+
+  property "clamp_box always yields a box inside the canvas, and keeps one already inside" do
+    check all box <- any_box(), max_runs: 1000 do
+      clamped = Geometry.clamp_box(box)
+      assert in_bounds?(clamped)
+      if in_bounds?(box), do: assert(clamped == box)
+    end
+  end
+
+  property "the default box of the next element is inside the canvas" do
     check all count <- non_negative_integer(), max_runs: 500 do
-      {x, y} = Canvas.default_position(count)
-      assert in_bounds?(x, y)
+      assert in_bounds?(Canvas.default_box(count))
     end
   end
 end

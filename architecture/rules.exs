@@ -26,17 +26,17 @@
     },
     %{
       id: "A04",
-      rule: "Board and Rectangle use AshPostgres",
+      rule: "Board and Element use AshPostgres",
       status: :enforced,
       enforcement: "Resource configuration test asserts both resources use AshPostgres and Sketch.Repo",
-      verified_by: ["test/sketch/canvas/rectangle_test.exs"]
+      verified_by: ["test/sketch/canvas/element_test.exs"]
     },
     %{
       id: "A05",
-      rule: "Every Rectangle belongs to exactly one Board",
+      rule: "Every Element belongs to exactly one Board",
       status: :enforced,
-      enforcement: "Ash allow_nil? false validation and the rectangles.board_id foreign key; tests cover a nil board and an unknown board id",
-      verified_by: ["test/sketch/canvas/rectangle_test.exs"]
+      enforcement: "Ash allow_nil? false validation and the elements.board_id foreign key; tests cover a nil board and an unknown board id",
+      verified_by: ["test/sketch/canvas/element_test.exs"]
     },
     %{
       id: "A06",
@@ -54,18 +54,21 @@
     },
     %{
       id: "A08",
-      rule: "Invalid coordinates cannot be persisted",
+      rule: "Invalid coordinates and sizes cannot be persisted",
       status: :enforced,
-      enforcement: "Ash attribute constraints plus PostgreSQL CHECK constraints (addendum D1); tests insert out-of-bounds rows with raw SQL",
-      verified_by: ["test/sketch/canvas/rectangle_test.exs"]
+      enforcement: "Ash attribute constraints and the atomic FitsCanvas validation plus PostgreSQL CHECK constraints (addendum D1, D8); property tests compare Ash and raw SQL inserts over arbitrary boxes",
+      verified_by: ["test/sketch/canvas/element_test.exs", "test/sketch/properties/geometry_test.exs"]
     },
     %{
       id: "A09",
-      rule: "Durable movement increments version atomically",
+      rule: "Durable movement and resizing increment version atomically",
       status: :enforced,
       enforcement:
-        "The commit_position action uses atomic_update(:version, expr(version + 1)); a test runs 50 commits over real concurrent connections and asserts versions 1..50 with no duplicates and last-writer-wins state (ADR 0001)",
-      verified_by: ["test/sketch/canvas/concurrent_commits_test.exs"]
+        "The commit_position and commit_shape actions use atomic_update(:version, expr(version + 1)); a test runs 50 commits over real concurrent connections and asserts versions 1..50 with no duplicates and last-writer-wins state (ADR 0001)",
+      verified_by: [
+        "test/sketch/canvas/concurrent_commits_test.exs",
+        "test/sketch/properties/commit_model_test.exs"
+      ]
     },
     %{
       id: "A10",
@@ -79,8 +82,8 @@
       id: "A11",
       rule: "Durable events originate from successful Ash changes",
       status: :enforced,
-      enforcement: "Ash.Notifier.PubSub on Rectangle publishes after commit; tests cover a successful create, a failed create and a rolled-back transaction",
-      verified_by: ["test/sketch/canvas/rectangle_test.exs", "e2e/tests/collaboration.spec.ts"]
+      enforcement: "Ash.Notifier.PubSub on Element publishes after commit; tests cover a successful create, a failed create and a rolled-back transaction",
+      verified_by: ["test/sketch/canvas/element_test.exs", "e2e/tests/collaboration.spec.ts"]
     },
     %{
       id: "A12",
@@ -126,7 +129,7 @@
       id: "A17",
       rule: "Database resource definitions match generated migrations",
       status: :enforced,
-      enforcement: "mix ash.codegen --check runs in mix ci and CI against the real Board and Rectangle resources",
+      enforcement: "mix ash.codegen --check runs in mix ci and CI against the real Board and Element resources",
       verified_by: [".github/workflows/ci.yml"]
     },
     %{

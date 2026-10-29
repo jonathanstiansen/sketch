@@ -28,6 +28,7 @@ defmodule SketchWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import SketchWeb.ConnCase
+      import Sketch.CanvasFixtures
     end
   end
 

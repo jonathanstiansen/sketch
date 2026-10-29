@@ -44,13 +44,14 @@ export interface KeyInput {
   editable: boolean
 }
 
-export type PointerAction = "pan" | "create" | "drag" | "none"
+export type PointerAction = "pan" | "draw" | "move" | "resize" | "deselect" | "none"
 
 export interface PointerInput {
   button: number
   tool: ToolId
   spaceHeld: boolean
-  onRectangle: boolean
+  onElement: boolean
+  onHandle: boolean
 }
 
 const PRIMARY_BUTTON = 0
@@ -84,12 +85,17 @@ export function isPanKey(input: KeyInput): boolean {
   return isShortcutInput(input) && input.key === " "
 }
 
-export function pointerAction({ button, tool, spaceHeld, onRectangle }: PointerInput): PointerAction {
+function selectionAction(onElement: boolean, onHandle: boolean): PointerAction {
+  if (onHandle) return "resize"
+  return onElement ? "move" : "deselect"
+}
+
+export function pointerAction({ button, tool, spaceHeld, onElement, onHandle }: PointerInput): PointerAction {
   if (button === MIDDLE_BUTTON) return "pan"
   if (button !== PRIMARY_BUTTON) return "none"
   if (spaceHeld || tool === "hand") return "pan"
-  if (tool === "rectangle") return "create"
-  if (tool === "selection" && onRectangle) return "drag"
+  if (tool === "rectangle") return "draw"
+  if (tool === "selection") return selectionAction(onElement, onHandle)
   return "none"
 }
 

@@ -1,0 +1,13 @@
+diff --git a/lib/sketch/canvas/validations/fits_canvas.ex b/lib/sketch/canvas/validations/fits_canvas.ex
+index 493a5e6..9314ae5 100644
+--- a/lib/sketch/canvas/validations/fits_canvas.ex
++++ b/lib/sketch/canvas/validations/fits_canvas.ex
+@@ -21,7 +21,7 @@ defmodule Sketch.Canvas.Validations.FitsCanvas do
+     position = Ash.Changeset.get_attribute(changeset, opts[:position])
+     size = Ash.Changeset.get_attribute(changeset, opts[:size])
+ 
+-    if is_integer(position) and is_integer(size) and position + size > opts[:limit],
++    if is_integer(position) and is_integer(size) and position > opts[:limit],
+       do: {:error, error(opts, position)},
+       else: :ok
+   end

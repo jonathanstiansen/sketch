@@ -1,7 +1,7 @@
 defmodule Sketch.Canvas.BoardState do
   @moduledoc """
-  A client's view of a board's rectangles, merged by the last-write-wins rule of
-  ADR 0001: per rectangle, the event with the highest committed version wins.
+  A client's view of a board's elements, merged by the last-write-wins rule of ADR 0001:
+  per element, the event with the highest committed version wins, whichever action produced it.
   """
 
   @type event :: %{
@@ -10,9 +10,9 @@ defmodule Sketch.Canvas.BoardState do
           optional(atom()) => term()
         }
 
-  @type t :: %__MODULE__{rectangles: %{optional(term()) => event()}}
+  @type t :: %__MODULE__{elements: %{optional(term()) => event()}}
 
-  defstruct rectangles: %{}
+  defstruct elements: %{}
 
   @spec new([event()]) :: t()
   def new(events) do
@@ -22,21 +22,18 @@ defmodule Sketch.Canvas.BoardState do
   end
 
   @spec apply_event(t(), event()) :: {:changed, t(), event()} | {:unchanged, t()}
-  def apply_event(
-        %__MODULE__{rectangles: rectangles} = state,
-        %{id: id, version: version} = event
-      ) do
-    case rectangles do
+  def apply_event(%__MODULE__{elements: elements} = state, %{id: id, version: version} = event) do
+    case elements do
       %{^id => %{version: known}} when known >= version ->
         {:unchanged, state}
 
       _newer_or_unknown ->
-        {:changed, %{state | rectangles: Map.put(rectangles, id, event)}, event}
+        {:changed, %{state | elements: Map.put(elements, id, event)}, event}
     end
   end
 
-  @spec rectangle_count(t()) :: non_neg_integer()
-  def rectangle_count(%__MODULE__{rectangles: rectangles}), do: map_size(rectangles)
+  @spec element_count(t()) :: non_neg_integer()
+  def element_count(%__MODULE__{elements: elements}), do: map_size(elements)
 
   defp merged_state({:changed, state, _event}), do: state
   defp merged_state({:unchanged, state}), do: state
