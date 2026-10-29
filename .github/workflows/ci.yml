@@ -41,6 +41,7 @@ jobs:
       - run: mix format --check-formatted
       - run: mix compile --warnings-as-errors --force
       - run: mix sketch.gen.manifest --check
+      - run: mix sketch.gen.render_fixtures --check
       - run: mix credo --strict
       - run: mix dialyzer
       - run: mix ash.codegen --check

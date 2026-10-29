@@ -122,6 +122,7 @@ defmodule Sketch.MixProject do
         "credo --strict",
         "dialyzer",
         "sketch.gen.manifest --check",
+        "sketch.gen.render_fixtures --check",
         "ts.check",
         "ash.codegen --check",
         "test --warnings-as-errors"
