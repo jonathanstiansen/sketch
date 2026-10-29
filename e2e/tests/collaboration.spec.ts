@@ -52,18 +52,18 @@ test("a rectangle added in one browser appears live in another and survives relo
     await openBoard(pageC, otherBoardPath)
 
     await pageA.locator("#add-rectangle").click()
-    await expect(pageA.locator("rect[id^='element-']")).toHaveCount(1)
+    await expect(pageA.locator("[id^='element-'][data-kind='rectangle']")).toHaveCount(1)
     await pageA.locator("#add-rectangle").click()
 
-    await expect(pageA.locator("rect[id^='element-']")).toHaveCount(2)
-    await expect(pageB.locator("rect[id^='element-']")).toHaveCount(2)
-    await expect(pageB.locator("rect[id^='element-'][data-version='0']")).toHaveCount(2)
+    await expect(pageA.locator("[id^='element-'][data-kind='rectangle']")).toHaveCount(2)
+    await expect(pageB.locator("[id^='element-'][data-kind='rectangle']")).toHaveCount(2)
+    await expect(pageB.locator("[id^='element-'][data-kind='rectangle'][data-version='0']")).toHaveCount(2)
 
     await pageB.reload()
-    await expect(pageB.locator("rect[id^='element-']")).toHaveCount(2)
+    await expect(pageB.locator("[id^='element-'][data-kind='rectangle']")).toHaveCount(2)
     await pageB.screenshot({ path: process.env.E2E_RELOAD_SHOT ?? "test-results/after-reload.png" })
 
-    await expect(pageC.locator("rect[id^='element-']")).toHaveCount(0)
+    await expect(pageC.locator("[id^='element-'][data-kind='rectangle']")).toHaveCount(0)
   } finally {
     await contextA.close()
     await contextB.close()

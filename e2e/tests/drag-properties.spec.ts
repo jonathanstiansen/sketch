@@ -2,7 +2,7 @@ import fc from "fast-check"
 import { expect, test, type Page } from "@playwright/test"
 import { createBoard, grabRectangle, openBoard } from "./support/board"
 
-const rectangle = "rect[data-element]"
+const rectangle = "[data-element][data-kind='rectangle']"
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
 
 interface Offset {

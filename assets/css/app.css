@@ -121,7 +121,8 @@
   cursor: inherit;
 }
 
-.draw-preview {
+.draw-preview,
+.local-preview > * {
   fill: color-mix(in oklab, var(--color-primary) 35%, transparent);
   stroke: var(--color-base-content);
   stroke-width: 2;

@@ -43,7 +43,7 @@ defmodule SketchWeb.Properties.SharingTest do
     view
     |> render()
     |> LazyHTML.from_fragment()
-    |> LazyHTML.query("rect[data-element]")
+    |> LazyHTML.query("[data-element]")
     |> LazyHTML.attribute("data-element")
     |> Enum.sort()
   end

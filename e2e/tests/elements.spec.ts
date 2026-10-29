@@ -11,8 +11,8 @@ import {
 } from "./support/canvas"
 
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
-const element = "rect[data-element]"
-const drawPreview = "rect[data-draw]"
+const element = "[data-element][data-kind='rectangle']"
+const drawPreview = "[data-draw][data-kind='rectangle']"
 const handle = (corner: string): string => `rect[data-handle="${corner}"]`
 
 async function expectElement(page: Page, box: Box, version: number): Promise<void> {

@@ -4,7 +4,7 @@ import { expect, test, type Browser, type BrowserContext, type Page } from "@pla
 const recordingDir = process.env.E2E_RECORD_DIR
 const videoSize = { width: 640, height: 480 }
 const boardPath = /\/b\/[0-9a-f-]{36}$/
-const rectangle = "rect[data-element]"
+const rectangle = "[data-element][data-kind='rectangle']"
 const origin = { x: "100", y: "100" }
 const connected = "[data-phx-main].phx-connected"
 
