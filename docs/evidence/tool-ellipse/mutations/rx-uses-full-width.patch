@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/selection.ts b/assets/js/hooks/selection.ts
+index 71bcdfd..c7b2a44 100644
+--- a/assets/js/hooks/selection.ts
++++ b/assets/js/hooks/selection.ts
+@@ -38,7 +38,7 @@ export function setBox(shape: Element, box: Box): void {
+ function setEllipse(shape: Element, { x, y, width, height }: Box): void {
+   shape.setAttribute("cx", String(x + width / 2))
+   shape.setAttribute("cy", String(y + height / 2))
+-  shape.setAttribute("rx", String(width / 2))
++  shape.setAttribute("rx", String(width))
+   shape.setAttribute("ry", String(height / 2))
+ }
+ 

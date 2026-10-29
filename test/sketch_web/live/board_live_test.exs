@@ -92,6 +92,29 @@ defmodule SketchWeb.BoardLiveTest do
     end
   end
 
+  test "a drawn ellipse is stored with its kind and rendered inscribed in its box in every view",
+       %{
+         conn: conn,
+         board: board
+       } do
+    {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+    {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+
+    render_hook(creator, "create_element", %{
+      create_params(10, 20, 101, 40)
+      | "kind" => "ellipse"
+    })
+
+    assert [%{kind: :ellipse, id: id}] = Canvas.list_elements_for_board!(board.id)
+
+    for view <- [creator, watcher] do
+      assert has_element?(
+               view,
+               "ellipse#element-#{id}[data-kind='ellipse'][cx='60.5'][cy='40'][rx='50.5'][ry='20']"
+             )
+    end
+  end
+
   test "create_element ends the draw preview in other views", %{conn: conn, board: board} do
     {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
     {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")

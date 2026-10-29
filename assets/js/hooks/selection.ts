@@ -5,7 +5,7 @@ const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
 const OUTLINE_GAP = 4
 
-function svgShape<K extends "rect" | "polygon">(tag: K, attributes: Record<string, string>): SVGElementTagNameMap[K] {
+function svgShape<K extends "rect" | "polygon" | "ellipse">(tag: K, attributes: Record<string, string>): SVGElementTagNameMap[K] {
   const shape = document.createElementNS(SVG_NS, tag)
   for (const [name, value] of Object.entries(attributes)) shape.setAttribute(name, value)
   return shape
@@ -32,7 +32,17 @@ export function setBox(shape: Element, box: Box): void {
   shape.setAttribute("width", String(width))
   shape.setAttribute("height", String(height))
   if (shape.localName === "polygon") shape.setAttribute("points", diamondPoints(box))
+  if (shape.localName === "ellipse") setEllipse(shape, box)
 }
+
+function setEllipse(shape: Element, { x, y, width, height }: Box): void {
+  shape.setAttribute("cx", String(x + width / 2))
+  shape.setAttribute("cy", String(y + height / 2))
+  shape.setAttribute("rx", String(width / 2))
+  shape.setAttribute("ry", String(height / 2))
+}
+
+const PREVIEW_TAGS = { rectangle: "rect", diamond: "polygon", ellipse: "ellipse" } as const
 
 export function isCorner(value: string | undefined): value is Corner {
   return CORNERS.some((corner) => corner === value)
@@ -83,7 +93,7 @@ export class DrawLayer {
   shape(id: string, kind: DrawnKind): SVGElement {
     const existing = this.find(id)
     if (existing !== null) return existing
-    const shape = svgShape(kind === "diamond" ? "polygon" : "rect", {
+    const shape = svgShape(PREVIEW_TAGS[kind], {
       "data-draw": id,
       class: "draw-preview",
     })

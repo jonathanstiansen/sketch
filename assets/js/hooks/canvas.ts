@@ -34,7 +34,7 @@ import {
 const STALE_PREVIEW_MS = 2000
 const DRAGGING = "data-dragging"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
-const BOX_ATTRIBUTES = ["x", "y", "width", "height", "points"]
+const BOX_ATTRIBUTES = ["x", "y", "width", "height", "points", "cx", "cy", "rx", "ry"]
 const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height"]
 
 interface Throttled {
@@ -128,7 +128,7 @@ function isPreview(value: unknown): value is Preview {
 function isDrawPreview(value: unknown): value is DrawPreview {
   return (
     isRecord(value) &&
-    (value.kind === "rectangle" || value.kind === "diamond") &&
+    (value.kind === "rectangle" || value.kind === "diamond" || value.kind === "ellipse") &&
     typeof value.drag_id === "string" &&
     Number.isInteger(value.seq) &&
     isBox(value)

@@ -10,7 +10,7 @@ defmodule SketchWeb.Toolbar do
     %{id: "selection", label: "Selection", keys: ["V", "1"], enabled: true},
     %{id: "rectangle", label: "Rectangle", keys: ["R", "2"], enabled: true},
     %{id: "diamond", label: "Diamond", keys: ["D", "3"], enabled: true},
-    %{id: "ellipse", label: "Ellipse", keys: ["O", "4"], enabled: false},
+    %{id: "ellipse", label: "Ellipse", keys: ["O", "4"], enabled: true},
     %{id: "arrow", label: "Arrow", keys: ["A", "5"], enabled: false},
     %{id: "line", label: "Line", keys: ["L", "6"], enabled: false},
     %{id: "draw", label: "Draw", keys: ["P", "7"], enabled: false},
