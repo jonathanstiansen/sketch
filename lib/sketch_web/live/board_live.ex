@@ -231,6 +231,7 @@ defmodule SketchWeb.BoardLive do
           data-canvas-height={@geometry.canvas_height}
           data-default-width={@geometry.default_width}
           data-default-height={@geometry.default_height}
+          data-max-points={@geometry.max_points}
           class="min-h-0 flex-1 overflow-auto border-t border-base-300"
         >
           <svg
@@ -350,6 +351,36 @@ defmodule SketchWeb.BoardLive do
     """
   end
 
+  defp element_shape(%{element: %{kind: :freedraw}} = assigns) do
+    ~H"""
+    <g
+      id={@dom_id}
+      x={@element.x}
+      y={@element.y}
+      width={@element.width}
+      height={@element.height}
+      data-element={@element.id}
+      data-kind={@element.kind}
+      data-x={@element.x}
+      data-y={@element.y}
+      data-width={@element.width}
+      data-height={@element.height}
+      data-points={points_attribute(@element.points)}
+      data-version={@element.version}
+      class="cursor-grab touch-none"
+    >
+      <.stroke_polyline element={@element} data-freedraw-hit stroke="transparent" stroke-width="14" />
+      <.stroke_polyline
+        element={@element}
+        data-freedraw-stroke
+        stroke-width="2"
+        pointer-events="none"
+        class="stroke-base-content"
+      />
+    </g>
+    """
+  end
+
   defp element_shape(assigns) do
     ~H"""
     <rect
@@ -388,6 +419,23 @@ defmodule SketchWeb.BoardLive do
       x2={@finish.x}
       y2={@finish.y}
       stroke-linecap="round"
+      {@rest}
+    />
+    """
+  end
+
+  attr :element, :map, required: true
+  attr :rest, :global, include: ~w(stroke stroke-width pointer-events)
+
+  defp stroke_polyline(%{element: %{x: x, y: y, points: points}} = assigns) do
+    assigns = assign(assigns, :absolute, Enum.map_join(points, " ", &"#{x + &1.x},#{y + &1.y}"))
+
+    ~H"""
+    <polyline
+      points={@absolute}
+      fill="none"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       {@rest}
     />
     """

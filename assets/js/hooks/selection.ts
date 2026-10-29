@@ -14,8 +14,9 @@ const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
 const OUTLINE_GAP = 4
 const LINE_SEGMENTS = "line[data-line-hit], line[data-line-stroke]"
+const POLYLINES = "polyline[data-freedraw-hit], polyline[data-freedraw-stroke]"
 
-type ShapeTag = "rect" | "polygon" | "ellipse" | "line"
+type ShapeTag = "rect" | "polygon" | "ellipse" | "line" | "polyline"
 
 function svgShape<K extends ShapeTag>(tag: K, attributes: Record<string, string>): SVGElementTagNameMap[K] {
   const shape = document.createElementNS(SVG_NS, tag)
@@ -49,10 +50,20 @@ export function setBox(shape: Element, box: Box): void {
 
 export function setShape(shape: Element, box: Box, points: readonly Point[]): void {
   setBox(shape, box)
-  const segments = shape.localName === "line" ? [shape] : shape.querySelectorAll(LINE_SEGMENTS)
-  const [start, end] = absolutePoints({ box, points })
+  const absolute = absolutePoints({ box, points })
+  setSegments(shape, absolute)
+  setPolylines(shape, absolute)
+}
+
+function setSegments(shape: Element, [start, end]: Point[]): void {
   if (start === undefined || end === undefined) return
+  const segments = shape.localName === "line" ? [shape] : shape.querySelectorAll(LINE_SEGMENTS)
   for (const segment of segments) setSegment(segment, start, end)
+}
+
+function setPolylines(shape: Element, absolute: Point[]): void {
+  const polylines = shape.localName === "polyline" ? [shape] : shape.querySelectorAll(POLYLINES)
+  for (const polyline of polylines) polyline.setAttribute("points", absolute.map(({ x, y }) => point(x, y)).join(" "))
 }
 
 function setSegment(segment: Element, start: Point, end: Point): void {
@@ -69,7 +80,7 @@ function setEllipse(shape: Element, { x, y, width, height }: Box): void {
   shape.setAttribute("ry", String(height / 2))
 }
 
-const PREVIEW_TAGS = { rectangle: "rect", diamond: "polygon", ellipse: "ellipse", arrow: "line", line: "line" } as const
+const PREVIEW_TAGS = { rectangle: "rect", diamond: "polygon", ellipse: "ellipse", arrow: "line", freedraw: "polyline", line: "line" } as const
 
 export function isCorner(value: string | undefined): value is Corner {
   return CORNERS.some((corner) => corner === value)
@@ -104,8 +115,8 @@ export class SelectionOverlay {
     this.endpoints = new Map(ENDPOINTS.map((endpoint) => [endpoint, handle(endpoint)]))
   }
 
-  show(box: Box, points: readonly Point[]): void {
-    if (points.length > 0) {
+  show(box: Box, points: readonly Point[], endpointHandles: boolean): void {
+    if (endpointHandles && points.length > 0) {
       this.showEndpoints(box, points)
     } else {
       this.showBox(box)

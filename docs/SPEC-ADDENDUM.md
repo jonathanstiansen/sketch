@@ -82,8 +82,8 @@ Consequences for the earlier decisions:
   and `y + height <= 4000`, from `Sketch.Canvas.Geometry`, enforced by Ash and
   PostgreSQL CHECK constraints. 120 × 80 stays the size of a clicked or added
   rectangle.
-  Point kinds (line and arrow, and later freehand) allow `width >= 0` and
-  `height >= 0`, since a straight line can be zero-width; their points are
+  Point kinds (line, arrow and freehand) allow `width >= 0` and
+  `height >= 0`, since a straight line can be zero-width; a freehand stroke has 2 to 500 points; their points are
   relative to `x`/`y` and must lie inside the box, also enforced by Ash and
   PostgreSQL (ADR 0003).
 - D2: previews carry the whole box:

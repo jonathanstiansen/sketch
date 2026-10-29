@@ -73,19 +73,20 @@ defmodule Sketch.Properties.CommitModelTest do
 
     x >= 0 and y >= 0 and width >= min_size and height >= min_size and
       x + width <= @canvas_width and y + height <= @canvas_height and
-      length(points) == point_count(kind) and inside?(points, width, height)
+      length(points) in point_count(kind) and inside?(points, width, height)
   end
 
-  defp min_size(kind) when kind in [:arrow, :line], do: 0
+  defp min_size(kind) when kind in [:arrow, :freedraw, :line], do: 0
   defp min_size(_box_kind), do: 1
 
-  defp point_count(kind) when kind in [:arrow, :line], do: 2
-  defp point_count(_box_kind), do: 0
+  defp point_count(:freedraw), do: 2..Geometry.max_points()
+  defp point_count(kind) when kind in [:arrow, :line], do: 2..2
+  defp point_count(_box_kind), do: 0..0
 
   defp inside?(points, width, height),
     do: Enum.all?(points, &(&1.x in 0..width//1 and &1.y in 0..height//1))
 
-  defp initial_shape(kind, box) when kind in [:arrow, :line],
+  defp initial_shape(kind, box) when kind in [:arrow, :freedraw, :line],
     do: %{points: [%{x: 0, y: 0}, %{x: box.width, y: box.height}]}
 
   defp initial_shape(_box_kind, _box), do: %{}

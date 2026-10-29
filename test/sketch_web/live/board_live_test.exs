@@ -447,4 +447,136 @@ defmodule SketchWeb.BoardLiveTest do
       assert has_element?(view, line_selector(line.id, {4000, 40, 4000, 0}, 1))
     end
   end
+
+  describe "freehand strokes" do
+    defp stroke_params(box, points) do
+      %{
+        "kind" => "freedraw",
+        "drag_id" => @drag_id,
+        "points" => Enum.map(points, fn {x, y} -> %{"x" => x, "y" => y} end)
+      }
+      |> Map.merge(Map.new(box, fn {key, value} -> {to_string(key), value} end))
+    end
+
+    defp stroke_selector(id, version) do
+      "g#element-#{id}[data-kind='freedraw'][data-version='#{version}'] " <>
+        "polyline[data-freedraw-stroke][stroke-linejoin='round'][stroke-linecap='round']"
+    end
+
+    test "a drawn stroke is stored with its relative points and rendered in every view", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 100, y: 200, width: 40, height: 30}
+
+      render_hook(creator, "create_element", stroke_params(box, [{0, 0}, {20, 30}, {40, 10}]))
+
+      assert [%{kind: :freedraw, id: id, x: 100, y: 200, width: 40, height: 30} = stroke] =
+               Canvas.list_elements_for_board!(board.id)
+
+      assert Enum.map(stroke.points, &{&1.x, &1.y}) == [{0, 0}, {20, 30}, {40, 10}]
+
+      for view <- [creator, watcher] do
+        assert has_element?(view, stroke_selector(id, 0) <> "[points='100,200 120,230 140,210']")
+
+        assert has_element?(
+                 view,
+                 "#element-#{id}[data-points='0,0 20,30 40,10'] polyline[data-freedraw-hit]"
+               )
+      end
+    end
+
+    test "a stroke with too few, too many or malformed points creates nothing", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 0, y: 0, width: 600, height: 10}
+      too_many = for x <- 0..500, do: {x, 0}
+
+      for params <- [
+            stroke_params(box, [{0, 0}]),
+            stroke_params(box, too_many),
+            stroke_params(box, [{0, 0}, {5.5, 5}])
+          ] do
+        render_hook(view, "create_element", params)
+      end
+
+      assert Canvas.list_elements_for_board!(board.id) == []
+    end
+
+    test "a stroke preview grows in other views and is never persisted", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 10, y: 20, width: 30, height: 10}
+
+      render_hook(
+        creator,
+        "draw_preview",
+        stroke_params(box, [{0, 0}, {10, 10}]) |> Map.put("seq", 1)
+      )
+
+      assert_push_event(watcher, "draw_preview", %{
+        kind: "freedraw",
+        seq: 1,
+        points: [%{x: 0, y: 0}, %{x: 10, y: 10}]
+      })
+
+      render_hook(
+        creator,
+        "draw_preview",
+        stroke_params(box, [{0, 0}, {10, 10}, {30, 0}]) |> Map.put("seq", 2)
+      )
+
+      assert_push_event(watcher, "draw_preview", %{seq: 2, points: [_, _, %{x: 30, y: 0}]})
+      assert Canvas.list_elements_for_board!(board.id) == []
+    end
+
+    test "resizing a stroke commits the scaled points and every view renders them", %{
+      conn: conn,
+      board: board
+    } do
+      stroke =
+        Canvas.create_element!(%{
+          kind: :freedraw,
+          x: 100,
+          y: 100,
+          width: 40,
+          height: 20,
+          points: [%{x: 0, y: 0}, %{x: 20, y: 20}, %{x: 40, y: 0}],
+          board_id: board.id
+        })
+
+      {:ok, editor, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+
+      render_hook(editor, "commit_shape", %{
+        "element_id" => stroke.id,
+        "drag_id" => @drag_id,
+        "x" => 100,
+        "y" => 100,
+        "width" => 80,
+        "height" => 40,
+        "points" => [
+          %{"x" => 0, "y" => 0},
+          %{"x" => 40, "y" => 40},
+          %{"x" => 80, "y" => 0}
+        ]
+      })
+
+      for view <- [editor, watcher] do
+        assert has_element?(
+                 view,
+                 stroke_selector(stroke.id, 1) <> "[points='100,100 140,140 180,100']"
+               )
+      end
+
+      assert [%{version: 1, width: 80, height: 40}] = Canvas.list_elements_for_board!(board.id)
+    end
+  end
 end

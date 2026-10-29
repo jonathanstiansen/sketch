@@ -96,10 +96,28 @@ defmodule Sketch.Properties.GeometryTest do
     end)
   end
 
-  defp shape do
-    bind(tuple({kind(), shape_box()}), fn {kind, box} ->
-      map(points_near(box), &{kind, box, &1})
+  defp stroke_length do
+    max = Geometry.max_points()
+    one_of([member_of([1, 2, max - 1, max, max + 1, max + 2]), integer(1..(max + 2))])
+  end
+
+  defp stroke_inside(%{width: width, height: height}) do
+    bind(stroke_length(), fn length ->
+      list_of(fixed_map(%{x: integer(0..width), y: integer(0..height)}), length: length)
     end)
+  end
+
+  defp stroke_shape do
+    bind(valid_box(), fn box -> map(stroke_inside(box), &{:freedraw, box, &1}) end)
+  end
+
+  defp shape do
+    one_of([
+      bind(tuple({kind(), shape_box()}), fn {kind, box} ->
+        map(points_near(box), &{kind, box, &1})
+      end),
+      stroke_shape()
+    ])
   end
 
   defp in_bounds?(%{x: x, y: y, width: width, height: height}, min_size \\ 1) do
@@ -113,15 +131,16 @@ defmodule Sketch.Properties.GeometryTest do
   defp well_formed?(_point), do: false
 
   defp valid_shape?({kind, box, points}) do
-    in_bounds?(box, min_size(kind)) and length(points) == point_count(kind) and
+    in_bounds?(box, min_size(kind)) and length(points) in point_count(kind) and
       Enum.all?(points, &well_formed?/1) and inside?(points, box.width, box.height)
   end
 
-  defp min_size(kind) when kind in [:arrow, :line], do: 0
+  defp min_size(kind) when kind in [:arrow, :freedraw, :line], do: 0
   defp min_size(_box_kind), do: 1
 
-  defp point_count(kind) when kind in [:arrow, :line], do: 2
-  defp point_count(_box_kind), do: 0
+  defp point_count(:freedraw), do: 2..Geometry.max_points()
+  defp point_count(kind) when kind in [:arrow, :line], do: 2..2
+  defp point_count(_box_kind), do: 0..0
 
   defp inside?(points, width, height),
     do: Enum.all?(points, &(&1.x in 0..width//1 and &1.y in 0..height//1))
