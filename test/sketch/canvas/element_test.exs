@@ -510,4 +510,48 @@ defmodule Sketch.Canvas.ElementTest do
       refute_receive %Phoenix.Socket.Broadcast{}, 100
     end
   end
+
+  describe "erase (A07, A11)" do
+    test "hard-deletes the element and broadcasts its id and board after commit", %{board: board} do
+      element = Canvas.create_element!(rectangle(%{x: 10, y: 20, board_id: board.id}))
+      SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
+
+      assert :ok = Canvas.erase_element(element.id, board.id)
+
+      assert_receive %Phoenix.Socket.Broadcast{event: "erase", payload: payload}
+      assert payload == %{id: element.id, board_id: board.id}
+      assert Canvas.list_elements_for_board!(board.id) == []
+    end
+
+    test "an erase from another board fails, keeps the element and broadcasts nothing", %{
+      board: board
+    } do
+      other = Canvas.create_board!()
+      element = Canvas.create_element!(rectangle(%{x: 10, y: 20, board_id: board.id}))
+      SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
+      SketchWeb.Endpoint.subscribe(Canvas.board_topic(other.id))
+
+      assert {:error, _not_found} = Canvas.erase_element(element.id, other.id)
+
+      refute_receive %Phoenix.Socket.Broadcast{}, 100
+      assert [%{id: id}] = Canvas.list_elements_for_board!(board.id)
+      assert id == element.id
+    end
+
+    test "an erase rolled back with its transaction keeps the element and broadcasts nothing", %{
+      board: board
+    } do
+      element = Canvas.create_element!(rectangle(%{x: 10, y: 20, board_id: board.id}))
+      SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
+
+      Ash.transact(Element, fn ->
+        :ok = Canvas.erase_element(element.id, board.id)
+        Ash.DataLayer.rollback(Element, :abort)
+      end)
+
+      refute_receive %Phoenix.Socket.Broadcast{}, 100
+      assert [%{id: id}] = Canvas.list_elements_for_board!(board.id)
+      assert id == element.id
+    end
+  end
 end

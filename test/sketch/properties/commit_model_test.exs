@@ -94,7 +94,8 @@ defmodule Sketch.Properties.CommitModelTest do
         {member_of([:commit_shape, :commit_shape_wrong_board]), index,
          with_text(one_of([shape(), line_between_points()]))}
       ),
-      tuple({member_of([:edit_text, :edit_text_wrong_board]), index, text_edit()})
+      tuple({member_of([:edit_text, :edit_text_wrong_board]), index, text_edit()}),
+      tuple({member_of([:erase, :erase, :erase_wrong_board]), index})
     ])
   end
 
@@ -166,6 +167,24 @@ defmodule Sketch.Properties.CommitModelTest do
     end
   end
 
+  defp run({action, index}, ctx, model) do
+    {id, shape} = Enum.at(model, rem(index, length(model)))
+    board = if action == :erase, do: ctx.board, else: ctx.other_board
+
+    case {Canvas.erase_element(id, board.id), action, erased?(shape)} do
+      {:ok, :erase, false} ->
+        {:ok, List.keyreplace(model, id, 0, {id, Map.put(shape, :erased?, true)}),
+         {"erase", id, %{}}}
+
+      {{:error, _not_found}, _action, erased_or_wrong_board}
+      when erased_or_wrong_board or action == :erase_wrong_board ->
+        {:error, model, nil}
+
+      {result, _action, erased} ->
+        flunk("#{inspect(action)} of an element erased? #{erased} returned #{inspect(result)}")
+    end
+  end
+
   defp run({action, index, input}, ctx, model) do
     candidates =
       if action in [:edit_text, :edit_text_wrong_board], do: text_elements(model), else: model
@@ -195,8 +214,14 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp text_elements(model), do: Enum.filter(model, fn {_id, shape} -> shape.kind == :text end)
 
+  defp erased?(shape), do: Map.get(shape, :erased?, false)
+
+  defp live(model), do: Enum.reject(model, fn {_id, shape} -> erased?(shape) end)
+
   defp next_shape(action, moved) when action in [:commit_position, :commit_shape, :edit_text] do
-    if valid_shape?(moved), do: {:ok, %{moved | version: moved.version + 1}}, else: :rejected
+    if valid_shape?(moved) and not erased?(moved),
+      do: {:ok, %{moved | version: moved.version + 1}},
+      else: :rejected
   end
 
   defp next_shape(_wrong_board, _moved), do: :rejected
@@ -215,6 +240,7 @@ defmodule Sketch.Properties.CommitModelTest do
 
     receive do
       %Broadcast{topic: ^topic, event: event, payload: payload} ->
+        assert payload.board_id == board.id
         [{event, payload.id, Map.take(payload, @shape_fields)} | received(board)]
     after
       0 -> []
@@ -223,7 +249,7 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp subscribe(board), do: :ok = SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
 
-  property "the database and the broadcasts follow a model of creates, moves, shape and text edits, and wrong-board edits (A08, A09, A11)" do
+  property "the database and the broadcasts follow a model of creates, moves, shape and text edits, erases, and wrong-board edits and erases (A07, A08, A09, A11)" do
     check all ops <- list_of(op(), max_length: 20), max_runs: 75 do
       {board, initial} = seed_board()
       ctx = %{board: board, other_board: Canvas.create_board!()}
@@ -239,7 +265,7 @@ defmodule Sketch.Properties.CommitModelTest do
           if elem(op, 0) == :create,
             do: assert(result == :ok == expected_create?(op), inspect(op))
 
-          assert Map.new(stored(board)) == Map.new(next), inspect(op)
+          assert Map.new(stored(board)) == Map.new(live(next)), inspect(op)
           {next, [broadcast | broadcasts]}
         end)
         |> elem(1)
@@ -250,4 +276,40 @@ defmodule Sketch.Properties.CommitModelTest do
       assert received(ctx.other_board) == []
     end
   end
+
+  property "a commit or erase after an erase fails, broadcasts nothing and leaves the row gone (A11)" do
+    check all kind <- member_of(@kinds),
+              later <-
+                list_of(member_of([:commit_position, :commit_shape, :erase]), min_length: 1),
+              max_runs: 50 do
+      board = Canvas.create_board!()
+      box = Canvas.default_box(0)
+
+      element =
+        box
+        |> Map.merge(%{board_id: board.id, kind: kind})
+        |> Map.merge(initial_shape(kind, box))
+        |> Canvas.create_element!()
+
+      subscribe(board)
+      assert :ok = Canvas.erase_element(element.id, board.id)
+      assert [{"erase", id, %{}}] = received(board)
+      assert id == element.id
+
+      for action <- later do
+        assert {:error, _not_found} = late(action, element, board)
+      end
+
+      assert received(board) == []
+      assert Canvas.list_elements_for_board!(board.id) == []
+    end
+  end
+
+  defp late(:commit_position, element, board),
+    do: Canvas.commit_position(element.id, board.id, %{x: 1, y: 1})
+
+  defp late(:commit_shape, element, board),
+    do: Canvas.commit_shape(element.id, board.id, Map.take(element, [:x, :y, :width, :height]))
+
+  defp late(:erase, element, board), do: Canvas.erase_element(element.id, board.id)
 end

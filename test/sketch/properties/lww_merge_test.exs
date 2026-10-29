@@ -8,6 +8,8 @@ defmodule Sketch.Properties.LwwMergeTest do
 
   defp payload(:create, id), do: element_payload(id, constant(0))
 
+  defp payload(:erase, id), do: constant(%{id: id, board_id: "board"})
+
   defp payload(_commit, id), do: element_payload(id, integer(1..12))
 
   defp element_payload(id, version) do
@@ -29,14 +31,26 @@ defmodule Sketch.Properties.LwwMergeTest do
   end
 
   defp events do
-    {member_of(~w(a b c d)), member_of([:create, :commit_position, :commit_shape])}
+    {member_of(~w(a b c d)), action()}
     |> tuple()
     |> list_of(max_length: 20)
     |> bind(fn sources ->
       sources |> Enum.map(fn {id, action} -> payload(action, id) end) |> fixed_list()
     end)
-    |> map(&Enum.uniq_by(&1, fn event -> {event.id, event.version} end))
+    |> map(&Enum.uniq_by(&1, fn event -> {event.id, Map.get(event, :version, :erase)} end))
   end
+
+  defp action,
+    do:
+      frequency([
+        {6, member_of([:create, :commit_position, :commit_shape])},
+        {1, constant(:erase)}
+      ])
+
+  defp erase?(event), do: not Map.has_key?(event, :version)
+
+  defp erased_ids(events),
+    do: for(event <- events, erase?(event), into: MapSet.new(), do: event.id)
 
   defp permutation(list) do
     bind(list_of(integer(), length: length(list)), fn keys ->
@@ -45,12 +59,15 @@ defmodule Sketch.Properties.LwwMergeTest do
   end
 
   defp highest_version_per_id(events) do
+    erased = erased_ids(events)
+
     events
+    |> Enum.reject(&(&1.id in erased))
     |> Enum.group_by(& &1.id)
     |> Map.new(fn {id, same_id} -> {id, Enum.max_by(same_id, & &1.version)} end)
   end
 
-  property "every delivery order of the same events yields the same state" do
+  property "every delivery order of the same events, erases included, yields the same state" do
     check all events <- events(), shuffled <- permutation(events), max_runs: @max_runs do
       assert BoardState.new(shuffled) == BoardState.new(events)
     end
@@ -65,9 +82,39 @@ defmodule Sketch.Properties.LwwMergeTest do
     end
   end
 
-  property "the state per element is its highest-version event, whichever action produced it" do
+  property "the state per element is its highest-version event, whichever action produced it, unless it was erased" do
     check all events <- events(), max_runs: @max_runs do
       assert BoardState.new(events).elements == highest_version_per_id(events)
+    end
+  end
+
+  property "every erased id is absent and remembered in every delivery order" do
+    check all events <- events(), shuffled <- permutation(events), max_runs: @max_runs do
+      state = BoardState.new(shuffled)
+      erased = erased_ids(events)
+
+      assert state.erased == erased
+      assert Enum.all?(erased, &(not Map.has_key?(state.elements, &1)))
+    end
+  end
+
+  property "a create or commit delivered after an erase never resurrects the element" do
+    check all events <- events(),
+              id <- member_of(~w(a b c d)),
+              late <-
+                list_of(
+                  bind(member_of([:create, :commit_position, :commit_shape]), &payload(&1, id)),
+                  max_length: 5
+                ),
+              max_runs: @max_runs do
+      erased = BoardState.new(events ++ [%{id: id, board_id: "board"}])
+
+      assert Enum.reduce(late, erased, fn event, state ->
+               assert {:unchanged, ^state} = BoardState.apply_event(state, event)
+               state
+             end) == erased
+
+      refute Map.has_key?(BoardState.new(events ++ [%{id: id}] ++ late).elements, id)
     end
   end
 
@@ -79,14 +126,20 @@ defmodule Sketch.Properties.LwwMergeTest do
               x <- integer(0..(Geometry.canvas_width() - 1)),
               max_runs: @max_runs do
       state = BoardState.new(events)
-      known_version = state.elements[known.id].version
-      stale = %{known | version: known_version - age, x: x}
+      stale = Map.merge(known, %{version: known_version(state, known) - age, x: x})
 
       assert {:unchanged, ^state} = BoardState.apply_event(state, stale)
     end
   end
 
-  property "two replicas that saw disjoint halves converge in either merge order" do
+  defp known_version(state, %{id: id}) do
+    case state.elements do
+      %{^id => %{version: version}} -> version
+      _erased -> 0
+    end
+  end
+
+  property "two replicas that saw disjoint halves converge in either merge order, erases included" do
     check all events <- events(),
               sides <- list_of(boolean(), length: length(events)),
               max_runs: @max_runs do
