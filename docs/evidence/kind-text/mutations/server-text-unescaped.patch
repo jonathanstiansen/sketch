@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/elements.ex b/lib/sketch_web/elements.ex
+index e24a168..c118482 100644
+--- a/lib/sketch_web/elements.ex
++++ b/lib/sketch_web/elements.ex
+@@ -96,7 +96,7 @@ defmodule SketchWeb.Elements do
+ 
+   defp svg_node(%{node: %{text: _text}} = assigns) do
+     ~H"""
+-    <.dynamic_tag tag_name={@node.tag} {@node.attrs}>{@node.text}</.dynamic_tag>
++    <.dynamic_tag tag_name={@node.tag} {@node.attrs}>{Phoenix.HTML.raw(@node.text)}</.dynamic_tag>
+     """
+   end
+ 

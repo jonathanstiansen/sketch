@@ -9,7 +9,7 @@ defmodule SketchWeb.Elements do
   """
   use Phoenix.Component
 
-  alias SketchWeb.Elements.{Arrow, Diamond, Ellipse, Freedraw, Line, Rectangle}
+  alias SketchWeb.Elements.{Arrow, Diamond, Ellipse, Freedraw, Line, Rectangle, Text}
 
   @renderers [
     rectangle: Rectangle,
@@ -17,7 +17,8 @@ defmodule SketchWeb.Elements do
     ellipse: Ellipse,
     arrow: Arrow,
     freedraw: Freedraw,
-    line: Line
+    line: Line,
+    text: Text
   ]
 
   @kinds Keyword.keys(@renderers)

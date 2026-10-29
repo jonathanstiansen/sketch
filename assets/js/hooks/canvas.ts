@@ -33,7 +33,6 @@ import {
   isEndpoint,
   layoutCommittedNote,
   setShape,
-  setText,
   type TextLayout,
 } from "./selection"
 import { TextEditor } from "./text_editor"
@@ -49,9 +48,11 @@ import {
   nextTool,
   panScroll,
   pointerAction,
+  requiresText,
   selectTool,
   selectionHandles,
   togglesHelp,
+  typedKind,
   type DrawnKind,
   type PreviewKind,
   type KeyInput,
@@ -781,8 +782,7 @@ export class Canvas extends ViewHook {
     this.restartStaleTimer(preview.element_id, () => {
       this.cancelRemoteDrag(preview)
     })
-    this.showShape(rect, { box: preview, points: preview.points })
-    if (preview.text !== undefined) setText(rect, preview.text, this.textLayout())
+    this.showShape(rect, { box: preview, points: preview.points }, preview.text)
   }
 
   private applyRemoteDraw(preview: DrawPreview): void {
@@ -793,8 +793,7 @@ export class Canvas extends ViewHook {
       this.endRemoteDraw(preview.drag_id)
     })
     const shape = this.draws.shape(preview.drag_id, preview.kind)
-    this.showShape(shape, { box: preview, points: preview.points })
-    if (preview.text !== undefined) setText(shape, preview.text, this.textLayout())
+    this.showShape(shape, { box: preview, points: preview.points }, preview.text)
   }
 
   private endRemoteDraw(dragId: string): void {
@@ -828,8 +827,7 @@ export class Canvas extends ViewHook {
     if (this.editedElementId() === elementId) return
     const rect = this.elementFor(elementId)
     if (rect === null) return
-    this.showShape(rect, committedShape(rect))
-    if (isTextKind(rect.dataset.kind)) setText(rect, rect.dataset.text ?? "", this.textLayout())
+    this.showShape(rect, committedShape(rect), rect.dataset.text ?? "")
   }
 
   private editedElementId(): string | undefined {
@@ -854,11 +852,13 @@ export class Canvas extends ViewHook {
   }
 
   private openText(event: PointerEvent, rect: SVGElement | null): void {
+    const kind = typedKind(this.tool)
+    if (kind === undefined) return
     event.preventDefault()
-    if (rect?.dataset.kind === "text") {
+    if (rect?.matches(`[data-kind="${kind}"]`) === true) {
       this.editText(rect)
     } else {
-      this.startText(this.canvasPoint(event), "", { mode: "create", kind: "text" })
+      this.startText(this.canvasPoint(event), "", { mode: "create", kind })
     }
   }
 
@@ -876,7 +876,7 @@ export class Canvas extends ViewHook {
       baseVersion: integerAttribute(element, "data-version"),
       text,
     }
-    const { box } = committedShape(element)
+    const box = renderedBox(element)
     if (this.startText(box, text, target, kind === "note" ? box : undefined)) {
       element.setAttribute(TEXT_EDITING, "")
       this.clearRemoteDrag(elementId)
@@ -955,12 +955,11 @@ export class Canvas extends ViewHook {
     }
     target.element.removeAttribute(TEXT_EDITING)
     const ref = { element_id: target.elementId, drag_id: session.dragId }
-    if ((target.kind === "text" && isBlankText(text)) || text === target.text || !this.online) {
+    if ((requiresText(target.kind) && isBlankText(text)) || text === target.text || !this.online) {
       this.revert(target.elementId)
       if (sent) void this.pushEvent("drag_cancel", ref)
     } else {
-      this.showShape(target.element, { box, points: [] })
-      setText(target.element, text, this.textLayout())
+      this.showShape(target.element, { box, points: [] }, text)
       void this.pushEvent("commit_shape", { ...ref, ...box, points: [], text })
     }
     this.select(target.elementId)
@@ -968,7 +967,7 @@ export class Canvas extends ViewHook {
 
   private finishCreatedText(session: TextSession, kind: TextKind, text: string, box: Box, sent: boolean): void {
     const { dragId } = session
-    if ((kind === "text" && isBlankText(text)) || !this.online) {
+    if ((requiresText(kind) && isBlankText(text)) || !this.online) {
       this.draws.remove(dragId)
       if (sent) void this.pushEvent("draw_cancel", { drag_id: dragId })
       return
@@ -1021,8 +1020,8 @@ export class Canvas extends ViewHook {
     }
   }
 
-  private showShape(element: Element, { box, points }: Shape): void {
-    setShape(element, box, points, this.textLayout())
+  private showShape(element: Element, { box, points }: Shape, text?: string): void {
+    setShape(element, box, points, text, this.textLayout())
   }
 
   private layoutNotes(): void {

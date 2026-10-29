@@ -39,7 +39,7 @@ function isElementKind(value: string | undefined): value is ElementKind {
   return ELEMENT_KINDS.some((kind) => kind === value)
 }
 
-function isTypedKind(kind: ElementKind): kind is RequiredTextKind {
+export function requiresText(kind: ElementKind): kind is RequiredTextKind {
   return REQUIRED_TEXT_KINDS.some((typed) => typed === kind)
 }
 
@@ -48,7 +48,7 @@ export function isPreviewKind(value: string): value is PreviewKind {
 }
 
 export function isDrawnKind(value: string): value is DrawnKind {
-  return isPreviewKind(value) && !isTypedKind(value)
+  return isPreviewKind(value) && !requiresText(value)
 }
 
 export const DRAWN_KINDS: readonly DrawnKind[] = ELEMENT_KINDS.filter(isDrawnKind)
@@ -60,6 +60,11 @@ function createdKind(tool: string): PreviewKind | undefined {
 export function drawnKind(tool: string): DrawnKind | undefined {
   const kind = createdKind(tool)
   return kind !== undefined && isDrawnKind(kind) ? kind : undefined
+}
+
+export function typedKind(tool: string): RequiredTextKind | undefined {
+  const kind = createdKind(tool)
+  return kind !== undefined && requiresText(kind) ? kind : undefined
 }
 
 export function isPointKind(kind: DrawnKind): kind is DrawnKind & PointKind {
@@ -75,7 +80,7 @@ function hasEndpoints({ geometry }: KindSpec): boolean {
 export function selectionHandles(kind: string | undefined): SelectionHandles {
   if (!isElementKind(kind)) return "corners"
   if (hasEndpoints(KIND_SPECS[kind])) return "endpoints"
-  return isTypedKind(kind) ? "none" : "corners"
+  return requiresText(kind) ? "none" : "corners"
 }
 
 export interface KeyInput {

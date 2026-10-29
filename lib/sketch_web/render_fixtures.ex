@@ -6,7 +6,9 @@ defmodule SketchWeb.RenderFixtures do
   each box (corner to corner, zigzag between the top and bottom edges, and strictly inside), with
   its minimum point count and its maximum capped at 12 to keep the file small. Every map has string keys, so the JSON key order is
   the same on every run. `assets/test/render_parity.test.ts` feeds the same
-  shapes to the client renderers and expects the same trees.
+  shapes to the client renderers and expects the same trees. A node's text is the unescaped
+  string a browser shows as its `textContent`, and is left out when empty, as an empty element has
+  no text node.
   `mix sketch.gen.render_fixtures --check` fails when the file is stale.
   """
 
@@ -16,7 +18,17 @@ defmodule SketchWeb.RenderFixtures do
   @path "assets/test/fixtures/render_parity.json"
 
   @sizes [0, 1, 2, 119, 120, 3999, 4000]
-  @texts ["", "a", "two\nlines", "  padded  ", "ünïcødé & <tags>"]
+  @texts [
+    "",
+    "a",
+    "two\nlines",
+    "three\n\nlines",
+    "trailing newline\n",
+    "  padded  \n \t \n\tend",
+    "crlf\r\nand\rcr",
+    "ünïcødé ñ 中文 😀 𝄞 👩‍💻",
+    "<b>bold</b> & \"quoted\" 'single' &amp; &lt;"
+  ]
   @point_paths [:diagonal, :zigzag, :interior]
   @max_fixture_points 12
 
@@ -74,7 +86,7 @@ defmodule SketchWeb.RenderFixtures do
     |> put_present("text", Map.get(node, :text))
   end
 
-  defp put_present(map, _key, value) when value in [nil, []], do: map
+  defp put_present(map, _key, value) when value in [nil, [], ""], do: map
   defp put_present(map, key, value), do: Map.put(map, key, value)
 
   defp attribute_string(value) when is_binary(value), do: value

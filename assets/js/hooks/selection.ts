@@ -3,7 +3,6 @@ import {
   ENDPOINTS,
   absolutePoints,
   cornerPoint,
-  textLines,
   wrapText,
   type Box,
   type Corner,
@@ -18,8 +17,6 @@ import type { MigratedKind } from "../generated/manifest"
 const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
 const OUTLINE_GAP = 4
-const TEXT_BODY = "text[data-text-body]"
-const TEXT_HIT = "rect[data-text-hit]"
 const NOTE_PARTS = "rect[data-note-body], svg[data-note-clip]"
 const NOTE_TEXT = "data-note-text"
 const NOTE_SOURCE = "data-source"
@@ -52,52 +49,29 @@ export function setBox(shape: Element, box: Box): void {
   shape.setAttribute("height", String(height))
 }
 
-export function setShape(shape: Element, box: Box, points: readonly Point[], layout: TextLayout): void {
+export function setShape(shape: Element, box: Box, points: readonly Point[], text: string | undefined, layout: TextLayout): void {
   const renderer = rendererFor(shape.getAttribute("data-kind"))
   if (renderer !== undefined) {
-    renderElement(shape, renderer, box, points, shape.getAttribute("data-text") ?? "")
+    renderElement(shape, renderer, box, points, text ?? shape.getAttribute("data-text") ?? "")
     return
   }
   setBox(shape, box)
   setLivePoints(shape, points)
-  setTextBox(shape, box)
+  for (const part of shape.querySelectorAll(NOTE_PARTS)) setBox(part, box)
   const note = noteText(shape)
-  if (note !== null) setText(shape, note.getAttribute(NOTE_SOURCE) ?? shape.getAttribute("data-text") ?? "", layout)
-}
-
-function textBody(shape: Element): Element | null {
-  return shape.localName === "text" ? shape : shape.querySelector(TEXT_BODY)
+  if (note !== null) setNoteText(shape, note, text ?? note.getAttribute(NOTE_SOURCE) ?? shape.getAttribute("data-text") ?? "", layout)
 }
 
 function noteText(shape: Element): Element | null {
   return shape.querySelector(`text[${NOTE_TEXT}]`)
 }
 
-function setTextBox(shape: Element, box: Box): void {
-  const body = textBody(shape)
-  if (body !== null && !body.hasAttribute(NOTE_TEXT)) {
-    body.setAttribute("transform", `translate(${String(box.x)} ${String(box.y)})`)
-  }
-  const hit = shape.querySelector(TEXT_HIT)
-  if (hit !== null) setBox(hit, box)
-  for (const part of shape.querySelectorAll(NOTE_PARTS)) setBox(part, box)
-}
-
-function wrappedLines(shape: Element, body: Element, text: string, layout: TextLayout): string[] {
-  if (!body.hasAttribute(NOTE_TEXT)) return textLines(text)
-  const width = Number(shape.getAttribute("width")) - 2 * layout.notePadding
-  return wrapText(text, width, layout.charWidth)
-}
-
-export function setText(shape: Element, text: string, layout: TextLayout): void {
-  const body = textBody(shape)
-  if (body === null) return
-  const { fontSize, lineHeight, baseline } = layout
+function setNoteText(note: Element, body: Element, text: string, layout: TextLayout): void {
+  const { fontSize, lineHeight, baseline, charWidth, notePadding } = layout
+  const lines = wrapText(text, Number(note.getAttribute("width")) - 2 * notePadding, charWidth)
   body.setAttribute("font-size", String(fontSize))
-  if (body.hasAttribute(NOTE_TEXT)) body.setAttribute(NOTE_SOURCE, text)
-  body.replaceChildren(
-    ...wrappedLines(shape, body, text, layout).map((line, index) => textLine(line, baseline + index * lineHeight)),
-  )
+  body.setAttribute(NOTE_SOURCE, text)
+  body.replaceChildren(...lines.map((line, index) => textLine(line, baseline + index * lineHeight)))
 }
 
 export function layoutKey(shape: Element): string {
@@ -108,7 +82,7 @@ export function layoutCommittedNote(note: Element, layout: TextLayout): void {
   const body = noteText(note)
   const key = layoutKey(note)
   if (body === null || body.getAttribute("data-laid-out") === key) return
-  setText(note, note.getAttribute("data-text") ?? "", layout)
+  setNoteText(note, body, note.getAttribute("data-text") ?? "", layout)
   body.setAttribute("data-laid-out", key)
 }
 
@@ -220,12 +194,7 @@ export class DrawLayer {
   }
 
   private newShape(id: string, kind: PreviewKind): SVGElement {
-    if (isMigratedKind(kind)) return localPreview(id, kind)
-    return kind === "note" ? noteGroup(id) : this.textShape(id)
-  }
-
-  private textShape(id: string): SVGElement {
-    return svgShape("text", { "data-draw": id, class: "draw-preview text-element" })
+    return isMigratedKind(kind) ? localPreview(id, kind) : noteGroup(id)
   }
 
   private find(id: string): SVGElement | null {

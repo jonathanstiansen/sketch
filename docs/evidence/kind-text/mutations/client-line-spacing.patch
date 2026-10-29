@@ -1,0 +1,13 @@
+diff --git a/assets/js/elements/text.ts b/assets/js/elements/text.ts
+index 114c858..6984060 100644
+--- a/assets/js/elements/text.ts
++++ b/assets/js/elements/text.ts
+@@ -3,7 +3,7 @@ import { textLines } from "../hooks/canvas_logic.ts"
+ import type { Renderer, SvgNode } from "./renderer.ts"
+ 
+ function line(content: string, index: number): SvgNode {
+-  return { tag: "tspan", attrs: { x: 0, y: GEOMETRY.textBaseline + index * GEOMETRY.lineHeight }, text: content }
++  return { tag: "tspan", attrs: { x: 0, y: GEOMETRY.textBaseline + index * (GEOMETRY.lineHeight + 1) }, text: content }
+ }
+ 
+ export const text: Renderer = ({ width, height, text: content }) => [

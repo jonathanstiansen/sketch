@@ -3,20 +3,39 @@ import { canvasPoint, clickAt, closeSession, moveTo, openSharedBoard, pressAt } 
 
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
 const textElement = 'g[data-element][data-kind="text"]'
-const lines = `${textElement} tspan`
+const lines = `${textElement} > text[data-text-body] > tspan`
 const editor = "textarea[data-text-editor]"
-const drawPreview = "text[data-draw]"
+const drawPreview = 'g[data-draw][data-kind="text"]'
+const lineHeight = 25
+const baseline = 19
 
 async function expectTool(page: Page, tool: string): Promise<void> {
   await expect(page.locator("#canvas-viewport")).toHaveAttribute("data-tool", tool)
 }
 
+async function expectLocalLines(page: Page, group: string, count: number): Promise<void> {
+  const spans = page.locator(`${group} > text[data-text-body] > tspan`)
+  await expect(spans).toHaveCount(count)
+  for (let index = 0; index < count; index += 1) {
+    await expect(spans.nth(index)).toHaveAttribute("x", "0")
+    await expect(spans.nth(index)).toHaveAttribute("y", String(baseline + index * lineHeight))
+  }
+}
+
 async function expectText(page: Page, text: string, version: number): Promise<void> {
-  await expect(page.locator(textElement)).toHaveCount(1)
-  await expect(page.locator(textElement)).toHaveAttribute("data-text", text)
-  await expect(page.locator(textElement)).toHaveAttribute("data-version", String(version))
+  const group = page.locator(textElement)
+  await expect(group).toHaveCount(1)
+  await expect(group).toHaveAttribute("data-text", text)
+  await expect(group).toHaveAttribute("data-version", String(version))
   await expect(page.locator(lines)).toHaveText(text.split("\n"))
   await expect(page.locator(`${textElement} b`)).toHaveCount(0)
+  await expectLocalLines(page, textElement, text.split("\n").length)
+  const { x, y, width, height } = await textBox(page)
+  await expect(group).toHaveAttribute("transform", `translate(${String(x)} ${String(y)})`)
+  const hit = page.locator(`${textElement} > rect[data-text-hit]`)
+  for (const [name, value] of Object.entries({ x: 0, y: 0, width, height })) {
+    await expect(hit).toHaveAttribute(name, String(value))
+  }
 }
 
 async function typeWatched(typist: Page, watched: Locator, typed: string, before = ""): Promise<void> {
@@ -52,6 +71,8 @@ test("A types multi-line text B watches appear, edits it with a double-click, mo
     await pageA.keyboard.press("Enter")
     await pageA.keyboard.type("second line")
     await expect(pageB.locator(`${drawPreview} tspan`)).toHaveText(["rv over <b>x</b>", "second line"])
+    await expectLocalLines(pageB, drawPreview, 2)
+    await expect(pageB.locator(drawPreview)).toHaveAttribute("transform", "translate(300 200)")
     await expect(pageA.locator(editor)).toHaveValue("rv over <b>x</b>\nsecond line")
 
     await pageA.keyboard.press("Escape")
@@ -67,6 +88,8 @@ test("A types multi-line text B watches appear, edits it with a double-click, mo
     await expectTool(pageA, "selection")
     await pageA.locator(textElement).dblclick()
     await expect(pageA.locator(editor)).toBeFocused()
+    await expect(pageA.locator(editor)).toHaveCSS("left", `${String(created.x)}px`)
+    await expect(pageA.locator(editor)).toHaveCSS("top", `${String(created.y)}px`)
     await expect(pageA.locator(editor)).toHaveValue("rv over <b>x</b>\nsecond line")
     await typeWatched(pageA, pageB.locator(lines).nth(1), " vr", "second line")
     await expect(pageB.locator(lines)).toHaveText(["rv over <b>x</b>", "second line vr"])

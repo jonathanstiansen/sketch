@@ -27,7 +27,7 @@ function normalize(nodes: readonly SvgNode[]): NormalizedNode[] {
     tag,
     attrs: Object.fromEntries(Object.entries(attrs).map(([name, value]) => [name, attributeString(value)])),
     ...(children.length > 0 ? { children: normalize(children) } : {}),
-    ...(text === undefined ? {} : { text }),
+    ...(text === undefined || text === "" ? {} : { text }),
   }))
 }
 

@@ -605,8 +605,9 @@ defmodule SketchWeb.BoardLiveTest do
       view
       |> render()
       |> LazyHTML.from_fragment()
-      |> LazyHTML.query("#element-#{id} text[data-text-body] tspan")
-      |> Enum.map(&LazyHTML.text/1)
+      |> LazyHTML.query("#element-#{id} > text[data-text-body] > tspan[x='0']")
+      |> Enum.map(&{LazyHTML.attribute(&1, "y"), LazyHTML.text(&1)})
+      |> Enum.map(fn {[y], text} -> {String.to_integer(y), text} end)
     end
 
     test "typed text is stored and rendered one tspan per line in every view", %{
@@ -625,11 +626,12 @@ defmodule SketchWeb.BoardLiveTest do
       for view <- [creator, watcher] do
         assert has_element?(
                  view,
-                 "g#element-#{id}[data-kind='text'][data-version='0'] rect[data-text-hit][width='90']"
+                 "g#element-#{id}[data-kind='text'][data-version='0'][transform='translate(300 200)'] " <>
+                   "> rect[data-text-hit][x='0'][y='0'][width='90'][height='50']"
                )
 
-        assert has_element?(view, "#element-#{id} text[transform='translate(300 200)']")
-        assert text_lines(view, id) == ["hello", "  world"]
+        assert has_element?(view, "#element-#{id} > text[data-text-body][font-size='20']")
+        assert text_lines(view, id) == [{19, "hello"}, {44, "  world"}]
       end
     end
 
@@ -650,7 +652,7 @@ defmodule SketchWeb.BoardLiveTest do
       assert [%{id: id}] = Canvas.list_elements_for_board!(board.id)
 
       for view <- [creator, watcher] do
-        assert text_lines(view, id) == ["<script>alert(1)</script>", "<b>x</b>"]
+        assert text_lines(view, id) == [{19, "<script>alert(1)</script>"}, {44, "<b>x</b>"}]
 
         assert data_text(view, id) == [markup]
 
@@ -709,7 +711,8 @@ defmodule SketchWeb.BoardLiveTest do
         assert has_element?(view, "#element-#{element.id}[data-version='1']")
         assert data_text(view, element.id) == ["final\ncopy"]
 
-        assert text_lines(view, element.id) == ["final", "copy"]
+        assert has_element?(view, "#element-#{element.id}[transform='translate(10 20)']")
+        assert text_lines(view, element.id) == [{19, "final"}, {44, "copy"}]
       end
 
       render_hook(editor, "commit_shape", %{
