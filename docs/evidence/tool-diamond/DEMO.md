@@ -82,10 +82,10 @@ Browser A with the diamond selected (outline and four corner handles), then the 
 ![A has the diamond selected with an outline and four corner handles](docs/evidence/tool-diamond/diamond.png)
 ```
 
-![A has the diamond selected with an outline and four corner handles](ae293b52-2026-10-29.png)
+![A has the diamond selected with an outline and four corner handles](diamond.png)
 
 ```bash {image}
 ![A draws and resizes a diamond while B mirrors every step](docs/evidence/tool-diamond/diamond.gif)
 ```
 
-![A draws and resizes a diamond while B mirrors every step](48c7732f-2026-10-29.gif)
+![A draws and resizes a diamond while B mirrors every step](diamond.gif)
