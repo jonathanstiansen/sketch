@@ -6,27 +6,30 @@ defmodule Sketch.Canvas.Geometry do
   to the box origin and inside `[0, width] x [0, height]`. Text kinds hold text of at most
   `max_text_length` code points, laid out one line per `line_height` at a fixed `font_size`: a
   `:text` element needs non-blank text, a `:note` may be empty and wraps its text at `char_width`
-  inside `note_padding`; every other kind holds empty text.
+  inside `note_padding`; every other kind holds empty text. The per-kind tables (point counts, text
+  kinds and default sizes) derive from the specs in `Sketch.Canvas.Kinds` (ADR 0004).
   """
+
+  alias Sketch.Canvas.Kinds
 
   @canvas_width 4000
   @canvas_height 4000
-  @default_width 120
-  @default_height 80
+  @default_size Kinds.fetch!(:rectangle).default_size
+  @note_size Kinds.fetch!(:note).default_size
   @min_size 1
-  @max_freedraw_points 500
-  @point_counts %{arrow: 2..2//1, freedraw: 2..@max_freedraw_points//1, line: 2..2//1}
+  @point_counts for %{id: id, geometry: {:points, range}} <- Kinds.all(),
+                    into: %{},
+                    do: {id, range}
+  @point_kinds for %{id: id, geometry: {:points, _range}} <- Kinds.all(), do: id
   @max_points @point_counts |> Map.values() |> Enum.map(& &1.last) |> Enum.max()
-  @required_text_kinds [:text]
-  @text_kinds [:text, :note]
+  @required_text_kinds for %{id: id, text: :required} <- Kinds.all(), do: id
+  @text_kinds for %{id: id, text: text} <- Kinds.all(), text != :none, do: id
   @max_text_length 2000
   @font_size 20
   @line_height 25
   @text_baseline 19
   @char_width 12
   @note_padding 12
-  @note_width 200
-  @note_height 160
   @text_whitespace [?\s, ?\t, ?\n, ?\r]
   @cascade_start 100
   @cascade_step 150
@@ -71,7 +74,7 @@ defmodule Sketch.Canvas.Geometry do
 
   @doc "The kinds whose shape is a list of points inside their box."
   @spec point_kinds() :: [atom()]
-  def point_kinds, do: Map.keys(@point_counts)
+  def point_kinds, do: @point_kinds
 
   @doc "How many points an element of `kind` has; box kinds have none."
   @spec point_count(atom()) :: Range.t()
@@ -135,7 +138,7 @@ defmodule Sketch.Canvas.Geometry do
   @spec default_box(non_neg_integer()) :: box()
   def default_box(count) do
     offset = @cascade_start + rem(count, @cascade_length) * @cascade_step
-    %{x: offset, y: offset, width: @default_width, height: @default_height}
+    %{x: offset, y: offset, width: @default_size.width, height: @default_size.height}
   end
 
   @doc "The nearest box inside the canvas: the size is capped to the canvas, then the box is shifted in."
@@ -173,8 +176,8 @@ defmodule Sketch.Canvas.Geometry do
     %{
       canvas_width: @canvas_width,
       canvas_height: @canvas_height,
-      default_width: @default_width,
-      default_height: @default_height,
+      default_width: @default_size.width,
+      default_height: @default_size.height,
       min_size: @min_size,
       max_points: @max_points,
       max_text_length: @max_text_length,
@@ -183,8 +186,8 @@ defmodule Sketch.Canvas.Geometry do
       text_baseline: @text_baseline,
       char_width: @char_width,
       note_padding: @note_padding,
-      note_width: @note_width,
-      note_height: @note_height
+      note_width: @note_size.width,
+      note_height: @note_size.height
     }
   end
 end

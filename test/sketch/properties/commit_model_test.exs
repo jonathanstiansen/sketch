@@ -5,6 +5,7 @@ defmodule Sketch.Properties.CommitModelTest do
   alias Phoenix.Socket.Broadcast
   alias Sketch.Canvas
   alias Sketch.Canvas.Geometry
+  alias Sketch.CanvasFixtures
 
   @kinds Canvas.element_kinds()
   @canvas_width Geometry.canvas_width()
@@ -85,7 +86,7 @@ defmodule Sketch.Properties.CommitModelTest do
     index = integer(0..100)
 
     one_of([
-      tuple({constant(:create), member_of(@kinds), with_text(shape())}),
+      tuple({constant(:create), CanvasFixtures.element_kind(), with_text(shape())}),
       tuple(
         {member_of([:commit_position, :commit_position_wrong_board]), index,
          fixed_map(%{x: coordinate(@canvas_width), y: coordinate(@canvas_height)})}
@@ -278,7 +279,7 @@ defmodule Sketch.Properties.CommitModelTest do
   end
 
   property "a commit or erase after an erase fails, broadcasts nothing and leaves the row gone (A11)" do
-    check all kind <- member_of(@kinds),
+    check all kind <- CanvasFixtures.element_kind(),
               later <-
                 list_of(member_of([:commit_position, :commit_shape, :erase]), min_length: 1),
               max_runs: 50 do

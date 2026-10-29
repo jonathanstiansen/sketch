@@ -6,8 +6,7 @@ defmodule Sketch.Canvas do
   use Ash.Domain,
     otp_app: :sketch
 
-  alias Ash.Resource.Info
-  alias Sketch.Canvas.Element
+  alias Sketch.Canvas.Kinds
 
   resources do
     resource Sketch.Canvas.Board do
@@ -34,8 +33,11 @@ defmodule Sketch.Canvas do
 
   @doc "The element kinds a board can hold."
   @spec element_kinds() :: [atom()]
-  def element_kinds,
-    do: Info.attribute(Element, :kind).constraints[:one_of]
+  defdelegate element_kinds, to: Kinds, as: :ids
+
+  @doc "Every element kind's spec, in board order (ADR 0004)."
+  @spec kind_specs() :: [Sketch.Canvas.Kind.t()]
+  defdelegate kind_specs, to: Kinds, as: :all
 
   defdelegate geometry, to: Sketch.Canvas.Geometry, as: :dimensions
 
