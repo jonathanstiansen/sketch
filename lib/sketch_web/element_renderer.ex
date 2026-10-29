@@ -70,4 +70,40 @@ defmodule SketchWeb.ElementRenderer do
         ] ++ attrs
     }
   end
+
+  @doc """
+  The two `polyline` nodes of a stroke kind: a wide transparent one that takes the pointer and a
+  thin visible one on top.
+  """
+  @spec polylines([point()]) :: [svg_node()]
+  def polylines(points) when length(points) < 2, do: []
+
+  def polylines(points) do
+    [
+      polyline(points, [
+        {"data-freedraw-hit", ""},
+        {"stroke", "transparent"},
+        {"stroke-width", 14}
+      ]),
+      polyline(points, [
+        {"data-freedraw-stroke", ""},
+        {"stroke-width", 2},
+        {"pointer-events", "none"},
+        {"class", "stroke-base-content"}
+      ])
+    ]
+  end
+
+  defp polyline(points, attrs) do
+    %{
+      tag: "polyline",
+      attrs:
+        [
+          {"points", Enum.map_join(points, " ", &"#{&1.x},#{&1.y}")},
+          {"fill", "none"},
+          {"stroke-linecap", "round"},
+          {"stroke-linejoin", "round"}
+        ] ++ attrs
+    }
+  end
 end

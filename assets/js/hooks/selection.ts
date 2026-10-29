@@ -12,20 +12,19 @@ import {
 } from "./canvas_logic"
 import type { PreviewKind, SelectionHandles } from "./tools"
 import { isMigratedKind, rendererFor } from "../elements"
-import { pointsAttribute, renderElement, setLivePoints } from "../elements/dom"
+import { renderElement, setLivePoints } from "../elements/dom"
 import type { MigratedKind } from "../generated/manifest"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
 const OUTLINE_GAP = 4
-const POLYLINES = "polyline[data-freedraw-hit], polyline[data-freedraw-stroke]"
 const TEXT_BODY = "text[data-text-body]"
 const TEXT_HIT = "rect[data-text-hit]"
 const NOTE_PARTS = "rect[data-note-body], svg[data-note-clip]"
 const NOTE_TEXT = "data-note-text"
 const NOTE_SOURCE = "data-source"
 
-type ShapeTag = "rect" | "line" | "polyline" | "text" | "tspan" | "g" | "svg"
+type ShapeTag = "rect" | "text" | "tspan" | "g" | "svg"
 
 export interface TextLayout {
   fontSize: number
@@ -61,8 +60,6 @@ export function setShape(shape: Element, box: Box, points: readonly Point[], lay
   }
   setBox(shape, box)
   setLivePoints(shape, points)
-  const absolute = absolutePoints({ box, points })
-  setPolylines(shape, absolute)
   setTextBox(shape, box)
   const note = noteText(shape)
   if (note !== null) setText(shape, note.getAttribute(NOTE_SOURCE) ?? shape.getAttribute("data-text") ?? "", layout)
@@ -120,16 +117,6 @@ function textLine(line: string, y: number): SVGTSpanElement {
   span.textContent = line
   return span
 }
-
-function setPolylines(shape: Element, absolute: Point[]): void {
-  const polylines = shape.localName === "polyline" ? [shape] : shape.querySelectorAll(POLYLINES)
-  for (const polyline of polylines) polyline.setAttribute("points", pointsAttribute(absolute))
-}
-
-const PREVIEW_TAGS = {
-  freedraw: "polyline",
-  text: "text",
-} as const
 
 export function isCorner(value: string | undefined): value is Corner {
   return CORNERS.some((corner) => corner === value)
@@ -234,14 +221,11 @@ export class DrawLayer {
 
   private newShape(id: string, kind: PreviewKind): SVGElement {
     if (isMigratedKind(kind)) return localPreview(id, kind)
-    return kind === "note" ? noteGroup(id) : this.previewShape(id, kind)
+    return kind === "note" ? noteGroup(id) : this.textShape(id)
   }
 
-  private previewShape(id: string, kind: Exclude<PreviewKind, "note" | MigratedKind>): SVGElement {
-    return svgShape(PREVIEW_TAGS[kind], {
-      "data-draw": id,
-      class: kind === "text" ? "draw-preview text-element" : "draw-preview",
-    })
+  private textShape(id: string): SVGElement {
+    return svgShape("text", { "data-draw": id, class: "draw-preview text-element" })
   }
 
   private find(id: string): SVGElement | null {
