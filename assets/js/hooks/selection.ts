@@ -18,7 +18,6 @@ import type { MigratedKind } from "../generated/manifest"
 const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
 const OUTLINE_GAP = 4
-const LINE_SEGMENTS = "line[data-line-hit], line[data-line-stroke]"
 const POLYLINES = "polyline[data-freedraw-hit], polyline[data-freedraw-stroke]"
 const TEXT_BODY = "text[data-text-body]"
 const TEXT_HIT = "rect[data-text-hit]"
@@ -63,7 +62,6 @@ export function setShape(shape: Element, box: Box, points: readonly Point[], lay
   setBox(shape, box)
   setLivePoints(shape, points)
   const absolute = absolutePoints({ box, points })
-  setSegments(shape, absolute)
   setPolylines(shape, absolute)
   setTextBox(shape, box)
   const note = noteText(shape)
@@ -123,26 +121,12 @@ function textLine(line: string, y: number): SVGTSpanElement {
   return span
 }
 
-function setSegments(shape: Element, [start, end]: Point[]): void {
-  if (start === undefined || end === undefined) return
-  const segments = shape.localName === "line" ? [shape] : shape.querySelectorAll(LINE_SEGMENTS)
-  for (const segment of segments) setSegment(segment, start, end)
-}
-
 function setPolylines(shape: Element, absolute: Point[]): void {
   const polylines = shape.localName === "polyline" ? [shape] : shape.querySelectorAll(POLYLINES)
   for (const polyline of polylines) polyline.setAttribute("points", pointsAttribute(absolute))
 }
 
-function setSegment(segment: Element, start: Point, end: Point): void {
-  segment.setAttribute("x1", String(start.x))
-  segment.setAttribute("y1", String(start.y))
-  segment.setAttribute("x2", String(end.x))
-  segment.setAttribute("y2", String(end.y))
-}
-
 const PREVIEW_TAGS = {
-  arrow: "line",
   freedraw: "polyline",
   text: "text",
 } as const
@@ -236,7 +220,6 @@ export class DrawLayer {
     const existing = this.find(id)
     if (existing !== null) return existing
     const shape = this.newShape(id, kind)
-    if (kind === "arrow") shape.setAttribute("marker-end", "url(#arrowhead)")
     this.layer.append(shape)
     return shape
   }

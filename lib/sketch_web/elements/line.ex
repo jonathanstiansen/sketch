@@ -6,33 +6,5 @@ defmodule SketchWeb.Elements.Line do
   @behaviour SketchWeb.ElementRenderer
 
   @impl true
-  def render(%{points: [start, finish]}) do
-    [
-      segment(start, finish, [
-        {"data-line-hit", ""},
-        {"stroke", "transparent"},
-        {"stroke-width", 14}
-      ]),
-      segment(start, finish, [
-        {"data-line-stroke", ""},
-        {"stroke-width", 2},
-        {"pointer-events", "none"},
-        {"class", "stroke-base-content"}
-      ])
-    ]
-  end
-
-  defp segment(start, finish, attrs) do
-    %{
-      tag: "line",
-      attrs:
-        [
-          {"x1", start.x},
-          {"y1", start.y},
-          {"x2", finish.x},
-          {"y2", finish.y},
-          {"stroke-linecap", "round"}
-        ] ++ attrs
-    }
-  end
+  def render(%{points: points}), do: SketchWeb.ElementRenderer.segments(points)
 end
