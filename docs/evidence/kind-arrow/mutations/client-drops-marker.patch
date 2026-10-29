@@ -1,0 +1,9 @@
+diff --git a/assets/js/elements/arrow.ts b/assets/js/elements/arrow.ts
+--- a/assets/js/elements/arrow.ts
++++ b/assets/js/elements/arrow.ts
+@@ -1,4 +1,4 @@
+ import type { Renderer } from "./renderer.ts"
+ import { segments } from "./segments.ts"
+ 
+-export const arrow: Renderer = ({ points }) => segments(points, { "marker-end": "url(#arrowhead)" })
++export const arrow: Renderer = ({ points }) => segments(points)

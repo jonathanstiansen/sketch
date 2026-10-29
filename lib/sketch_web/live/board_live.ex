@@ -301,38 +301,6 @@ defmodule SketchWeb.BoardLive do
   defp element_shape(%{element: %{kind: kind}} = assigns) when is_map_key(@rendered_kinds, kind),
     do: SketchWeb.Elements.element(assigns)
 
-  defp element_shape(%{element: %{kind: :arrow}} = assigns) do
-    ~H"""
-    <g
-      id={@dom_id}
-      x={@element.x}
-      y={@element.y}
-      width={@element.width}
-      height={@element.height}
-      data-element={@element.id}
-      data-kind={@element.kind}
-      data-x={@element.x}
-      data-y={@element.y}
-      data-width={@element.width}
-      data-height={@element.height}
-      data-points={points_attribute(@element.points)}
-      data-version={@element.version}
-      live-points={points_attribute(@element.points)}
-      class="cursor-grab touch-none"
-    >
-      <.line_segment element={@element} data-line-hit stroke="transparent" stroke-width="14" />
-      <.line_segment
-        element={@element}
-        data-line-stroke
-        stroke-width="2"
-        pointer-events="none"
-        marker-end="url(#arrowhead)"
-        class="stroke-base-content"
-      />
-    </g>
-    """
-  end
-
   defp element_shape(%{element: %{kind: :freedraw}} = assigns) do
     ~H"""
     <g
@@ -463,28 +431,6 @@ defmodule SketchWeb.BoardLive do
         </text>
       </svg>
     </g>
-    """
-  end
-
-  attr :element, :map, required: true
-  attr :rest, :global, include: ~w(stroke stroke-width pointer-events marker-end)
-
-  defp line_segment(%{element: %{x: x, y: y, points: [start, finish]}} = assigns) do
-    assigns =
-      assign(assigns,
-        start: %{x: x + start.x, y: y + start.y},
-        finish: %{x: x + finish.x, y: y + finish.y}
-      )
-
-    ~H"""
-    <line
-      x1={@start.x}
-      y1={@start.y}
-      x2={@finish.x}
-      y2={@finish.y}
-      stroke-linecap="round"
-      {@rest}
-    />
     """
   end
 

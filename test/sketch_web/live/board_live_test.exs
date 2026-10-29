@@ -303,8 +303,9 @@ defmodule SketchWeb.BoardLiveTest do
 
       assert has_element?(
                view,
-               "g#element-#{id}[data-kind='arrow'][data-points='200,80 0,0'] " <>
-                 "line[data-line-stroke][marker-end='url(#arrowhead)'][x1='400'][y1='300'][x2='200'][y2='220']"
+               "g#element-#{id}[data-kind='arrow'][data-points='200,80 0,0'][live-points='200,80 0,0']" <>
+                 "[transform='translate(200 220)'] > " <>
+                 "line[data-line-stroke][marker-end='url(#arrowhead)'][x1='200'][y1='80'][x2='0'][y2='0']"
              )
 
       assert has_element?(view, "#canvas defs marker#arrowhead")

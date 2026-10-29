@@ -12,7 +12,6 @@ defmodule Sketch.Canvas.Kinds.Legacy do
   @spec specs() :: [Kind.t()]
   def specs do
     [
-      %Kind{id: :arrow, geometry: {:points, 2..2//1}, text: :none, default_size: @default_size},
       %Kind{
         id: :freedraw,
         geometry: {:points, 2..500//1},
