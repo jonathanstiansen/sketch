@@ -29,7 +29,7 @@ export const TOOLS: readonly Tool[] = [
   { id: "arrow", letter: "a", digit: "5", enabled: true },
   { id: "line", letter: "l", digit: "6", enabled: true },
   { id: "draw", letter: "p", digit: "7", enabled: true },
-  { id: "text", letter: "t", digit: "8", enabled: false },
+  { id: "text", letter: "t", digit: "8", enabled: true },
   { id: "note", letter: "n", digit: "9", enabled: false },
   { id: "eraser", letter: "e", digit: "0", enabled: false },
 ]
@@ -53,8 +53,17 @@ export function isPointKind(kind: DrawnKind): boolean {
   return kind === "line" || kind === "arrow" || kind === "freedraw"
 }
 
-export function hasEndpointHandles(kind: string | undefined): boolean {
-  return kind === "line" || kind === "arrow"
+export type PreviewKind = DrawnKind | "text"
+
+export function isPreviewKind(value: string): value is PreviewKind {
+  return value === "text" || isDrawnKind(value)
+}
+
+export type SelectionHandles = "corners" | "endpoints" | "none"
+
+export function selectionHandles(kind: string | undefined): SelectionHandles {
+  if (kind === "line" || kind === "arrow") return "endpoints"
+  return kind === "text" ? "none" : "corners"
 }
 
 export interface KeyInput {
@@ -65,7 +74,7 @@ export interface KeyInput {
   editable: boolean
 }
 
-export type PointerAction = "pan" | "draw" | "move" | "resize" | "deselect" | "none"
+export type PointerAction = "pan" | "draw" | "text" | "move" | "resize" | "deselect" | "none"
 
 export interface PointerInput {
   button: number
@@ -116,6 +125,7 @@ export function pointerAction({ button, tool, spaceHeld, onElement, onHandle }: 
   if (button !== PRIMARY_BUTTON) return "none"
   if (spaceHeld || tool === "hand") return "pan"
   if (drawnKind(tool) !== undefined) return "draw"
+  if (tool === "text") return "text"
   if (tool === "selection") return selectionAction(onElement, onHandle)
   return "none"
 }

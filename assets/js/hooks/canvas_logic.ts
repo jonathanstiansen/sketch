@@ -37,6 +37,7 @@ export interface Preview extends DragRef, Box {
   seq: number
   base_version: number
   points: readonly Point[]
+  text?: string
 }
 
 export function clamp(value: number, max: number): number {
@@ -212,4 +213,18 @@ export class RemotePreviews {
   forget(elementId: string): void {
     this.activeDrags.delete(elementId)
   }
+}
+
+export function textLines(text: string): string[] {
+  return text.replace(/\r\n?/g, "\n").split("\n")
+}
+
+export function isBlankText(text: string): boolean {
+  return text.trim() === ""
+}
+
+export function textBox(origin: Point, text: string, measure: (line: string) => number, lineHeight: number, canvas: Size): Box {
+  const lines = textLines(text)
+  const longest = Math.max(0, ...lines.map(measure))
+  return clickBox(origin, { width: Math.max(MIN_SIZE, Math.ceil(longest)), height: lines.length * lineHeight }, canvas)
 }

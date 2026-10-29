@@ -579,4 +579,194 @@ defmodule SketchWeb.BoardLiveTest do
       assert [%{version: 1, width: 80, height: 40}] = Canvas.list_elements_for_board!(board.id)
     end
   end
+
+  describe "text" do
+    @edit_id "22222222-3333-4444-8555-666666666666"
+
+    defp text_params(box, text) do
+      %{"kind" => "text", "drag_id" => @drag_id, "text" => text}
+      |> Map.merge(Map.new(box, fn {key, value} -> {to_string(key), value} end))
+    end
+
+    defp data_text(view, id) do
+      view
+      |> render()
+      |> LazyHTML.from_fragment()
+      |> LazyHTML.query("#element-#{id}")
+      |> LazyHTML.attribute("data-text")
+    end
+
+    defp text_lines(view, id) do
+      view
+      |> render()
+      |> LazyHTML.from_fragment()
+      |> LazyHTML.query("#element-#{id} text[data-text-body] tspan")
+      |> Enum.map(&LazyHTML.text/1)
+    end
+
+    test "typed text is stored and rendered one tspan per line in every view", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 300, y: 200, width: 90, height: 50}
+
+      render_hook(creator, "create_element", text_params(box, "hello\n  world"))
+
+      assert [%{kind: :text, id: id, text: "hello\n  world", x: 300, height: 50}] =
+               Canvas.list_elements_for_board!(board.id)
+
+      for view <- [creator, watcher] do
+        assert has_element?(
+                 view,
+                 "g#element-#{id}[data-kind='text'][data-version='0'] rect[data-text-hit][width='90']"
+               )
+
+        assert has_element?(view, "#element-#{id} text[transform='translate(300 200)']")
+        assert text_lines(view, id) == ["hello", "  world"]
+      end
+    end
+
+    test "markup in text renders as literal text, never as elements", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+      markup = "<script>alert(1)</script>\n<b>x</b>"
+
+      render_hook(
+        creator,
+        "create_element",
+        text_params(%{x: 0, y: 0, width: 9, height: 9}, markup)
+      )
+
+      assert [%{id: id}] = Canvas.list_elements_for_board!(board.id)
+
+      for view <- [creator, watcher] do
+        assert text_lines(view, id) == ["<script>alert(1)</script>", "<b>x</b>"]
+
+        assert data_text(view, id) == [markup]
+
+        refute has_element?(view, "#elements script")
+        refute has_element?(view, "#elements b")
+        assert render(view) =~ "&lt;script&gt;alert(1)&lt;/script&gt;"
+      end
+    end
+
+    test "blank or overlong text creates nothing", %{conn: conn, board: board} do
+      {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 0, y: 0, width: 10, height: 25}
+      overlong = String.duplicate("a", Sketch.Canvas.geometry().max_text_length + 1)
+
+      for text <- ["", " \n ", overlong] do
+        render_hook(view, "create_element", text_params(box, text))
+      end
+
+      render_hook(view, "create_element", text_params(box, 42))
+      assert Canvas.list_elements_for_board!(board.id) == []
+    end
+
+    test "editing commits the text and box together and every view renders the new text", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, editor, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+
+      element =
+        Canvas.create_element!(%{
+          kind: :text,
+          x: 10,
+          y: 20,
+          width: 50,
+          height: 25,
+          text: "draft",
+          board_id: board.id
+        })
+
+      render_hook(editor, "commit_shape", %{
+        "element_id" => element.id,
+        "drag_id" => @edit_id,
+        "x" => 10,
+        "y" => 20,
+        "width" => 80,
+        "height" => 50,
+        "points" => [],
+        "text" => "final\ncopy"
+      })
+
+      assert [%{text: "final\ncopy", width: 80, version: 1}] =
+               Canvas.list_elements_for_board!(board.id)
+
+      for view <- [editor, watcher] do
+        assert has_element?(view, "#element-#{element.id}[data-version='1']")
+        assert data_text(view, element.id) == ["final\ncopy"]
+
+        assert text_lines(view, element.id) == ["final", "copy"]
+      end
+
+      render_hook(editor, "commit_shape", %{
+        "element_id" => element.id,
+        "drag_id" => @edit_id,
+        "x" => 10,
+        "y" => 20,
+        "width" => 80,
+        "height" => 50,
+        "points" => [],
+        "text" => "  "
+      })
+
+      element_id = element.id
+      assert_push_event(editor, "revert", %{element_id: ^element_id})
+      assert [%{text: "final\ncopy", version: 1}] = Canvas.list_elements_for_board!(board.id)
+    end
+
+    test "typing previews reach other views with their text and are never persisted", %{
+      conn: conn,
+      board: board
+    } do
+      {:ok, typist, _html} = live(conn, ~p"/b/#{board.id}")
+      {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+      box = %{x: 40, y: 50, width: 30, height: 25}
+
+      render_hook(
+        typist,
+        "draw_preview",
+        text_params(box, "<b>hi") |> Map.merge(%{"seq" => 1, "points" => []})
+      )
+
+      assert_push_event(watcher, "draw_preview", %{kind: "text", seq: 1, text: "<b>hi"})
+
+      element =
+        Canvas.create_element!(%{
+          kind: :text,
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 25,
+          text: "old",
+          board_id: board.id
+        })
+
+      render_hook(typist, "preview", %{
+        "element_id" => element.id,
+        "drag_id" => @edit_id,
+        "seq" => 1,
+        "base_version" => 0,
+        "x" => 0,
+        "y" => 0,
+        "width" => 60,
+        "height" => 25,
+        "points" => [],
+        "text" => "older"
+      })
+
+      element_id = element.id
+      assert_push_event(watcher, "preview", %{text: "older", element_id: ^element_id})
+
+      assert [%{text: "old", version: 0}] = Canvas.list_elements_for_board!(board.id)
+    end
+  end
 end

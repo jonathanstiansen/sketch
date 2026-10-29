@@ -14,7 +14,7 @@ defmodule SketchWeb.Toolbar do
     %{id: "arrow", label: "Arrow", keys: ["A", "5"], enabled: true},
     %{id: "line", label: "Line", keys: ["L", "6"], enabled: true},
     %{id: "draw", label: "Draw", keys: ["P", "7"], enabled: true},
-    %{id: "text", label: "Text", keys: ["T", "8"], enabled: false},
+    %{id: "text", label: "Text", keys: ["T", "8"], enabled: true},
     %{id: "note", label: "Note", keys: ["N", "9"], enabled: false},
     %{id: "eraser", label: "Eraser", keys: ["E", "0"], enabled: false}
   ]
