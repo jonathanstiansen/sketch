@@ -66,6 +66,7 @@ jobs:
       - run: npm ci --prefix e2e
       - run: npm --prefix assets run typecheck
       - run: npm --prefix assets run lint
+      - run: npm --prefix assets test
       - run: npm --prefix e2e run typecheck
       - run: npm --prefix e2e run lint
       - name: Build assets with esbuild

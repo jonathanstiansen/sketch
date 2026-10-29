@@ -1,13 +1,15 @@
 import { ViewHook } from "phoenix_live_view"
+import {
+  RemotePreviews,
+  dragPosition,
+  previewDelay,
+  type DragRef,
+  type Point,
+  type Preview,
+} from "./canvas_logic"
 
-const PREVIEW_INTERVAL_MS = 50
 const STALE_PREVIEW_MS = 2000
 const DRAGGING = "data-dragging"
-
-interface Point {
-  x: number
-  y: number
-}
 
 interface LocalDrag {
   rect: SVGRectElement
@@ -22,26 +24,6 @@ interface LocalDrag {
   seq: number
   lastSentAt: number
   previewTimer: number | undefined
-}
-
-interface RemoteDrag {
-  dragId: string
-  seq: number
-  staleTimer: number
-}
-
-interface Preview {
-  rectangle_id: string
-  drag_id: string
-  seq: number
-  base_version: number
-  x: number
-  y: number
-}
-
-interface DragRef {
-  rectangle_id: string
-  drag_id: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -63,10 +45,6 @@ function isPreview(value: unknown): value is Preview {
     Number.isInteger(value.x) &&
     Number.isInteger(value.y)
   )
-}
-
-function clamp(value: number, max: number): number {
-  return Math.min(Math.max(Math.round(value), 0), max)
 }
 
 function numberAttribute(el: Element, name: string): number {
@@ -105,8 +83,8 @@ export function keepDraggedPosition(fromEl: Element, toEl: Element): void {
 
 export class Canvas extends ViewHook {
   private drag: LocalDrag | undefined
-  private remoteDrags = new Map<string, RemoteDrag>()
-  private finishedDragIds = new Set<string>()
+  private remotePreviews = new RemotePreviews()
+  private staleTimers = new Map<string, number>()
   private online = true
 
   override mounted(): void {
@@ -139,7 +117,7 @@ export class Canvas extends ViewHook {
 
   override destroyed(): void {
     if (this.drag !== undefined) window.clearTimeout(this.drag.previewTimer)
-    for (const remote of this.remoteDrags.values()) window.clearTimeout(remote.staleTimer)
+    for (const timer of this.staleTimers.values()) window.clearTimeout(timer)
   }
 
   private onPointerDown = (event: PointerEvent): void => {
@@ -173,11 +151,7 @@ export class Canvas extends ViewHook {
   private onPointerMove = (event: PointerEvent): void => {
     const drag = this.drag
     if (drag?.pointerId !== event.pointerId) return
-    const pointer = this.canvasPoint(event)
-    drag.position = {
-      x: clamp(pointer.x - drag.grab.x, drag.max.x),
-      y: clamp(pointer.y - drag.grab.y, drag.max.y),
-    }
+    drag.position = dragPosition(this.canvasPoint(event), drag.grab, drag.max)
     moveRect(drag.rect, drag.position)
     this.schedulePreview(drag)
   }
@@ -216,8 +190,8 @@ export class Canvas extends ViewHook {
   }
 
   private schedulePreview(drag: LocalDrag): void {
-    if (drag.previewTimer !== undefined) return
-    const wait = Math.max(0, drag.lastSentAt + PREVIEW_INTERVAL_MS - performance.now())
+    const wait = previewDelay(drag.lastSentAt, performance.now(), drag.previewTimer !== undefined)
+    if (wait === undefined) return
     drag.previewTimer = window.setTimeout(() => {
       drag.previewTimer = undefined
       this.sendPreview(drag)
@@ -240,32 +214,32 @@ export class Canvas extends ViewHook {
   private applyRemotePreview(preview: Preview): void {
     const rect = this.rectFor(preview.rectangle_id)
     if (rect === null || this.drag?.rectangleId === preview.rectangle_id) return
-    if (this.finishedDragIds.has(preview.drag_id)) return
-    if (preview.base_version < numberAttribute(rect, "data-version")) return
-    const current = this.remoteDrags.get(preview.rectangle_id)
-    if (current?.dragId === preview.drag_id && preview.seq <= current.seq) return
+    if (!this.remotePreviews.accept(preview, numberAttribute(rect, "data-version"))) return
 
-    window.clearTimeout(current?.staleTimer)
-    this.remoteDrags.set(preview.rectangle_id, {
-      dragId: preview.drag_id,
-      seq: preview.seq,
-      staleTimer: window.setTimeout(() => {
+    window.clearTimeout(this.staleTimers.get(preview.rectangle_id))
+    this.staleTimers.set(
+      preview.rectangle_id,
+      window.setTimeout(() => {
         this.cancelRemoteDrag(preview)
       }, STALE_PREVIEW_MS),
-    })
+    )
     moveRect(rect, preview)
   }
 
-  private cancelRemoteDrag({ rectangle_id, drag_id }: DragRef): void {
-    this.finishedDragIds.add(drag_id)
-    if (this.remoteDrags.get(rectangle_id)?.dragId !== drag_id) return
-    this.clearRemoteDrag(rectangle_id)
-    this.revert(rectangle_id)
+  private cancelRemoteDrag(ref: DragRef): void {
+    if (!this.remotePreviews.finish(ref)) return
+    this.clearStaleTimer(ref.rectangle_id)
+    this.revert(ref.rectangle_id)
   }
 
   private clearRemoteDrag(rectangleId: string): void {
-    window.clearTimeout(this.remoteDrags.get(rectangleId)?.staleTimer)
-    this.remoteDrags.delete(rectangleId)
+    this.remotePreviews.forget(rectangleId)
+    this.clearStaleTimer(rectangleId)
+  }
+
+  private clearStaleTimer(rectangleId: string): void {
+    window.clearTimeout(this.staleTimers.get(rectangleId))
+    this.staleTimers.delete(rectangleId)
   }
 
   private revert(rectangleId: string): void {

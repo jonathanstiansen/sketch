@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index 77f1108..d1e0eb2 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -45,6 +45,8 @@ defmodule SketchWeb.BoardLive do
+       )
+       when is_uuid(rectangle_id) and is_uuid(drag_id) and is_integer(seq) and seq >= 0 and
+              is_integer(base_version) and base_version >= 0 and is_position(x, y) do
++    _ = Sketch.Canvas.commit_position(rectangle_id, socket.assigns.board_id, %{x: x, y: y})
++
+     broadcast_preview(socket, "preview", %{
+       rectangle_id: rectangle_id,
+       drag_id: drag_id,

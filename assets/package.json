@@ -2,14 +2,17 @@
   "name": "sketch-assets",
   "private": true,
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint --max-warnings 0 ."
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json",
+    "lint": "eslint --max-warnings 0 .",
+    "test": "node --test \"test/**/*.test.ts\""
   },
   "dependencies": {},
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
     "@types/phoenix": "^1.6.8",
     "eslint": "^10.13.0",
+    "fast-check": "^4.10.2",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1"
   }

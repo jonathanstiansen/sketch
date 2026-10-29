@@ -112,6 +112,7 @@ defmodule Sketch.MixProject do
       "ts.check": [
         "cmd --cd assets npm run typecheck",
         "cmd --cd assets npm run lint",
+        "cmd --cd assets npm test",
         "cmd --cd e2e npm run typecheck",
         "cmd --cd e2e npm run lint"
       ],

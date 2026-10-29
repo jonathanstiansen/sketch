@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas_logic.ts b/assets/js/hooks/canvas_logic.ts
+index d7aba07..ca04f17 100644
+--- a/assets/js/hooks/canvas_logic.ts
++++ b/assets/js/hooks/canvas_logic.ts
+@@ -18,7 +18,7 @@ export interface Preview extends DragRef {
+ }
+ 
+ export function clamp(value: number, max: number): number {
+-  return Math.min(Math.max(Math.round(value), 0), max)
++  return Math.min(Math.max(Math.round(value), 0), max - 1)
+ }
+ 
+ export function dragPosition(cursor: Point, grab: Point, max: Point): Point {

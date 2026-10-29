@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas_logic.ts b/assets/js/hooks/canvas_logic.ts
+index d7aba07..f377f01 100644
+--- a/assets/js/hooks/canvas_logic.ts
++++ b/assets/js/hooks/canvas_logic.ts
+@@ -30,7 +30,7 @@ export function previewDelay(
+   now: number,
+   alreadyScheduled: boolean,
+ ): number | undefined {
+-  if (alreadyScheduled) return undefined
++  if (alreadyScheduled || now - lastSentAt < PREVIEW_INTERVAL_MS) return undefined
+   return Math.max(0, lastSentAt + PREVIEW_INTERVAL_MS - now)
+ }
+ 

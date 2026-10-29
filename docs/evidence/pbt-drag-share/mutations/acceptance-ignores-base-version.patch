@@ -1,0 +1,12 @@
+diff --git a/assets/js/hooks/canvas_logic.ts b/assets/js/hooks/canvas_logic.ts
+index d7aba07..e818623 100644
+--- a/assets/js/hooks/canvas_logic.ts
++++ b/assets/js/hooks/canvas_logic.ts
+@@ -41,7 +41,6 @@ export class RemotePreviews {
+ 
+   accept(preview: Preview, knownVersion: number): boolean {
+     if (this.finishedDragIds.has(preview.drag_id)) return false
+-    if (preview.base_version < knownVersion) return false
+     const latest = this.latestSeq.get(preview.drag_id)
+     if (latest !== undefined && preview.seq <= latest) return false
+ 
