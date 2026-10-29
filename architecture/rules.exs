@@ -49,8 +49,14 @@
       id: "A07",
       rule: "All board queries and events are scoped to the selected board",
       status: :enforced,
-      enforcement: "Integration and two-board E2E tests",
-      verified_by: ["test/sketch/canvas/sessions_test.exs", "e2e/tests/sessions.spec.ts"]
+      enforcement: "Integration and two-board E2E tests; commits and erases find the element by id and board, so a wrong-board erase fails and broadcasts nothing",
+      verified_by: [
+        "test/sketch/canvas/sessions_test.exs",
+        "e2e/tests/sessions.spec.ts",
+        "test/sketch/canvas/element_test.exs",
+        "test/sketch/properties/commit_model_test.exs",
+        "test/sketch_web/live/board_live_erase_test.exs"
+      ]
     },
     %{
       id: "A08",
@@ -88,8 +94,13 @@
       id: "A11",
       rule: "Durable events originate from successful Ash changes",
       status: :enforced,
-      enforcement: "Ash.Notifier.PubSub on Element publishes after commit; tests cover a successful create, a failed create and a rolled-back transaction",
-      verified_by: ["test/sketch/canvas/element_test.exs", "e2e/tests/collaboration.spec.ts"]
+      enforcement: "Ash.Notifier.PubSub on Element publishes after commit; tests cover a successful create, a failed create and a rolled-back transaction, and the same for erase (a successful, a wrong-board and a rolled-back erase, and commits after an erase)",
+      verified_by: [
+        "test/sketch/canvas/element_test.exs",
+        "e2e/tests/collaboration.spec.ts",
+        "test/sketch/properties/commit_model_test.exs",
+        "e2e/tests/eraser.spec.ts"
+      ]
     },
     %{
       id: "A12",

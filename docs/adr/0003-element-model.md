@@ -62,7 +62,12 @@ Actions: `create` (accepts kind, box, points, text, board), `commit_position`
 PR makes `commit_shape` take the box and points together, so a size change
 always arrives with points that fit it. Every
 update increments `version` atomically, and every action publishes on the board
-topic. `erase` publishes a removal that clients apply regardless of version.
+topic. `erase` is a hard-delete destroy that, like the updates, finds the
+element by id and board (`get_by: [:id, :board_id]`), so another board's
+element is not found. It publishes `erase` with `{id, board_id}`, a tombstone
+clients apply regardless of version and that wins over every create or commit
+for that id in any delivery order (ADR 0001). The client hit test for the
+Eraser uses the bounding box of every kind.
 
 The migration from `rectangles` renames the table and adds columns with
 defaults that reproduce today's rectangles (`kind = 'rectangle'`,
@@ -83,5 +88,7 @@ are renamed, so the end state matches a freshly generated `elements` table.
 
 All tools share one collaboration path, one property-test model and one
 client merge rule. Kind-specific validation lives in Ash validations plus
-CHECK constraints. Points and text make rows larger. Revisit when an element
+CHECK constraints. Points and text make rows larger. Erasing is permanent: a
+hard delete leaves no row to restore, which is acceptable while undo and
+history stay excluded. Revisit when an element
 needs relationships (bound arrows, grouping) or styling.

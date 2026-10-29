@@ -10,7 +10,8 @@ No Ash-native CRDT exists. Durable consistency uses Ash atomic updates:
 `commit_position` sets `x`/`y` and applies
 `change atomic_update(:version, expr(version + 1))`. Each rectangle position is
 a server-ordered last-write-wins register; `version` is its tag. Clients keep
-the highest version seen and ignore lower ones.
+the highest version seen and ignore lower ones. An erase is a tombstone that
+wins over every version of that element (D8).
 
 ## D1 — Coordinate bounds (A08)
 
@@ -67,7 +68,7 @@ Eraser, with keyboard shortcuts.
 This lifts three SPEC §2 initial exclusions:
 
 - **Resizing**: elements are drawn at any size and resized from a corner.
-- **Deleting**: the Eraser removes elements (its own PR).
+- **Deleting**: the Eraser and Delete key remove elements (see D0 below).
 - **Selection**: clicking an element selects it. Selection is local UI state
   and is never broadcast.
 
@@ -109,3 +110,19 @@ Consequences for the earlier decisions:
   not trigger the 2000 ms timeout.
 - D0: `commit_shape` is a second update action with the same atomic version
   increment as `commit_position`; the client merge rule is unchanged.
+- D0, deletes as tombstones (added with the Eraser): `erase` is an Ash destroy
+  (a hard delete) reached through `erase_element(id, board_id)`, so an element
+  on another board is not found and nothing is published. Its notification is
+  `erase` with `{id, board_id}`. Clients treat it as a tombstone: the element
+  is removed and every create or commit for that id, delivered before or after
+  the erase, is ignored, so all delivery orders converge and an erased element
+  never comes back. A commit for an erased element fails in PostgreSQL (the row
+  is gone), publishes nothing, and the LiveView drops it without a flash when
+  it already knows the id is erased. Drag previews of an erased element are
+  dropped (D2).
+- Deleting: with the Eraser (E or 0), a click erases the element under the
+  pointer and a drag erases every element whose bounding box the pointer path
+  touches. The touched elements fade during the drag and are erased on
+  release; Esc or a cancelled pointer keeps them. With Selection, Delete or
+  Backspace erases the selected element unless an editor has focus. There is
+  no undo (still excluded).

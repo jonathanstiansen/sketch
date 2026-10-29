@@ -1,0 +1,14 @@
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index 8b039bc..54a2998 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -624,6 +624,9 @@ defmodule SketchWeb.BoardLive do
+   end
+ 
+   defp erase_element(element_id, socket) do
++    erase = %{id: element_id, board_id: socket.assigns.board_id}
++    SketchWeb.Endpoint.broadcast(Sketch.Canvas.board_topic(erase.board_id), "erase", erase)
++
+     case Sketch.Canvas.erase_element(element_id, socket.assigns.board_id) do
+       :ok -> apply_erase(socket, %{id: element_id, board_id: socket.assigns.board_id})
+       {:error, _not_on_this_board} -> socket

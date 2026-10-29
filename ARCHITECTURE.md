@@ -65,7 +65,8 @@ the only path excluded from the A21 scan.
   a pull request, passing CI and CODEOWNERS review, with agents pushing under an identity distinct
   from the reviewer. Until a human enables that, both are reported as unverified in every PR.
 - Element has an unscoped primary `read` action because the atomic `commit_position` update
-  looks the record up through it. A07 still holds: no code interface exposes that read and web
+  and the `erase` destroy look the record up through it. A07 still holds: every code interface
+  that writes takes the board id (`get_by: [:id, :board_id]`), no code interface exposes that read and web
   modules can only call `Sketch.Canvas`. A follow-up will add an actor and Ash policies so the
   scoping no longer depends on the code interface alone.
 - The A10 test watches Repo queries issued by the LiveView processes that handle previews. A
