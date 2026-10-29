@@ -1,0 +1,13 @@
+diff --git a/assets/js/elements/diamond.ts b/assets/js/elements/diamond.ts
+index 370f25c..f6cd146 100644
+--- a/assets/js/elements/diamond.ts
++++ b/assets/js/elements/diamond.ts
+@@ -5,7 +5,7 @@ function pair(x: number, y: number): string {
+ }
+ 
+ export const diamond: Renderer = ({ width, height }) => {
+-  const midX = width / 2
++  const midX = Math.floor(width / 2)
+   const midY = height / 2
+   return [
+     {

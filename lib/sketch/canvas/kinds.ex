@@ -5,9 +5,9 @@ defmodule Sketch.Canvas.Kinds do
   """
 
   alias Sketch.Canvas.Kind
-  alias Sketch.Canvas.Kinds.{Legacy, Rectangle}
+  alias Sketch.Canvas.Kinds.{Diamond, Legacy, Rectangle}
 
-  @registry [Rectangle, :diamond, :ellipse, :arrow, :freedraw, :line, :text, :note]
+  @registry [Rectangle, Diamond, :ellipse, :arrow, :freedraw, :line, :text, :note]
 
   @legacy Map.new(Legacy.specs(), &{&1.id, &1})
   @legacy_ids Enum.filter(@registry, &is_map_key(@legacy, &1))

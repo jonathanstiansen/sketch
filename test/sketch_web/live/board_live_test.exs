@@ -70,7 +70,7 @@ defmodule SketchWeb.BoardLiveTest do
     assert length(Canvas.list_elements_for_board!(board.id)) == 6
   end
 
-  test "a drawn diamond is stored with its kind and rendered as a polygon in every view", %{
+  test "a drawn diamond is stored with its kind and rendered as a local polygon in every view", %{
     conn: conn,
     board: board
   } do
@@ -87,7 +87,7 @@ defmodule SketchWeb.BoardLiveTest do
     for view <- [creator, watcher] do
       assert has_element?(
                view,
-               "polygon#element-#{id}[data-kind='diamond'][x='10'][width='101'][points='60.5,20 111,40 60.5,60 10,40']"
+               "g#element-#{id}[data-kind='diamond'][x='10'][width='101'][transform='translate(10 20)'] > polygon[points='50.5,0 101,20 50.5,40 0,20']"
              )
     end
   end

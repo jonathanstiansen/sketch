@@ -26,7 +26,7 @@ const NOTE_PARTS = "rect[data-note-body], svg[data-note-clip]"
 const NOTE_TEXT = "data-note-text"
 const NOTE_SOURCE = "data-source"
 
-type ShapeTag = "rect" | "polygon" | "ellipse" | "line" | "polyline" | "text" | "tspan" | "g" | "svg"
+type ShapeTag = "rect" | "ellipse" | "line" | "polyline" | "text" | "tspan" | "g" | "svg"
 
 export interface TextLayout {
   fontSize: number
@@ -50,19 +50,12 @@ function point(x: number, y: number): string {
   return [x, y].map(String).join(",")
 }
 
-export function diamondPoints({ x, y, width, height }: Box): string {
-  const midX = x + width / 2
-  const midY = y + height / 2
-  return [point(midX, y), point(x + width, midY), point(midX, y + height), point(x, midY)].join(" ")
-}
-
 export function setBox(shape: Element, box: Box): void {
   const { x, y, width, height } = box
   shape.setAttribute("x", String(x))
   shape.setAttribute("y", String(y))
   shape.setAttribute("width", String(width))
   shape.setAttribute("height", String(height))
-  if (shape.localName === "polygon") shape.setAttribute("points", diamondPoints(box))
   if (shape.localName === "ellipse") setEllipse(shape, box)
 }
 
@@ -160,7 +153,6 @@ function setEllipse(shape: Element, { x, y, width, height }: Box): void {
 }
 
 const PREVIEW_TAGS = {
-  diamond: "polygon",
   ellipse: "ellipse",
   arrow: "line",
   freedraw: "polyline",

@@ -301,28 +301,6 @@ defmodule SketchWeb.BoardLive do
   defp element_shape(%{element: %{kind: kind}} = assigns) when is_map_key(@rendered_kinds, kind),
     do: SketchWeb.Elements.element(assigns)
 
-  defp element_shape(%{element: %{kind: :diamond}} = assigns) do
-    ~H"""
-    <polygon
-      id={@dom_id}
-      points={diamond_points(@element)}
-      x={@element.x}
-      y={@element.y}
-      width={@element.width}
-      height={@element.height}
-      data-element={@element.id}
-      data-kind={@element.kind}
-      data-x={@element.x}
-      data-y={@element.y}
-      data-width={@element.width}
-      data-height={@element.height}
-      data-version={@element.version}
-      stroke-width="2"
-      class="fill-primary stroke-base-content cursor-grab touch-none"
-    />
-    """
-  end
-
   defp element_shape(%{element: %{kind: :ellipse}} = assigns) do
     ~H"""
     <ellipse
@@ -551,12 +529,6 @@ defmodule SketchWeb.BoardLive do
   end
 
   defp points_attribute(points), do: Enum.map_join(points, " ", &"#{&1.x},#{&1.y}")
-
-  defp diamond_points(%{x: x, y: y, width: width, height: height}) do
-    mid_x = coordinate(x + width / 2)
-    mid_y = coordinate(y + height / 2)
-    "#{mid_x},#{y} #{x + width},#{mid_y} #{mid_x},#{y + height} #{x},#{mid_y}"
-  end
 
   defp coordinate(value) when value == trunc(value), do: trunc(value)
   defp coordinate(value), do: value
