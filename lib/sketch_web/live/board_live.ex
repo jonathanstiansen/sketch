@@ -140,15 +140,26 @@ defmodule SketchWeb.BoardLive do
     broadcast_preview(socket, "drag_cancel", %{element_id: element_id, drag_id: drag_id})
   end
 
+  def handle_event("erase", %{"element_ids" => element_ids}, socket) when is_list(element_ids) do
+    socket =
+      if Enum.all?(element_ids, &is_uuid/1),
+        do: element_ids |> Enum.uniq() |> Enum.reduce(socket, &erase_element/2),
+        else: socket
+
+    {:reply, %{}, socket}
+  end
+
+  def handle_event("erase", _params, socket), do: {:reply, %{}, socket}
+
   def handle_event(
         "commit",
         %{"element_id" => element_id, "drag_id" => drag_id, "x" => x, "y" => y},
         socket
       )
       when is_uuid(element_id) and is_uuid(drag_id) and is_integer(x) and is_integer(y) do
-    element_id
-    |> Sketch.Canvas.commit_position(socket.assigns.board_id, %{x: x, y: y})
-    |> committed(socket, element_id, drag_id, "Could not move element")
+    commit(socket, element_id, drag_id, "Could not move element", fn board_id ->
+      Sketch.Canvas.commit_position(element_id, board_id, %{x: x, y: y})
+    end)
   end
 
   def handle_event(
@@ -166,12 +177,11 @@ defmodule SketchWeb.BoardLive do
       when is_uuid(element_id) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
     with {:ok, points} <- points(params),
          {:ok, text} <- text(params) do
-      element_id
-      |> Sketch.Canvas.commit_shape(
-        socket.assigns.board_id,
-        Map.merge(%{x: x, y: y, width: width, height: height, points: points}, text)
-      )
-      |> committed(socket, element_id, drag_id, commit_shape_error(text))
+      shape = Map.merge(%{x: x, y: y, width: width, height: height, points: points}, text)
+
+      commit(socket, element_id, drag_id, commit_shape_error(text), fn board_id ->
+        Sketch.Canvas.commit_shape(element_id, board_id, shape)
+      end)
     else
       :error -> {:noreply, socket}
     end
@@ -195,6 +205,10 @@ defmodule SketchWeb.BoardLive do
       {:unchanged, _board_state} ->
         {:noreply, socket}
     end
+  end
+
+  def handle_info(%Phoenix.Socket.Broadcast{event: "erase", payload: erase}, socket) do
+    {:noreply, apply_erase(socket, erase)}
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket)
@@ -609,6 +623,35 @@ defmodule SketchWeb.BoardLive do
     end
   end
 
+  defp erase_element(element_id, socket) do
+    case Sketch.Canvas.erase_element(element_id, socket.assigns.board_id) do
+      :ok -> apply_erase(socket, %{id: element_id, board_id: socket.assigns.board_id})
+      {:error, _not_on_this_board} -> socket
+    end
+  end
+
+  defp apply_erase(socket, %{id: element_id} = erase) do
+    case Sketch.Canvas.apply_board_event(socket.assigns.board_state, erase) do
+      {:erased, board_state, _erase} ->
+        socket
+        |> assign(:board_state, board_state)
+        |> stream_delete_by_dom_id(:elements, element_dom_id(element_id))
+        |> push_event("erased", %{id: element_id})
+
+      {:unchanged, _board_state} ->
+        socket
+    end
+  end
+
+  defp commit(socket, element_id, drag_id, message, commit_on_board) do
+    if Sketch.Canvas.board_erased?(socket.assigns.board_state, element_id),
+      do: {:noreply, socket},
+      else:
+        socket.assigns.board_id
+        |> commit_on_board.()
+        |> committed(socket, element_id, drag_id, message)
+  end
+
   defp committed({:ok, _element}, socket, _element_id, _drag_id, _message), do: {:noreply, socket}
 
   defp committed({:error, _error}, socket, element_id, drag_id, message) do
@@ -628,6 +671,8 @@ defmodule SketchWeb.BoardLive do
     {:noreply, socket}
   end
 
+  defp element_dom_id(element_id), do: "element-#{element_id}"
+
   defp load_board(socket, board_id) do
     if connected?(socket),
       do: :ok = SketchWeb.Endpoint.subscribe(Sketch.Canvas.board_topic(board_id))
@@ -641,6 +686,6 @@ defmodule SketchWeb.BoardLive do
     |> assign(:board_id, board_id)
     |> assign(:geometry, Sketch.Canvas.geometry())
     |> assign(:board_state, Sketch.Canvas.new_board_state(elements))
-    |> stream(:elements, elements, dom_id: &"element-#{&1.id}")
+    |> stream(:elements, elements, dom_id: &element_dom_id(&1.id))
   end
 end

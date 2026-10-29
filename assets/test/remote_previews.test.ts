@@ -142,3 +142,52 @@ void test("re-delivering a preview is a no-op", () => {
     settings,
   )
 })
+
+const otherId = "element-2"
+
+interface Delivery {
+  previews: Preview[]
+  eraseAt: number
+}
+
+const twoElementDelivery: fc.Arbitrary<Delivery> = fc
+  .tuple(delivery, delivery, fc.nat())
+  .chain(([first, second, cut]) => {
+    const previews = [...first, ...second.map((p) => ({ ...p, element_id: otherId, drag_id: `${p.drag_id}-other` }))]
+    return fc
+      .shuffledSubarray(previews, { minLength: previews.length })
+      .map((shuffled) => ({ previews: shuffled, eraseAt: cut % (shuffled.length + 1) }))
+  })
+
+void test("after an erase, no preview of that element is ever accepted, and other elements are unaffected", () => {
+  fc.assert(
+    fc.property(twoElementDelivery, ({ previews, eraseAt }) => {
+      const erasing = new RemotePreviews()
+      const control = new RemotePreviews()
+      previews.forEach((preview, index) => {
+        if (index === eraseAt) erasing.erase(elementId)
+        const accepted = erasing.accept(preview, knownVersion)
+        const expected = control.accept(preview, knownVersion)
+        const erased = index >= eraseAt && preview.element_id === elementId
+        assert.equal(accepted, erased ? false : expected)
+      })
+      if (eraseAt === previews.length) erasing.erase(elementId)
+      for (const preview of previews) {
+        if (preview.element_id === elementId) assert.equal(erasing.accept({ ...preview, seq: 1_000 }, 0), false)
+      }
+    }),
+    settings,
+  )
+})
+
+void test("finishing a drag of an erased element reports nothing to revert", () => {
+  fc.assert(
+    fc.property(delivery, (delivered) => {
+      const previews = new RemotePreviews()
+      for (const preview of delivered) previews.accept(preview, knownVersion)
+      previews.erase(elementId)
+      for (const preview of delivered) assert.equal(previews.finish(preview), false)
+    }),
+    settings,
+  )
+})

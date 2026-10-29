@@ -4,6 +4,7 @@ import fc from "fast-check"
 import {
   DEFAULT_TOOL,
   TOOLS,
+  deletesSelection,
   nextTool,
   panScroll,
   pointerAction,
@@ -35,10 +36,10 @@ const expectedBindings: Record<string, ToolId> = {
   "8": "text",
   n: "note",
   "9": "note",
+  e: "eraser",
+  "0": "eraser",
   Escape: "selection",
 }
-
-const disabledTools = new Set<ToolId>(["eraser"])
 
 function modelTool(current: ToolId, input: KeyInput): ToolId {
   if (input.editable || input.ctrlKey || input.metaKey || input.altKey) return current
@@ -54,7 +55,7 @@ const anyTool = fc.constantFrom(...TOOLS.map((tool) => tool.id))
 const startTool = fc.constantFrom(...enabledTools.map((tool) => tool.id))
 const toolKeys = TOOLS.flatMap((tool) => [tool.letter, tool.letter.toUpperCase(), ...(tool.digit === null ? [] : [tool.digit])])
 const anyKey = fc.oneof(
-  fc.constantFrom(...toolKeys, "Escape", "?", " ", "Enter", "Shift", "Tab", "ArrowLeft"),
+  fc.constantFrom(...toolKeys, "Escape", "?", " ", "Enter", "Shift", "Tab", "ArrowLeft", "Delete", "Backspace"),
   fc.string({ maxLength: 3 }),
 )
 const anyKeyInput = fc.record({
@@ -130,14 +131,29 @@ const anyAction = fc.oneof(
   anyTool.map((tool) => ({ kind: "click" as const, tool })),
 )
 
-void test("disabled tools never become active through keys or toolbar clicks", () => {
+void test("every tool is enabled, and keys or toolbar clicks only ever select an enabled tool", () => {
+  assert.deepEqual(TOOLS.filter((tool) => !tool.enabled), [])
+  const unknownTool = fc.string({ maxLength: 8 }).filter((id) => !TOOLS.some((tool) => tool.id === id))
   fc.assert(
-    fc.property(startTool, fc.array(anyAction, { maxLength: 30 }), (start, actions) => {
+    fc.property(startTool, fc.array(anyAction, { maxLength: 30 }), unknownTool, (start, actions, unknown) => {
       let tool = start
       for (const action of actions) {
         tool = action.kind === "key" ? nextTool(tool, action.input) : selectTool(tool, action.tool)
-        assert.ok(!disabledTools.has(tool), `${tool} became active`)
+        assert.ok(enabledTools.some(({ id }) => id === tool), `${tool} became active`)
       }
+      assert.equal(selectTool(tool, unknown), tool)
+    }),
+    settings,
+  )
+})
+
+void test("Delete and Backspace erase the selection only as plain keys outside an editable target", () => {
+  fc.assert(
+    fc.property(anyKeyInput, (input) => {
+      const plain = !input.editable && !input.ctrlKey && !input.metaKey && !input.altKey
+      assert.equal(deletesSelection(input), plain && ["Delete", "Backspace"].includes(input.key))
+      assert.equal(deletesSelection({ ...input, key: "Delete" }), plain)
+      assert.equal(deletesSelection({ ...input, key: "Backspace" }), plain)
     }),
     settings,
   )
@@ -151,7 +167,7 @@ const pointerInput = fc.record({
   onHandle: fc.boolean(),
 })
 
-void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, Arrow, Draw, Line and Note draw; Text opens the editor; Selection resizes, moves or deselects", () => {
+void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, Arrow, Draw, Line and Note draw; Text opens the editor; Eraser erases; Selection resizes, moves or deselects", () => {
   fc.assert(
     fc.property(pointerInput, (input) => {
       const action = pointerAction(input)
@@ -162,6 +178,7 @@ void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, A
       const drawing = ["rectangle", "diamond", "ellipse", "arrow", "draw", "line", "note"].includes(input.tool)
       assert.equal(action === "draw", primary && !pans && drawing)
       assert.equal(action === "text", primary && !pans && input.tool === "text")
+      assert.equal(action === "erase", primary && !pans && input.tool === "eraser")
       assert.equal(action === "resize", selecting && input.onHandle)
       assert.equal(action === "move", selecting && !input.onHandle && input.onElement)
       assert.equal(action === "deselect", selecting && !input.onHandle && !input.onElement)

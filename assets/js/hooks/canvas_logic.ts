@@ -190,8 +190,10 @@ export class RemotePreviews {
   private latestSeq = new Map<string, number>()
   private finishedDragIds = new Set<string>()
   private activeDrags = new Map<string, string>()
+  private erasedIds = new Set<string>()
 
   accept(preview: DragRef & { seq: number; base_version: number }, knownVersion: number): boolean {
+    if (this.erasedIds.has(preview.element_id)) return false
     if (this.finishedDragIds.has(preview.drag_id)) return false
     if (preview.base_version < knownVersion) return false
     const latest = this.latestSeq.get(preview.drag_id)
@@ -213,6 +215,50 @@ export class RemotePreviews {
   forget(elementId: string): void {
     this.activeDrags.delete(elementId)
   }
+
+  erase(elementId: string): void {
+    this.erasedIds.add(elementId)
+    this.forget(elementId)
+  }
+}
+
+export interface Hittable {
+  id: string
+  box: Box
+}
+
+function clipped(range: { enter: number; exit: number }, delta: number, offset: number): boolean {
+  if (delta === 0) return offset >= 0
+  const t = offset / delta
+  if (delta < 0) range.enter = Math.max(range.enter, t)
+  else range.exit = Math.min(range.exit, t)
+  return range.enter <= range.exit
+}
+
+export function segmentHitsBox(from: Point, to: Point, box: Box): boolean {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const range = { enter: 0, exit: 1 }
+  return (
+    clipped(range, -dx, from.x - box.x) &&
+    clipped(range, dx, box.x + box.width - from.x) &&
+    clipped(range, -dy, from.y - box.y) &&
+    clipped(range, dy, box.y + box.height - from.y)
+  )
+}
+
+function pathSegments(path: readonly Point[]): [Point, Point][] {
+  const [first] = path
+  if (first === undefined) return []
+  if (path.length === 1) return [[first, first]]
+  return path.slice(1).map((point, index) => [path[index] ?? point, point])
+}
+
+export function eraserHits(elements: readonly Hittable[], path: readonly Point[]): string[] {
+  const segments = pathSegments(path)
+  return elements
+    .filter(({ box }) => segments.some(([from, to]) => segmentHitsBox(from, to, box)))
+    .map(({ id }) => id)
 }
 
 export function textLines(text: string): string[] {
