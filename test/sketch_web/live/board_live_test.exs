@@ -18,6 +18,50 @@ defmodule SketchWeb.BoardLiveTest do
     assert has_element?(view, "#rect-#{rectangle.id}[data-version='0']")
   end
 
+  test "create_at creates a clamped rectangle that another view on the board receives", %{
+    conn: conn,
+    board: board
+  } do
+    {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+    {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+    %{max_x: max_x, max_y: max_y} = Canvas.geometry()
+
+    for {sent, stored} <- [
+          {{640, 320}, {640, 320}},
+          {{0, max_y}, {0, max_y}},
+          {{-50, 99_999}, {0, max_y}},
+          {{max_x + 1, -1}, {max_x, 0}}
+        ] do
+      {x, y} = sent
+      render_hook(creator, "create_at", %{"x" => x, "y" => y})
+
+      rectangle =
+        board.id
+        |> Canvas.list_rectangles_for_board!()
+        |> Enum.find(&({&1.x, &1.y} == stored))
+
+      assert rectangle, "no rectangle stored at #{inspect(stored)} for #{inspect(sent)}"
+      {stored_x, stored_y} = stored
+
+      assert has_element?(
+               watcher,
+               "#rect-#{rectangle.id}[data-x='#{stored_x}'][data-y='#{stored_y}']"
+             )
+    end
+
+    assert length(Canvas.list_rectangles_for_board!(board.id)) == 4
+  end
+
+  test "create_at with non-integer coordinates creates nothing", %{conn: conn, board: board} do
+    {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+
+    for params <- [%{"x" => "10", "y" => 10}, %{"x" => 1.5, "y" => 2}, %{}] do
+      render_hook(view, "create_at", params)
+    end
+
+    assert Canvas.list_rectangles_for_board!(board.id) == []
+  end
+
   test "a rectangle created elsewhere appears", %{conn: conn, board: board} do
     {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
 

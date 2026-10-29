@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/tools.ts b/assets/js/hooks/tools.ts
+index d235f22..264169b 100644
+--- a/assets/js/hooks/tools.ts
++++ b/assets/js/hooks/tools.ts
+@@ -57,7 +57,7 @@ const PRIMARY_BUTTON = 0
+ const MIDDLE_BUTTON = 1
+ 
+ function isShortcutInput(input: KeyInput): boolean {
+-  return !input.editable && !input.ctrlKey && !input.metaKey && !input.altKey
++  return !input.editable
+ }
+ 
+ function toolForKey(key: string): Tool | undefined {
