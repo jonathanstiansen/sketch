@@ -1,0 +1,14 @@
+diff --git a/lib/sketch_web/hand_drawn.ex b/lib/sketch_web/hand_drawn.ex
+index d77a7d2..55f70b9 100644
+--- a/lib/sketch_web/hand_drawn.ex
++++ b/lib/sketch_web/hand_drawn.ex
+@@ -92,7 +92,8 @@ defmodule SketchWeb.HandDrawn do
+   def format(value) when rem(value, @scale) == 0, do: Integer.to_string(div(value, @scale))
+ 
+   def format(value) do
+-    fraction = value |> rem(@scale) |> Integer.to_string() |> String.pad_leading(2, "0")
++    fraction =
++      value |> rem(@scale) |> Integer.to_string() |> String.pad_leading(2, "0") |> String.trim_trailing("0")
+     "#{div(value, @scale)}.#{fraction}"
+   end
+ 
