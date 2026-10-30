@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/clipboard_logic.ts b/assets/js/hooks/clipboard_logic.ts
+index 44b97ce..114c9ac 100644
+--- a/assets/js/hooks/clipboard_logic.ts
++++ b/assets/js/hooks/clipboard_logic.ts
+@@ -78,7 +78,7 @@ function styleOf(value: Record<string, unknown>, kind: keyof typeof KIND_SPECS):
+ export function validElement(value: unknown): ElementSnapshot | undefined {
+   if (!isRecord(value)) return undefined
+   const { kind, seed } = value
+-  if (typeof kind !== "string" || !isElementKind(kind) || !isSeed(seed)) return undefined
++  if (typeof kind !== "string" || !isSeed(seed)) return undefined
+   const box = boxOf(value, KIND_SPECS[kind].geometry !== "box")
+   if (box === undefined) return undefined
+   const points = pointsOf(value.points, box, kind)
