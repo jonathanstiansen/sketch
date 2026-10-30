@@ -44,7 +44,8 @@ defmodule SketchWeb.Elements do
   @doc """
   One element: a wrapper translated to the element's box, with the kind's children inside it.
   `data-x`, `data-y`, `data-width`, `data-height` and `data-points` are the committed shape;
-  `data-seed` is the seed of its hand-drawn strokes (ADR 0005). `x`, `y`, `width`, `height` and
+  `data-seed` is the seed of its hand-drawn strokes (ADR 0005), and `data-stroke-color`,
+  `data-fill-color`, `data-stroke-width` and `data-stroke-style` its style tokens (ADR 0006). `x`, `y`, `width`, `height` and
   `live-points` are the shape on screen, which the canvas hook changes while an element is
   dragged or previewed. The live shape stays outside `data-*`
   because LiveView still merges `data-*` attributes into an element a gesture has claimed.
@@ -67,6 +68,10 @@ defmodule SketchWeb.Elements do
       data-points={points_attribute(@element.points)}
       data-text={text_attribute(@element.text)}
       data-seed={@element.seed}
+      data-stroke-color={@element.stroke_color}
+      data-fill-color={@element.fill_color}
+      data-stroke-width={@element.stroke_width}
+      data-stroke-style={@element.stroke_style}
       data-version={@element.version}
       x={@element.x}
       y={@element.y}
@@ -109,7 +114,8 @@ defmodule SketchWeb.Elements do
       height: element.height,
       points: element.points,
       text: element.text,
-      seed: element.seed
+      seed: element.seed,
+      style: Map.new(Sketch.Canvas.style_properties(), &{&1, Map.fetch!(element, &1)})
     }
   end
 

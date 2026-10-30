@@ -3,7 +3,7 @@ defmodule SketchWeb.Elements.Rectangle do
   @behaviour SketchWeb.ElementRenderer
 
   @impl true
-  def render(%{width: width, height: height, seed: seed}) do
+  def render(%{width: width, height: height, seed: seed, style: style}) do
     [
       %{
         tag: "rect",
@@ -14,10 +14,10 @@ defmodule SketchWeb.Elements.Rectangle do
           {"height", height},
           {"stroke", "transparent"},
           {"stroke-width", 2},
-          {"class", "fill-primary"}
+          {"class", SketchWeb.ElementRenderer.fill_class(style)}
         ]
       },
-      SketchWeb.ElementRenderer.sketch(SketchWeb.HandDrawn.rectangle(width, height, seed))
+      SketchWeb.ElementRenderer.sketch(SketchWeb.HandDrawn.rectangle(width, height, seed), style)
     ]
   end
 end

@@ -72,9 +72,10 @@ This lifts three SPEC §2 initial exclusions:
 - **Selection**: clicking an element selects it. Selection is local UI state
   and is never broadcast.
 
-Still excluded: undo, history, styling, presence indicators, offline editing,
-CRDTs (and the other §2 exclusions: user accounts, external brokers,
-multi-node deployment).
+Still excluded: undo, history, presence indicators, offline editing, CRDTs
+(and the other §2 exclusions: user accounts, external brokers, multi-node
+deployment). Styling was excluded here until D10 approved colours and stroke
+styles.
 
 Consequences for the earlier decisions:
 
@@ -129,9 +130,10 @@ Consequences for the earlier decisions:
 
 ## D9 — Hand-drawn rendering (2026-10-30, see ADR 0005)
 
-The human approved a hand-drawn look on 2026-10-30. It is one global look,
-not per-element styling: user-chosen colours, stroke widths, fonts, roughness
-and fill styles stay excluded (D8).
+The human approved a hand-drawn look on 2026-10-30. It is one global look:
+roughness and fill styles (hachure and the like) are not per element. User-chosen
+colours, stroke widths and stroke styles were approved later the same day (D10);
+fonts stay excluded.
 
 - Rectangles, diamonds, ellipses, notes, lines and arrows draw their outline
   as two slightly offset, slightly bowed strokes over the unchanged fill.
@@ -146,3 +148,54 @@ and fill styles stay excluded (D8).
   accepts an optional `seed`. An out-of-range seed drops the event.
 - Hit-testing, selection, handles and erasing use the exact geometry, as
   before; the hand-drawn strokes never take the pointer.
+
+## D10 — Styling approved (2026-10-30, see ADR 0006)
+
+The human approved per-element styling on 2026-10-30, answering a question
+that cited §9. Styles are tokens from one registry, `Sketch.Canvas.Style`,
+never colour values, and every colour has a light and a dark theme value.
+
+This lifts the SPEC §2 (and D8) **styling** exclusion for:
+
+- **Stroke colour**: `ink` (default), `red`, `green`, `blue`, `orange`. It is
+  the colour of the kind's ink: outlines, lines and text glyphs.
+- **Fill colour**: `auto` (default, the kind's own fill: the theme's primary
+  colour for shapes, paper yellow for notes), `none`, `red`, `green`, `blue`,
+  `yellow`.
+- **Stroke width**: `thin` (default), `bold`, `extra_bold`.
+- **Stroke style**: `solid` (default), `dashed`, `dotted`.
+
+Each kind declares the properties that apply to it: all four for rectangles,
+diamonds and ellipses; stroke colour, width and style for lines, arrows and
+freehand strokes; fill and stroke colour for notes; stroke colour for text. An
+inapplicable property holds its default, enforced by Ash and PostgreSQL CHECK
+constraints like D1.
+
+Still excluded: fonts and font sizes, opacity, layers and z-order (elements
+stay in creation order), gradients and patterns, per-point or per-segment
+styles, and roughness and fill styles (D9), as well as undo, history and the
+other D8 exclusions.
+
+Consequences for the earlier decisions:
+
+- D0: `commit_style` is a third update action with the same atomic version
+  increment as `commit_position` and `commit_shape`, published as the same
+  element event. Style shares the element's one last-write-wins register: each
+  action writes only its own columns, so a concurrent style commit and shape
+  commit both land and the highest version carries both. The client merge rule
+  is unchanged. `create_element` accepts an optional style; a missing property
+  gets its default.
+- D1: `Element` gains `stroke_color`, `fill_color`, `stroke_width` and
+  `stroke_style`, not null, each limited to its registry tokens and, for kinds
+  it does not apply to, to its default, by Ash and by PostgreSQL CHECK
+  constraints. The migration only adds the four columns with their defaults
+  and the CHECKs (expand only), so existing rows and an old server keep
+  today's look.
+- D2: `draw_preview` gains the optional style of the element being drawn, so
+  other browsers preview it in its colours. Style changes themselves are not
+  previewed; they are committed at once. A style param that is not a token of
+  its property drops the event, like an invalid seed (D9).
+- Selection stays local (D8): the properties panel shows the selected
+  element's style or, with no selection, the style the next element will be
+  drawn with. That next-element style is local UI state and is never
+  broadcast.

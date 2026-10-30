@@ -104,3 +104,8 @@ parity fixture, so the server now renders wrapped note lines.
 Every element also stores a `seed`, chosen by the drawing client and fixed on
 create, from which both renderers draw its hand-drawn strokes (ADR 0005). It
 is rendering data, not styling: there is still no per-element style.
+
+Styling was approved on 2026-10-30 (addendum D10): every element now also
+stores a stroke colour, fill colour, stroke width and stroke style, as tokens
+from one registry, committed through `commit_style` in the same register
+(ADR 0006).

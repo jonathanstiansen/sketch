@@ -11,6 +11,7 @@ defmodule Sketch.Canvas.Kinds.Rectangle do
       geometry: :box,
       text: :none,
       draw_gesture: :box,
-      default_size: %{width: 120, height: 80}
+      default_size: %{width: 120, height: 80},
+      style: [:stroke_color, :fill_color, :stroke_width, :stroke_style]
     }
 end

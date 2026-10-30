@@ -10,7 +10,11 @@ defmodule SketchWeb.RenderFixtures do
   and wider, so a note's lines break around every boundary, including widths narrower than both
   paddings together. A box kind without text renders every shape with each fixture seed, including
   0 and the largest; point and text kinds, which already have many shapes per box, take the seeds
-  in turn (ADR 0005). Every map has string keys, so the JSON key order is the same on every run.
+  in turn (ADR 0005). Every shape is drawn in the default style, and three shapes spread over the
+  kind's shapes are also drawn in a sample of styles (ADR 0006): each token of each property that
+  applies to the kind on its own, and a few combinations that change every applicable property at
+  once; the full product would make the file several times larger for little more coverage.
+  Every map has string keys, so the JSON key order is the same on every run.
   `assets/test/render_parity.test.ts` feeds the same shapes to the client renderers and expects
   the same trees. A node's text is the unescaped
   string a browser shows as its `textContent`, and is left out when empty, as an empty element has
@@ -55,6 +59,8 @@ defmodule SketchWeb.RenderFixtures do
     Sketch.Canvas.geometry().max_seed
   ]
   @max_fixture_points 12
+  @styled_shapes 3
+  @style_combinations 6
 
   @spec path() :: Path.t()
   def path, do: @path
@@ -84,7 +90,50 @@ defmodule SketchWeb.RenderFixtures do
         %{width: width, height: height, points: points, text: text}
       end
 
-    with_seeds(shapes, geometry, text)
+    shapes
+    |> with_seeds(geometry, text)
+    |> Enum.map(&Map.put(&1, :style, Sketch.Canvas.style_defaults()))
+  end
+
+  @doc "The shapes and styles the parity fixture also renders in other styles than the default."
+  @spec styled_shapes(atom()) :: [SketchWeb.ElementRenderer.local_shape()]
+  def styled_shapes(kind) do
+    %{style: properties} = Enum.find(Sketch.Canvas.kind_specs(), &(&1.id == kind))
+    shapes = shapes(kind)
+
+    spread =
+      shapes
+      |> Enum.take_every(max(1, div(length(shapes), @styled_shapes)))
+      |> Enum.take(@styled_shapes)
+
+    for shape <- spread, style <- style_samples(properties), do: %{shape | style: style}
+  end
+
+  defp style_samples(properties) do
+    defaults = Sketch.Canvas.style_defaults()
+
+    singles =
+      for property <- properties,
+          token <- tl(Sketch.Canvas.style_tokens(property)),
+          do: Map.put(defaults, property, token)
+
+    combinations =
+      for index <- 1..@style_combinations//1 do
+        Map.new(Sketch.Canvas.style_properties(), fn property ->
+          {property, combination_token(property, properties, index)}
+        end)
+      end
+
+    Enum.uniq(singles ++ combinations)
+  end
+
+  defp combination_token(property, properties, index) do
+    tokens = Sketch.Canvas.style_tokens(property)
+
+    case Enum.find_index(properties, &(&1 == property)) do
+      nil -> hd(tokens)
+      position -> Enum.at(tokens, rem(index + position, length(tokens)))
+    end
   end
 
   defp with_seeds(shapes, :box, :none) do
@@ -120,14 +169,18 @@ defmodule SketchWeb.RenderFixtures do
   def normalize(nodes), do: Enum.map(nodes, &normalize_node/1)
 
   defp cases(kind) do
-    for shape <- shapes(kind) do
+    for shape <- shapes(kind) ++ styled_shapes(kind) do
       %{
         "shape" => %{
           "width" => shape.width,
           "height" => shape.height,
           "points" => Enum.map(shape.points, &%{"x" => &1.x, "y" => &1.y}),
           "text" => shape.text,
-          "seed" => shape.seed
+          "seed" => shape.seed,
+          "style" =>
+            Map.new(shape.style, fn {property, token} ->
+              {Atom.to_string(property), Atom.to_string(token)}
+            end)
         },
         "children" => kind |> Elements.render_children(shape) |> normalize()
       }

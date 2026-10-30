@@ -1,4 +1,5 @@
 import type { Point } from "../hooks/canvas_logic.ts"
+import type { ElementStyle } from "./style.ts"
 
 export interface LocalShape {
   readonly width: number
@@ -6,6 +7,7 @@ export interface LocalShape {
   readonly points: readonly Point[]
   readonly text: string
   readonly seed: number
+  readonly style: ElementStyle
 }
 
 export type AttributeValue = string | number

@@ -46,7 +46,14 @@ defmodule Sketch.Canvas.KindContractTest do
   end
 
   test "a draw gesture must be able to produce its kind's geometry and text" do
-    box = %Kind{id: :sample, geometry: :box, text: :none, draw_gesture: :box, default_size: nil}
+    box = %Kind{
+      id: :sample,
+      geometry: :box,
+      text: :none,
+      draw_gesture: :box,
+      default_size: nil,
+      style: []
+    }
 
     assert Kind.consistent?(box)
     assert Kind.consistent?(%{box | draw_gesture: :click_to_type, text: :required})
@@ -60,8 +67,33 @@ defmodule Sketch.Canvas.KindContractTest do
     refute Kind.consistent?(%{box | draw_gesture: :drag})
   end
 
+  test "a spec's style may only list distinct properties of the style registry (ADR 0006)" do
+    box = Kinds.fetch!(:rectangle)
+
+    assert Kind.style_known?(box)
+    assert Kind.style_known?(%{box | style: []})
+    refute Kind.style_known?(%{box | style: [:stroke_color, :opacity]})
+    refute Kind.style_known?(%{box | style: [:fill_color, :fill_color]})
+    refute Kind.style_known?(%{box | style: :fill_color})
+  end
+
+  test "every style property applies to at least one kind, and each kind's style is in the manifest",
+       %{manifest: manifest} do
+    for property <- Canvas.style_properties() do
+      assert Kinds.styled_by(property) != [], inspect(property)
+    end
+
+    for %{id: id, style: style} <- Canvas.kind_specs() do
+      assert manifest =~
+               "  #{id}: { id: \"#{id}\", " and
+               manifest =~
+                 ~r/^  #{id}: .*style: \[#{Enum.map_join(style, ", ", &~s("#{&1}"))}\] \},$/m
+    end
+  end
+
   defp well_formed?(%Kind{geometry: geometry, text: text, default_size: size} = spec) do
     geometry_ok?(geometry) and text in [:none, :optional, :required] and Kind.consistent?(spec) and
+      Kind.style_known?(spec) and
       positive_integer?(size.width) and positive_integer?(size.height)
   end
 

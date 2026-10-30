@@ -2,7 +2,9 @@ defmodule SketchWeb.Elements.Note do
   @moduledoc """
   Renders a note as a rounded body over its box, its hand-drawn edges and, in a nested `svg` that
   clips to the box, a `text` with one `tspan` per wrapped line: the text wraps to the box width
-  minus `Sketch.Canvas.Geometry` padding on both sides, at its character width per code point.
+  minus `Sketch.Canvas.Geometry` padding on both sides, at its character width per code point. The
+  body takes the fill colour, the edges a shade of it (`note-edge-<fill>`, the note's paper), and
+  the text the stroke colour (ADR 0006).
   """
   @behaviour SketchWeb.ElementRenderer
 
@@ -13,7 +15,7 @@ defmodule SketchWeb.Elements.Note do
   @padding Sketch.Canvas.geometry().note_padding
 
   @impl true
-  def render(%{width: width, height: height, text: text, seed: seed}) do
+  def render(%{width: width, height: height, text: text, seed: seed, style: style}) do
     [
       %{
         tag: "rect",
@@ -25,12 +27,13 @@ defmodule SketchWeb.Elements.Note do
           {"height", height},
           {"rx", 6},
           {"stroke-width", 2},
-          {"class", "note-body"}
+          {"class", "note-body #{SketchWeb.ElementRenderer.fill_class(style)}"}
         ]
       },
       SketchWeb.ElementRenderer.sketch(
         SketchWeb.HandDrawn.rectangle(width, height, seed),
-        "note-sketch"
+        style,
+        "note-sketch note-edge-#{style.fill_color}"
       ),
       %{
         tag: "svg",
@@ -50,7 +53,7 @@ defmodule SketchWeb.Elements.Note do
               {"data-text-body", ""},
               {"transform", "translate(#{@padding} #{@padding})"},
               {"font-size", @font_size},
-              {"class", "text-element fill-base-content"}
+              {"class", "text-element #{SketchWeb.ElementRenderer.ink_class(style)}"}
             ],
             children:
               text

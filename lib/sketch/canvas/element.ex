@@ -2,7 +2,11 @@ defmodule Sketch.Canvas.Element do
   @moduledoc """
   A shape on a board (ADR 0003): its `kind`, bounding box, for point kinds such as lines its points
   relative to the box origin, for text kinds its text, and the `seed` its hand-drawn strokes are
-  generated from (ADR 0005), chosen once on create and never changed. `version` is the server-ordered tag of the shape (ADR 0001).
+  generated from (ADR 0005), chosen once on create and never changed, and its style: a stroke colour,
+  fill colour, stroke width and stroke style, tokens from `Sketch.Canvas.Style` that `commit_style`
+  changes; a property that does not apply to the kind keeps its default (ADR 0006).
+  `version` is the server-ordered tag of the whole element (ADR 0001); each commit action writes only
+  its own attributes and increments it.
   `erase` hard-deletes it and publishes `%{id, board_id}`, a tombstone every client applies over any version.
   """
   use Ash.Resource,
@@ -11,7 +15,7 @@ defmodule Sketch.Canvas.Element do
     data_layer: AshPostgres.DataLayer,
     notifiers: [Ash.Notifier.PubSub]
 
-  alias Sketch.Canvas.{Geometry, Kinds}
+  alias Sketch.Canvas.{Geometry, Kinds, Style}
   alias Sketch.Canvas.Validations.{FitsCanvas, PointsFitShape, TextFitsKind}
 
   @canvas_width Geometry.canvas_width()
@@ -22,7 +26,16 @@ defmodule Sketch.Canvas.Element do
   @box_min_size Geometry.dimensions().min_size
   @max_text_length Geometry.max_text_length()
   @max_seed Geometry.max_seed()
-  @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :text, :seed, :version]
+  @style_properties Style.properties()
+  @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :text, :seed] ++
+                  @style_properties ++ [:version]
+  @style_types %{
+    stroke_color: Style.StrokeColor,
+    fill_color: Style.FillColor,
+    stroke_width: Style.StrokeWidth,
+    stroke_style: Style.StrokeStyle
+  }
+  @unstyled_kinds Map.new(@style_properties, &{&1, @kinds -- Kinds.styled_by(&1)})
 
   # The CHECK constraints were generated with the point kinds in this order; listing them in
   # registry order would change the SQL text, and so the migrations, without changing the rule.
@@ -38,6 +51,17 @@ defmodule Sketch.Canvas.Element do
   @sql_required_text_kinds Enum.map_join(Geometry.required_text_kinds(), ", ", &"'#{&1}'")
   @sql_text_kinds Enum.map_join(Geometry.text_kinds(), ", ", &"'#{&1}'")
   @sql_not_text_whitespace ~S"[^ \t\n\r]"
+  @sql_style_checks Enum.flat_map(@style_properties, fn property ->
+                      default = Style.default(property)
+                      tokens = Enum.map_join(Style.tokens(property), ", ", &"'#{&1}'")
+                      styled = Enum.map_join(Kinds.styled_by(property), ", ", &"'#{&1}'")
+
+                      [
+                        {property, "#{property}_known", "#{property} IN (#{tokens})"},
+                        {property, "#{property}_fits_kind",
+                         "#{property} = '#{default}' OR kind IN (#{styled})"}
+                      ]
+                    end)
   @sql_point_outside String.trim(~S"""
                      $[*] ? (@.type() != "object" || !exists(@.x) || !exists(@.y) ||
                        @.x.type() != "number" || @.y.type() != "number" ||
@@ -87,6 +111,10 @@ defmodule Sketch.Canvas.Element do
       check_constraint :version, "version_not_negative", check: "version >= 0"
 
       check_constraint :seed, "seed_in_range", check: "seed >= 0 AND seed <= #{@max_seed}"
+
+      for {property, name, check} <- @sql_style_checks do
+        check_constraint property, name, check: check
+      end
     end
   end
 
@@ -94,7 +122,8 @@ defmodule Sketch.Canvas.Element do
     defaults [:read]
 
     create :create do
-      accept [:kind, :x, :y, :width, :height, :points, :text, :seed, :board_id]
+      accept [:kind, :x, :y, :width, :height, :points, :text, :seed, :board_id] ++
+               @style_properties
     end
 
     update :commit_position do
@@ -105,6 +134,11 @@ defmodule Sketch.Canvas.Element do
     update :commit_shape do
       accept [:x, :y, :width, :height, :points, :text]
       require_attributes [:x, :y, :width, :height]
+      change atomic_update(:version, expr(version + 1))
+    end
+
+    update :commit_style do
+      accept @style_properties
       change atomic_update(:version, expr(version + 1))
     end
 
@@ -124,6 +158,7 @@ defmodule Sketch.Canvas.Element do
     publish :create, [:board_id], transform: &__MODULE__.event_payload/1
     publish :commit_position, [:board_id], transform: &__MODULE__.event_payload/1
     publish :commit_shape, [:board_id], transform: &__MODULE__.event_payload/1
+    publish :commit_style, [:board_id], transform: &__MODULE__.event_payload/1
     publish :erase, [:board_id], transform: &__MODULE__.erase_payload/1
   end
 
@@ -139,6 +174,12 @@ defmodule Sketch.Canvas.Element do
 
     validate {PointsFitShape, kinds: @kinds}
     validate {TextFitsKind, kinds: @kinds}
+
+    for {property, [_ | _] = kinds} <- @unstyled_kinds do
+      validate attribute_equals(property, Style.default(property)),
+        where: [attribute_in(:kind, kinds)],
+        message: "does not apply to the element's kind"
+    end
   end
 
   attributes do
@@ -185,6 +226,13 @@ defmodule Sketch.Canvas.Element do
       default: &__MODULE__.random_seed/0,
       public?: true,
       constraints: [min: 0, max: @max_seed]
+
+    for property <- @style_properties do
+      attribute property, Map.fetch!(@style_types, property),
+        allow_nil?: false,
+        default: Style.default(property),
+        public?: true
+    end
 
     attribute :version, :integer,
       allow_nil?: false,

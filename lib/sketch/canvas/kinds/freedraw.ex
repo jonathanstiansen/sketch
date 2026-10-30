@@ -11,6 +11,7 @@ defmodule Sketch.Canvas.Kinds.Freedraw do
       geometry: {:points, 2..500//1},
       text: :none,
       draw_gesture: :path,
-      default_size: %{width: 120, height: 80}
+      default_size: %{width: 120, height: 80},
+      style: [:stroke_color, :stroke_width, :stroke_style]
     }
 end

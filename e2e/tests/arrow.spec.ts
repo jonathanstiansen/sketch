@@ -16,7 +16,7 @@ const element = '[data-element][data-kind="arrow"]'
 const stroke = `${element} > path[data-line-stroke]`
 const drawPreview = '[data-draw][data-kind="arrow"]'
 const drawStroke = `${drawPreview} > path[data-line-stroke]`
-const headMarker = "url(#arrowhead)"
+const headMarker = "url(#arrowhead-ink)"
 
 function originOf({ x1, y1, x2, y2 }: Segment): { x: number; y: number } {
   return { x: Math.min(x1, x2), y: Math.min(y1, y2) }

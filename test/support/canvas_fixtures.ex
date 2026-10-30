@@ -1,7 +1,7 @@
 defmodule Sketch.CanvasFixtures do
   @moduledoc "Attributes and generators for test elements."
 
-  alias Sketch.Canvas.Geometry
+  alias Sketch.Canvas.{Geometry, Kinds}
 
   @max_generated_size 400
 
@@ -14,8 +14,26 @@ defmodule Sketch.CanvasFixtures do
     Map.merge(%{kind: :rectangle, width: width, height: height}, attrs)
   end
 
+  @doc "Create attributes for a valid 120 x 80 element of any kind at the origin, overridden by `attrs`."
+  def element_attrs(kind, attrs) do
+    %{kind: kind, x: 0, y: 0, width: 120, height: 80}
+    |> Map.merge(kind_shape(Kinds.fetch!(kind)))
+    |> Map.merge(attrs)
+  end
+
+  defp kind_shape(%{geometry: {:points, _range}}),
+    do: %{points: [%{x: 0, y: 0}, %{x: 120, y: 80}]}
+
+  defp kind_shape(%{text: :required}), do: %{text: "hello"}
+  defp kind_shape(_box_kind), do: %{}
+
   @doc "A rectangle's notification payload, shaped like `Sketch.Canvas.element_event/1`."
-  def rectangle_event(attrs), do: rectangle(Map.merge(%{points: [], text: "", seed: 0}, attrs))
+  def rectangle_event(attrs) do
+    %{points: [], text: "", seed: 0}
+    |> Map.merge(Sketch.Canvas.style_defaults())
+    |> Map.merge(attrs)
+    |> rectangle()
+  end
 
   @doc "Inserts `count` rectangles with random boxes inside the canvas on the board."
   def generate_rectangles(board_id, count) do

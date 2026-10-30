@@ -121,23 +121,13 @@
   cursor: inherit;
 }
 
-.local-preview > * {
-  fill: color-mix(in oklab, var(--color-primary) 35%, transparent);
-  stroke: var(--color-base-content);
-  stroke-width: 2;
-  stroke-dasharray: 6 4;
-  pointer-events: none;
-}
-
-.local-preview > :is(rect, polygon, ellipse, [data-line-hit]) {
-  stroke: none;
-}
-
-.local-preview > :is([data-sketch], [data-line-stroke]) {
-  fill: none;
-  stroke-width: 1.5;
-  stroke-dasharray: none;
+.local-preview {
   opacity: 0.7;
+}
+
+.local-preview,
+.local-preview * {
+  pointer-events: none;
 }
 
 .selection-outline {
@@ -194,16 +184,6 @@
   white-space: pre;
 }
 
-.local-preview > [data-text-hit] {
-  fill: transparent;
-  stroke: none;
-}
-
-.local-preview > .text-element {
-  fill: var(--color-base-content);
-  stroke: none;
-  opacity: 0.6;
-}
 
 [data-kind="text"][data-text-editing],
 [data-text-editing] [data-text-body] {
@@ -213,39 +193,103 @@
 :root {
   --note-fill: oklch(0.93 0.13 98);
   --note-edge: oklch(0.7 0.13 92);
+  --palette-stroke-ink: var(--color-base-content);
+  --palette-stroke-red: oklch(0.55 0.21 27);
+  --palette-stroke-green: oklch(0.52 0.14 150);
+  --palette-stroke-blue: oklch(0.52 0.19 262);
+  --palette-stroke-orange: oklch(0.64 0.18 50);
+  --palette-fill-auto: var(--color-primary);
+  --palette-fill-none: transparent;
+  --palette-fill-red: oklch(0.87 0.08 25);
+  --palette-fill-green: oklch(0.9 0.08 150);
+  --palette-fill-blue: oklch(0.88 0.06 250);
+  --palette-fill-yellow: oklch(0.93 0.12 98);
 }
 
 :root:not([data-theme]) {
   @media (prefers-color-scheme: dark) {
     --note-fill: oklch(0.4 0.07 95);
     --note-edge: oklch(0.55 0.1 95);
+    --palette-stroke-ink: var(--color-base-content);
+    --palette-stroke-red: oklch(0.72 0.17 25);
+    --palette-stroke-green: oklch(0.76 0.15 150);
+    --palette-stroke-blue: oklch(0.74 0.13 255);
+    --palette-stroke-orange: oklch(0.79 0.15 62);
+    --palette-fill-auto: var(--color-primary);
+    --palette-fill-none: transparent;
+    --palette-fill-red: oklch(0.42 0.1 25);
+    --palette-fill-green: oklch(0.42 0.08 150);
+    --palette-fill-blue: oklch(0.41 0.08 255);
+    --palette-fill-yellow: oklch(0.45 0.08 95);
   }
 }
 
 [data-theme="dark"] {
   --note-fill: oklch(0.4 0.07 95);
   --note-edge: oklch(0.55 0.1 95);
+  --palette-stroke-ink: var(--color-base-content);
+  --palette-stroke-red: oklch(0.72 0.17 25);
+  --palette-stroke-green: oklch(0.76 0.15 150);
+  --palette-stroke-blue: oklch(0.74 0.13 255);
+  --palette-stroke-orange: oklch(0.79 0.15 62);
+  --palette-fill-auto: var(--color-primary);
+  --palette-fill-none: transparent;
+  --palette-fill-red: oklch(0.42 0.1 25);
+  --palette-fill-green: oklch(0.42 0.08 150);
+  --palette-fill-blue: oklch(0.41 0.08 255);
+  --palette-fill-yellow: oklch(0.45 0.08 95);
 }
 
+.stroke-palette-ink { stroke: var(--palette-stroke-ink); }
+.stroke-palette-red { stroke: var(--palette-stroke-red); }
+.stroke-palette-green { stroke: var(--palette-stroke-green); }
+.stroke-palette-blue { stroke: var(--palette-stroke-blue); }
+.stroke-palette-orange { stroke: var(--palette-stroke-orange); }
+
+.ink-palette-ink { fill: var(--palette-stroke-ink); }
+.ink-palette-red { fill: var(--palette-stroke-red); }
+.ink-palette-green { fill: var(--palette-stroke-green); }
+.ink-palette-blue { fill: var(--palette-stroke-blue); }
+.ink-palette-orange { fill: var(--palette-stroke-orange); }
+
+.fill-palette-auto { fill: var(--palette-fill-auto); }
+.fill-palette-none { fill: var(--palette-fill-none); }
+.fill-palette-red { fill: var(--palette-fill-red); }
+.fill-palette-green { fill: var(--palette-fill-green); }
+.fill-palette-blue { fill: var(--palette-fill-blue); }
+.fill-palette-yellow { fill: var(--palette-fill-yellow); }
+
 .note-body {
-  fill: var(--note-fill);
   stroke: transparent;
   filter: drop-shadow(0 2px 3px color-mix(in oklab, var(--color-base-content) 30%, transparent));
 }
 
-.note-sketch,
-.local-preview > .note-sketch {
-  stroke: var(--note-edge);
+.note-body.fill-palette-auto {
+  fill: var(--note-fill);
 }
 
-.local-preview > .note-body {
-  opacity: 0.75;
+.note-body.fill-palette-none {
+  filter: none;
 }
 
-.local-preview > [data-note-clip] {
-  fill: none;
-  stroke: none;
-  opacity: 0.75;
+.note-edge-auto { stroke: var(--note-edge); }
+.note-edge-none { stroke: var(--palette-stroke-ink); }
+.note-edge-red { stroke: color-mix(in oklab, var(--palette-fill-red) 55%, var(--color-base-content)); }
+.note-edge-green { stroke: color-mix(in oklab, var(--palette-fill-green) 55%, var(--color-base-content)); }
+.note-edge-blue { stroke: color-mix(in oklab, var(--palette-fill-blue) 55%, var(--color-base-content)); }
+.note-edge-yellow { stroke: color-mix(in oklab, var(--palette-fill-yellow) 55%, var(--color-base-content)); }
+
+.style-swatch {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 0.3rem;
+  border: 1px solid color-mix(in oklab, var(--color-base-content) 25%, transparent);
+  background: var(--swatch);
+}
+
+.style-swatch-none {
+  background: linear-gradient(to top right, transparent 45%, var(--palette-stroke-red) 45% 55%, transparent 55%);
 }
 
 .text-editor {

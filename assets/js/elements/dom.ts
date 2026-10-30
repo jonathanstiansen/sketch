@@ -1,11 +1,24 @@
 import type { Box, Point } from "../hooks/canvas_logic.ts"
-import { GEOMETRY } from "../generated/manifest.ts"
+import { GEOMETRY, STYLE_PROPERTIES, type StyleProperty } from "../generated/manifest.ts"
 import { attributeString, type Renderer, type SvgNode } from "./renderer.ts"
+import { styleFrom, type ElementStyle } from "./style.ts"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 const LIVEVIEW_ATTRIBUTE_PREFIX = "data-phx-"
 export const LIVE_POINTS = "live-points"
 export const SEED = "data-seed"
+
+export function styleAttribute(property: StyleProperty): string {
+  return `data-${property.replaceAll("_", "-")}`
+}
+
+export function styleOf(element: Element): ElementStyle {
+  return styleFrom((property) => element.getAttribute(styleAttribute(property)))
+}
+
+export function styleAttributes(style: ElementStyle): Record<string, string> {
+  return Object.fromEntries(STYLE_PROPERTIES.map((property) => [styleAttribute(property), style[property]]))
+}
 
 function setAttributes(element: Element, attrs: SvgNode["attrs"]): void {
   for (const [name, value] of Object.entries(attrs)) {
@@ -82,5 +95,5 @@ function seedOf(wrapper: Element): number {
 
 export function renderElement(wrapper: Element, renderer: Renderer, box: Box, points: readonly Point[], text: string): void {
   placeElement(wrapper, box, points)
-  renderNodes(wrapper, renderer({ width: box.width, height: box.height, points, text, seed: seedOf(wrapper) }))
+  renderNodes(wrapper, renderer({ width: box.width, height: box.height, points, text, seed: seedOf(wrapper), style: styleOf(wrapper) }))
 }

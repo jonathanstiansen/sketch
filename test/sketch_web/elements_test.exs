@@ -19,9 +19,15 @@ defmodule SketchWeb.ElementsTest do
     @kind kind
 
     test "#{kind} renders the fixture's node tree inside a wrapper translated to its box" do
-      for {shape, index} <- Enum.with_index(RenderFixtures.shapes(@kind)) do
+      shapes = RenderFixtures.shapes(@kind) ++ RenderFixtures.styled_shapes(@kind)
+
+      for {shape, index} <- Enum.with_index(shapes) do
         id = "element-#{index}"
-        element = Map.merge(shape, %{id: id, kind: @kind, x: 7, y: 9, version: 3})
+
+        element =
+          shape
+          |> Map.merge(shape.style)
+          |> Map.merge(%{id: id, kind: @kind, x: 7, y: 9, version: 3})
 
         html = render_component(&Elements.element/1, dom_id: id, element: element)
         # Outside <svg> the HTML parser ignores "/>" on <line>, so sibling lines would nest.
@@ -46,6 +52,10 @@ defmodule SketchWeb.ElementsTest do
         assert attrs["data-points"] == attrs["live-points"]
         assert attrs["live-points"] == points_attribute(shape.points)
         assert attrs["data-seed"] == "#{shape.seed}"
+
+        for {property, token} <- shape.style do
+          assert attrs["data-#{String.replace("#{property}", "_", "-")}"] == "#{token}"
+        end
 
         assert tree(children) ==
                  @kind |> Elements.render_children(shape) |> RenderFixtures.normalize(),

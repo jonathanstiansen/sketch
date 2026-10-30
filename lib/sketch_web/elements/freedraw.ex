@@ -6,5 +6,6 @@ defmodule SketchWeb.Elements.Freedraw do
   @behaviour SketchWeb.ElementRenderer
 
   @impl true
-  def render(%{points: points}), do: SketchWeb.ElementRenderer.polylines(points)
+  def render(%{points: points, style: style}),
+    do: SketchWeb.ElementRenderer.polylines(points, style)
 end
