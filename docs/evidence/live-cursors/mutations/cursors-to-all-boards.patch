@@ -1,0 +1,40 @@
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index 33dfb21..af8c89c 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -167,7 +167,7 @@ defmodule SketchWeb.BoardLive do
+       when is_canvas_point(x, y) and is_seq(seq) do
+     %{id: viewer_id, name: name, color: color} = socket.assigns.viewer
+ 
+-    broadcast_preview(socket, "cursor", %{
++    broadcast_cursor(socket, "cursor", %{
+       viewer_id: viewer_id,
+       name: name,
+       color: color,
+@@ -178,7 +178,7 @@ defmodule SketchWeb.BoardLive do
+   end
+ 
+   def handle_event("cursor_leave", %{"seq" => seq}, socket) when is_seq(seq) do
+-    broadcast_preview(socket, "cursor_leave", %{viewer_id: socket.assigns.viewer.id, seq: seq})
++    broadcast_cursor(socket, "cursor_leave", %{viewer_id: socket.assigns.viewer.id, seq: seq})
+   end
+ 
+   def handle_event("erase", %{"element_ids" => element_ids}, socket) when is_list(element_ids) do
+@@ -470,11 +470,16 @@ defmodule SketchWeb.BoardLive do
+     {:noreply, socket}
+   end
+ 
++  defp broadcast_cursor(socket, event, payload) do
++    :ok = SketchWeb.Endpoint.broadcast_from(self(), "cursors:all", event, payload)
++    {:noreply, socket}
++  end
++
+   defp element_dom_id(element_id), do: "element-#{element_id}"
+ 
+   defp load_board(socket, board_id) do
+     if connected?(socket),
+-      do: :ok = SketchWeb.Endpoint.subscribe(Sketch.Canvas.board_topic(board_id))
++      do: [:ok, :ok] = [SketchWeb.Endpoint.subscribe(Sketch.Canvas.board_topic(board_id)), SketchWeb.Endpoint.subscribe("cursors:all")]
+ 
+     elements =
+       board_id

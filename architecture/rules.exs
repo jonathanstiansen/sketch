@@ -55,7 +55,9 @@
         "e2e/tests/sessions.spec.ts",
         "test/sketch/canvas/element_test.exs",
         "test/sketch/properties/commit_model_test.exs",
-        "test/sketch_web/live/board_live_erase_test.exs"
+        "test/sketch_web/live/board_live_erase_test.exs",
+        "test/sketch_web/live/board_live_drag_test.exs",
+        "e2e/tests/cursors.spec.ts"
       ]
     },
     %{
@@ -88,8 +90,8 @@
       rule: "Transient previews never trigger persistence",
       status: :enforced,
       enforcement:
-        "A telemetry handler on [:sketch, :repo, :query] records queries from the LiveView processes while previews and cancels are relayed; the test asserts none, and that a commit issues exactly one UPDATE",
-      verified_by: ["test/sketch_web/live/board_live_drag_test.exs", "e2e/tests/dragging.spec.ts"]
+        "A telemetry handler on [:sketch, :repo, :query] records queries from the LiveView processes while previews, cancels and live cursor moves and leaves are relayed; the test asserts none, and that a commit issues exactly one UPDATE",
+      verified_by: ["test/sketch_web/live/board_live_drag_test.exs", "test/sketch_web/live/board_live_cursor_test.exs", "e2e/tests/dragging.spec.ts"]
     },
     %{
       id: "A11",

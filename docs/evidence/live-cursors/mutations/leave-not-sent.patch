@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index 271c0d6..ae69f7d 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -444,7 +444,7 @@ export class Canvas extends ViewHook {
+     window.clearTimeout(this.cursorTimer)
+     this.cursorTimer = undefined
+     const seq = this.cursorSender.leave()
+-    if (seq !== undefined && this.online) void this.pushEvent("cursor_leave", { seq })
++    if (seq !== undefined && this.online) void seq
+   }
+ 
+   private applyRemoteCursor(cursor: RemoteCursor): void {

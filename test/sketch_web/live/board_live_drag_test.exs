@@ -69,6 +69,26 @@ defmodule SketchWeb.BoardLiveDragTest do
                Canvas.list_elements_for_board!(rectangle.board_id)
     end
 
+    test "cursor moves and leaves reach other views without any database query", ctx do
+      %{dragger: dragger, watcher: watcher} = ctx
+      record_queries([dragger, watcher])
+
+      for seq <- 1..50 do
+        render_hook(dragger, "cursor", %{"x" => 100 + seq, "y" => 200, "seq" => seq})
+      end
+
+      render_hook(dragger, "cursor_leave", %{"seq" => 51})
+
+      assert_push_event(watcher, "cursor", %{seq: 1, x: 101, y: 200})
+      assert_push_event(watcher, "cursor", %{seq: 50, x: 150})
+      assert_push_event(watcher, "cursor_leave", %{seq: 51})
+
+      render(dragger)
+      render(watcher)
+      refute_received {:repo_query, _pid, _query}
+      refute_push_event(dragger, "cursor", %{})
+    end
+
     test "a commit writes exactly one update and broadcasts the next version", ctx do
       %{board: board, rectangle: rectangle, dragger: dragger, watcher: watcher} = ctx
       :ok = SketchWeb.Endpoint.subscribe("board:#{board.id}")
@@ -101,10 +121,16 @@ defmodule SketchWeb.BoardLiveDragTest do
     {:ok, outsider, _html} = live(conn, ~p"/b/#{other_board.id}")
 
     render_hook(dragger, "preview", preview(rectangle, 1, 300))
+    render_hook(dragger, "cursor", %{"x" => 300, "y" => 300, "seq" => 1})
+    render_hook(dragger, "cursor_leave", %{"seq" => 2})
 
     assert_push_event(watcher, "preview", %{x: 300})
+    assert_push_event(watcher, "cursor", %{x: 300, y: 300})
+    assert_push_event(watcher, "cursor_leave", %{seq: 2})
     render(outsider)
     refute_push_event(outsider, "preview", %{})
+    refute_push_event(outsider, "cursor", %{})
+    refute_push_event(outsider, "cursor_leave", %{})
   end
 
   test "invalid preview, cancel and commit payloads are ignored", ctx do

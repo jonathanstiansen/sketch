@@ -1,0 +1,12 @@
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index 33dfb21..643136b 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -166,6 +166,7 @@ defmodule SketchWeb.BoardLive do
+   def handle_event("cursor", %{"x" => x, "y" => y, "seq" => seq}, socket)
+       when is_canvas_point(x, y) and is_seq(seq) do
+     %{id: viewer_id, name: name, color: color} = socket.assigns.viewer
++    _persisted = Sketch.Canvas.list_elements_for_board!(socket.assigns.board_id)
+ 
+     broadcast_preview(socket, "cursor", %{
+       viewer_id: viewer_id,
