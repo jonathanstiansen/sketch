@@ -55,7 +55,21 @@ import {
   type ElementHistory,
   type ElementSnapshot,
 } from "./element_history"
-import { STYLE_PROPERTIES, TEXT_KINDS, type ElementKind, type TextKind } from "../generated/manifest"
+import { STYLE_PROPERTIES, TEXT_KINDS, type ElementKind, type TextKind, type ZoomActionId } from "../generated/manifest"
+import {
+  DEFAULT_ZOOM,
+  anchoredScroll,
+  clampScroll,
+  clampZoom,
+  fitView,
+  isZoomAction,
+  screenToCanvas,
+  stepZoom,
+  wheelZoom,
+  zoomActionFor,
+  zoomPercent,
+  type View,
+} from "./zoom_logic"
 import {
   DEFAULT_TOOL,
   defaultSize,
@@ -89,6 +103,9 @@ const TEXT_EDITING = "data-text-editing"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
 const SET_STYLE_EVENT = "sketch:set-style"
 const HISTORY_EVENT = "sketch:history"
+const ZOOM_EVENT = "sketch:zoom"
+const ZOOM_ATTRIBUTE = "data-zoom"
+const LINE_HEIGHT_PX = 16
 const HISTORY_STATUS_MS = 3000
 const SELECTED_ATTRIBUTE = "data-selected-element"
 const PHX_UPDATE = "phx-update"
@@ -303,6 +320,10 @@ function committedShape(shape: Element): Shape {
   }
 }
 
+function setSize(svg: SVGSVGElement, name: "width" | "height", length: number): void {
+  if (svg.getAttribute(name) !== String(length)) svg.setAttribute(name, String(length))
+}
+
 function subtract(a: Point, b: Point): Point {
   return { x: a.x - b.x, y: a.y - b.y }
 }
@@ -368,6 +389,8 @@ export class Canvas extends ViewHook {
   private history: ElementHistory = new History<ElementSnapshot, ElementChange>()
   private historyStatusTimer: number | undefined
   private queuedHistory: Direction[] = []
+  private zoom = DEFAULT_ZOOM
+  private svgObserver: MutationObserver | undefined
 
   override mounted(): void {
     this.selection = new SelectionOverlay(this.layer("#selection"))
@@ -382,9 +405,15 @@ export class Canvas extends ViewHook {
       childList: true,
       attributeFilter: OBSERVED_ATTRIBUTES,
     })
+    this.svgObserver = new MutationObserver(() => {
+      this.syncZoom()
+    })
+    this.svgObserver.observe(this.svg(), { attributeFilter: ["width", "height"] })
     window.addEventListener("keydown", this.onKeyDown)
     window.addEventListener("keyup", this.onKeyUp)
     window.addEventListener("blur", this.releaseSpace)
+    this.el.addEventListener("wheel", this.onWheel, { passive: false })
+    this.el.addEventListener(ZOOM_EVENT, this.onZoomEvent)
     this.el.addEventListener(SELECT_TOOL_EVENT, this.onSelectTool)
     this.el.addEventListener(SET_STYLE_EVENT, this.onSetStyle)
     this.el.addEventListener(HISTORY_EVENT, this.onHistoryEvent)
@@ -429,6 +458,7 @@ export class Canvas extends ViewHook {
         this.revert(payload.element_id)
       }
     })
+    this.syncZoom()
   }
 
   override disconnected(): void {
@@ -447,6 +477,7 @@ export class Canvas extends ViewHook {
     window.removeEventListener("keyup", this.onKeyUp)
     window.removeEventListener("blur", this.releaseSpace)
     this.observer?.disconnect()
+    this.svgObserver?.disconnect()
     if (this.gesture !== undefined) window.clearTimeout(this.gesture.previewTimer)
     if (this.textSession !== undefined) this.endText(this.textSession)
     for (const timer of this.staleTimers.values()) window.clearTimeout(timer)
@@ -778,10 +809,10 @@ export class Canvas extends ViewHook {
   }
 
   private updateDraw(draw: Draw, pointer: Point): void {
-    draw.dragged ||= isDrag(draw.start, pointer)
+    draw.dragged ||= isDrag(draw.start, pointer, this.zoom)
     if (!draw.dragged) return
     if (drawGesture(draw.kind) === "path") {
-      draw.path = thinStroke([...draw.path, pointer], STROKE_MIN_DISTANCE, this.maxPoints())
+      draw.path = thinStroke([...draw.path, pointer], STROKE_MIN_DISTANCE / this.zoom, this.maxPoints())
       draw.shape = shapeAround(draw.path, this.canvasSize())
     } else {
       draw.shape = this.drawnShape(draw.kind, draw.start, pointer)
@@ -856,6 +887,12 @@ export class Canvas extends ViewHook {
 
   private onKeyDown = (event: KeyboardEvent): void => {
     const input = keyInput(event)
+    const zoomAction = zoomActionFor({ ...input, code: event.code, shiftKey: event.shiftKey })
+    if (zoomAction !== undefined) {
+      event.preventDefault()
+      this.runZoom(zoomAction)
+      return
+    }
     const historyAction = historyActionFor({ ...input, shiftKey: event.shiftKey })
     if (historyAction !== undefined) {
       event.preventDefault()
@@ -1300,8 +1337,76 @@ export class Canvas extends ViewHook {
   }
 
   private canvasPoint(event: PointerEvent): Point {
-    const svg = this.el.querySelector("svg")
-    const bounds = svg?.getBoundingClientRect() ?? this.el.getBoundingClientRect()
-    return { x: event.clientX - bounds.left, y: event.clientY - bounds.top }
+    const bounds = this.svg().getBoundingClientRect()
+    return screenToCanvas(clientPoint(event), { x: bounds.left, y: bounds.top }, this.zoom)
+  }
+
+  private svg(): SVGSVGElement {
+    const svg = this.el.querySelector("svg#canvas")
+    if (!(svg instanceof SVGSVGElement)) throw new Error("#canvas must be an svg element")
+    return svg
+  }
+
+  private viewportSize(): Size {
+    return { width: this.el.clientWidth, height: this.el.clientHeight }
+  }
+
+  private onZoomEvent = (event: Event): void => {
+    if (event instanceof CustomEvent && isRecord(event.detail) && isZoomAction(event.detail.action)) {
+      this.runZoom(event.detail.action)
+    }
+  }
+
+  private onWheel = (event: WheelEvent): void => {
+    if (!event.ctrlKey && !event.metaKey) return
+    event.preventDefault()
+    const bounds = this.el.getBoundingClientRect()
+    const anchor = { x: event.clientX - bounds.left - this.el.clientLeft, y: event.clientY - bounds.top - this.el.clientTop }
+    const delta = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? event.deltaY * LINE_HEIGHT_PX : event.deltaY
+    this.zoomTo(wheelZoom(this.zoom, delta), anchor)
+  }
+
+  private runZoom(action: ZoomActionId): void {
+    if (action === "zoom_fit") {
+      this.fitToContent()
+      return
+    }
+    const center = { x: this.el.clientWidth / 2, y: this.el.clientHeight / 2 }
+    const next = action === "zoom_reset" ? DEFAULT_ZOOM : stepZoom(this.zoom, action === "zoom_in" ? "in" : "out")
+    this.zoomTo(next, center)
+  }
+
+  private zoomTo(requested: number, anchor: Point): void {
+    const zoom = clampZoom(requested)
+    if (zoom === this.zoom) return
+    const scroll = anchoredScroll({ x: this.el.scrollLeft, y: this.el.scrollTop }, anchor, this.zoom, zoom)
+    this.showView({ zoom, scroll })
+  }
+
+  private fitToContent(): void {
+    const boxes = [...this.el.querySelectorAll("#elements [data-element]")].map(renderedBox)
+    this.showView(fitView(boxes, this.canvasSize(), this.viewportSize()))
+  }
+
+  private showView({ zoom, scroll }: View): void {
+    this.zoom = zoom
+    this.syncZoom()
+    const clamped = clampScroll(scroll, this.canvasSize(), zoom, this.viewportSize())
+    this.el.scrollTo(clamped.x, clamped.y)
+  }
+
+  private syncZoom(): void {
+    const canvas = this.canvasSize()
+    const svg = this.svg()
+    setSize(svg, "width", canvas.width * this.zoom)
+    setSize(svg, "height", canvas.height * this.zoom)
+    this.selection.setZoom(this.zoom)
+    this.cursorLayer.setZoom(this.zoom)
+    const layer = this.textLayer()
+    layer.style.transformOrigin = "0 0"
+    layer.style.transform = `scale(${String(this.zoom)})`
+    this.js().setAttribute(this.el, ZOOM_ATTRIBUTE, String(this.zoom))
+    const level = document.getElementById("zoom-level")
+    if (level !== null) level.textContent = `${String(zoomPercent(this.zoom))}%`
   }
 }

@@ -356,6 +356,7 @@ defmodule SketchWeb.BoardLive do
             <div id="text-editor-layer" phx-update="ignore" class="absolute top-0 left-0"></div>
           </div>
           <SketchWeb.Toolbar.history_controls />
+          <SketchWeb.Toolbar.zoom_controls />
           <p
             id="history-status"
             role="status"

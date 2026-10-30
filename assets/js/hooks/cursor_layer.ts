@@ -1,4 +1,5 @@
 import { STYLE_TOKENS } from "../generated/manifest.ts"
+import type { Point } from "./canvas_logic.ts"
 import type { RemoteCursor } from "./cursor_logic.ts"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
@@ -24,14 +25,31 @@ function colorClass(color: string): string {
 }
 
 export class CursorLayer {
+  private zoom = 1
+  private readonly positions = new Map<string, Point>()
+
   constructor(private readonly layer: Element) {}
 
   show(cursor: RemoteCursor): void {
     const group = this.find(cursor.viewer_id) ?? this.create(cursor)
-    group.setAttribute("transform", `translate(${String(cursor.x)} ${String(cursor.y)})`)
+    this.positions.set(cursor.viewer_id, { x: cursor.x, y: cursor.y })
+    this.place(group, cursor)
+  }
+
+  setZoom(zoom: number): void {
+    this.zoom = zoom
+    for (const [viewerId, at] of this.positions) {
+      const group = this.find(viewerId)
+      if (group !== null) this.place(group, at)
+    }
+  }
+
+  private place(group: SVGGElement, { x, y }: Point): void {
+    group.setAttribute("transform", `translate(${String(x)} ${String(y)}) scale(${String(1 / this.zoom)})`)
   }
 
   remove(viewerId: string): void {
+    this.positions.delete(viewerId)
     this.find(viewerId)?.remove()
   }
 

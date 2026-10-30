@@ -54,21 +54,29 @@ export function isEndpoint(value: string | undefined): value is Endpoint {
 function handle(name: Corner | Endpoint): SVGRectElement {
   return svgRect({
     "data-handle": name,
-    width: String(HANDLE_SIZE),
-    height: String(HANDLE_SIZE),
     class: `selection-handle selection-handle-${name}`,
   })
 }
 
-function placeHandle(rect: SVGRectElement, { x, y }: Point): void {
-  rect.setAttribute("x", String(x - HANDLE_SIZE / 2))
-  rect.setAttribute("y", String(y - HANDLE_SIZE / 2))
+function placeHandle(rect: SVGRectElement, { x, y }: Point, size: number): void {
+  rect.setAttribute("x", String(x - size / 2))
+  rect.setAttribute("y", String(y - size / 2))
+  rect.setAttribute("width", String(size))
+  rect.setAttribute("height", String(size))
+}
+
+interface Shown {
+  box: Box
+  points: readonly Point[]
+  handles: SelectionHandles
 }
 
 export class SelectionOverlay {
   private readonly outline: SVGRectElement
   private readonly corners: Map<Corner, SVGRectElement>
   private readonly endpoints: Map<Endpoint, SVGRectElement>
+  private zoom = 1
+  private shown: Shown | undefined
 
   constructor(private readonly layer: Element) {
     this.outline = svgRect({ "data-selection-outline": "", class: "selection-outline" })
@@ -76,7 +84,13 @@ export class SelectionOverlay {
     this.endpoints = new Map(ENDPOINTS.map((endpoint) => [endpoint, handle(endpoint)]))
   }
 
+  setZoom(zoom: number): void {
+    this.zoom = zoom
+    if (this.shown !== undefined) this.show(this.shown.box, this.shown.points, this.shown.handles)
+  }
+
   show(box: Box, points: readonly Point[], handles: SelectionHandles): void {
+    this.shown = { box, points, handles }
     if (handles === "endpoints" && points.length > 0) {
       this.showEndpoints(box, points)
     } else {
@@ -85,13 +99,14 @@ export class SelectionOverlay {
   }
 
   private showBox(box: Box, handles: SVGRectElement[]): void {
+    const gap = OUTLINE_GAP / this.zoom
     setBox(this.outline, {
-      x: box.x - OUTLINE_GAP,
-      y: box.y - OUTLINE_GAP,
-      width: box.width + 2 * OUTLINE_GAP,
-      height: box.height + 2 * OUTLINE_GAP,
+      x: box.x - gap,
+      y: box.y - gap,
+      width: box.width + 2 * gap,
+      height: box.height + 2 * gap,
     })
-    for (const [corner, rect] of this.corners) placeHandle(rect, cornerPoint(box, corner))
+    for (const [corner, rect] of this.corners) placeHandle(rect, cornerPoint(box, corner), this.handleSize())
     if (this.outline.parentNode !== this.layer || this.layer.childElementCount !== handles.length + 1) {
       this.layer.replaceChildren(this.outline, ...handles)
     }
@@ -102,13 +117,18 @@ export class SelectionOverlay {
     ENDPOINTS.forEach((endpoint, index) => {
       const rect = this.endpoints.get(endpoint)
       const at = absolute[index]
-      if (rect !== undefined && at !== undefined) placeHandle(rect, at)
+      if (rect !== undefined && at !== undefined) placeHandle(rect, at, this.handleSize())
     })
     const [first] = this.endpoints.values()
     if (first?.parentNode !== this.layer) this.layer.replaceChildren(...this.endpoints.values())
   }
 
+  private handleSize(): number {
+    return HANDLE_SIZE / this.zoom
+  }
+
   hide(): void {
+    this.shown = undefined
     this.layer.replaceChildren()
   }
 }

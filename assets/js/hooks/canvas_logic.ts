@@ -83,8 +83,9 @@ export function clickBox(point: Point, size: Size, canvas: Size): Box {
   }
 }
 
-export function isDrag(start: Point, end: Point): boolean {
-  return Math.abs(end.x - start.x) >= DRAG_THRESHOLD || Math.abs(end.y - start.y) >= DRAG_THRESHOLD
+export function isDrag(start: Point, end: Point, zoom = 1): boolean {
+  const threshold = DRAG_THRESHOLD / zoom
+  return Math.abs(end.x - start.x) >= threshold || Math.abs(end.y - start.y) >= threshold
 }
 
 export function cornerPoint(box: Box, corner: Corner): Point {

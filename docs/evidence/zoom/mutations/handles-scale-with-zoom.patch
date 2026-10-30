@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/selection.ts b/assets/js/hooks/selection.ts
+index 04d3335..7601ff5 100644
+--- a/assets/js/hooks/selection.ts
++++ b/assets/js/hooks/selection.ts
+@@ -124,7 +124,7 @@ export class SelectionOverlay {
+   }
+ 
+   private handleSize(): number {
+-    return HANDLE_SIZE / this.zoom
++    return HANDLE_SIZE
+   }
+ 
+   hide(): void {

@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/zoom_logic.ts b/assets/js/hooks/zoom_logic.ts
+index 3f48ae8..b38e3b9 100644
+--- a/assets/js/hooks/zoom_logic.ts
++++ b/assets/js/hooks/zoom_logic.ts
+@@ -56,7 +56,7 @@ export function canvasUnderAnchor(scroll: Point, anchor: Point, zoom: number): P
+ 
+ export function anchoredScroll(scroll: Point, anchor: Point, from: number, to: number): Point {
+   const fixed = canvasUnderAnchor(scroll, anchor, from)
+-  return { x: fixed.x * to - anchor.x, y: fixed.y * to - anchor.y }
++  return { x: fixed.x * to, y: fixed.y * to }
+ }
+ 
+ function clampAxis(value: number, content: number, viewport: number): number {
