@@ -152,9 +152,11 @@ const pointerInput = fc.record({
   spaceHeld: fc.boolean(),
   onElement: fc.boolean(),
   onHandle: fc.boolean(),
+  altKey: fc.boolean(),
+  shiftKey: fc.boolean(),
 })
 
-void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, Arrow, Draw, Line and Note draw; Text opens the editor; Eraser erases; Selection resizes, moves or deselects", () => {
+void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, Arrow, Draw, Line and Note draw; Text opens the editor; Eraser erases; Selection resizes, copies, toggles, moves or draws a marquee", () => {
   fc.assert(
     fc.property(pointerInput, (input) => {
       const action = pointerAction(input)
@@ -167,8 +169,11 @@ void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, A
       assert.equal(action === "text", primary && !pans && input.tool === "text")
       assert.equal(action === "erase", primary && !pans && input.tool === "eraser")
       assert.equal(action === "resize", selecting && input.onHandle)
-      assert.equal(action === "move", selecting && !input.onHandle && input.onElement)
-      assert.equal(action === "deselect", selecting && !input.onHandle && !input.onElement)
+      const onElement = selecting && !input.onHandle && input.onElement
+      assert.equal(action === "copy", onElement && input.altKey)
+      assert.equal(action === "toggle", onElement && !input.altKey && input.shiftKey)
+      assert.equal(action === "move", onElement && !input.altKey && !input.shiftKey)
+      assert.equal(action === "marquee", selecting && !input.onHandle && !input.onElement)
     }),
     settings,
   )

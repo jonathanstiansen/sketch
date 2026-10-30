@@ -88,10 +88,10 @@ class Viewer {
       const current = board.live(id)
       if (command.type === "move") {
         board.commit(id, { x: command.x })
-        history.record({ type: "commit", id, before: { x: current.x }, after: { x: command.x } }, this.now)
+        history.record({ type: "commit", changes: [{ id, before: { x: current.x }, after: { x: command.x } }] }, this.now)
       } else {
         board.commit(id, { style: command.style })
-        history.record({ type: "commit", id, before: { style: current.style }, after: { style: command.style }, coalesce: "style" }, this.now)
+        history.record({ type: "commit", changes: [{ id, before: { style: current.style }, after: { style: command.style } }], coalesce: "style" }, this.now)
       }
     } else if (command.type === "erase") {
       const ids = [...new Set(command.picks.flatMap((pick) => board.pick(pick) ?? []))]
@@ -112,7 +112,7 @@ class Viewer {
     const { board, history } = this
     const { replay } = step
     if (replay.type === "commit") {
-      board.commit(replay.id, replay.change)
+      for (const { id, change } of replay.changes) board.commit(id, change)
       history.replayed()
     } else if (replay.type === "erase") {
       for (const id of replay.ids) board.erase(id)
@@ -245,12 +245,12 @@ void test("undoing an erase creates the element again, and later entries follow 
   const [restored] = viewer.board.elements.keys()
   assert.equal(restored, "e2")
   viewer.run({ type: "undo" })
-  assert.deepEqual(viewer.steps.at(-1), { status: "replay", direction: "undo", replay: { type: "commit", id: "e2", change: { x: 1 } } })
+  assert.deepEqual(viewer.steps.at(-1), { status: "replay", direction: "undo", replay: { type: "commit", changes: [{ id: "e2", change: { x: 1 } }] } })
   viewer.run({ type: "move", pick: 0, x: 3 })
   viewer.run({ type: "erase", picks: [0] })
   viewer.run({ type: "undo" })
   viewer.run({ type: "undo" })
-  assert.deepEqual(viewer.steps.at(-1), { status: "replay", direction: "undo", replay: { type: "commit", id: "e3", change: { x: 1 } } })
+  assert.deepEqual(viewer.steps.at(-1), { status: "replay", direction: "undo", replay: { type: "commit", changes: [{ id: "e3", change: { x: 1 } }] } })
   viewer.run({ type: "undo" })
   assert.deepEqual(viewer.steps.at(-1), { status: "replay", direction: "undo", replay: { type: "erase", ids: ["e3"] } })
 })
@@ -274,7 +274,7 @@ void test("style changes of one element and property within the coalescing windo
       for (const [index, gap] of gaps.entries()) {
         now += gap
         const next = `s${String(index)}`
-        history.record({ type: "commit", id: "e1", before: { style }, after: { style: next }, coalesce: "style" }, now)
+        history.record({ type: "commit", changes: [{ id: "e1", before: { style }, after: { style: next } }], coalesce: "style" }, now)
         style = next
       }
       const expected = 1 + gaps.slice(1).filter((gap) => gap > COALESCE_MS).length
@@ -282,7 +282,7 @@ void test("style changes of one element and property within the coalescing windo
       let restored: Change | undefined
       for (let step = history.undo(); step.status === "replay"; step = history.undo()) {
         undone += 1
-        if (step.replay.type === "commit") restored = step.replay.change
+        if (step.replay.type === "commit") restored = step.replay.changes[0]?.change
         history.replayed()
       }
       assert.equal(undone, expected)
@@ -294,11 +294,11 @@ void test("style changes of one element and property within the coalescing windo
 
 void test("different properties, different elements and moves never coalesce", () => {
   const history = new History<Content, Change>()
-  history.record({ type: "commit", id: "e1", before: { style: "ink" }, after: { style: "red" }, coalesce: "stroke" }, 0)
-  history.record({ type: "commit", id: "e1", before: { style: "ink" }, after: { style: "red" }, coalesce: "fill" }, 1)
-  history.record({ type: "commit", id: "e2", before: { style: "ink" }, after: { style: "red" }, coalesce: "fill" }, 2)
-  history.record({ type: "commit", id: "e2", before: { x: 1 }, after: { x: 2 } }, 3)
-  history.record({ type: "commit", id: "e2", before: { x: 2 }, after: { x: 3 } }, 4)
+  history.record({ type: "commit", changes: [{ id: "e1", before: { style: "ink" }, after: { style: "red" } }], coalesce: "stroke" }, 0)
+  history.record({ type: "commit", changes: [{ id: "e1", before: { style: "ink" }, after: { style: "red" } }], coalesce: "fill" }, 1)
+  history.record({ type: "commit", changes: [{ id: "e2", before: { style: "ink" }, after: { style: "red" } }], coalesce: "fill" }, 2)
+  history.record({ type: "commit", changes: [{ id: "e2", before: { x: 1 }, after: { x: 2 } }] }, 3)
+  history.record({ type: "commit", changes: [{ id: "e2", before: { x: 2 }, after: { x: 3 } }] }, 4)
   let count = 0
   for (let step = history.undo(); step.status === "replay"; step = history.undo()) {
     count += 1
@@ -309,45 +309,45 @@ void test("different properties, different elements and moves never coalesce", (
 
 void test("a style change after an undo does not coalesce into the entry below", () => {
   const history = new History<Content, Change>()
-  history.record({ type: "commit", id: "e1", before: { style: "ink" }, after: { style: "red" }, coalesce: "stroke" }, 0)
-  history.record({ type: "commit", id: "e1", before: { style: "red" }, after: { style: "blue" }, coalesce: "stroke" }, 600)
+  history.record({ type: "commit", changes: [{ id: "e1", before: { style: "ink" }, after: { style: "red" } }], coalesce: "stroke" }, 0)
+  history.record({ type: "commit", changes: [{ id: "e1", before: { style: "red" }, after: { style: "blue" } }], coalesce: "stroke" }, 600)
   assert.equal(history.undo().status, "replay")
   history.replayed()
-  history.record({ type: "commit", id: "e1", before: { style: "red" }, after: { style: "green" }, coalesce: "stroke" }, 700)
+  history.record({ type: "commit", changes: [{ id: "e1", before: { style: "red" }, after: { style: "green" } }], coalesce: "stroke" }, 700)
   const first = history.undo()
   history.replayed()
-  assert.deepEqual(first, { status: "replay", direction: "undo", replay: { type: "commit", id: "e1", change: { style: "red" } } })
+  assert.deepEqual(first, { status: "replay", direction: "undo", replay: { type: "commit", changes: [{ id: "e1", change: { style: "red" } }] } })
 })
 
 void test("only one replay runs at a time, and a failed replay is dropped", () => {
   const history = new History<Content, Change>()
-  history.record({ type: "commit", id: "e1", before: { x: 1 }, after: { x: 2 } }, 0)
-  history.record({ type: "commit", id: "e1", before: { x: 2 }, after: { x: 3 } }, 1)
+  history.record({ type: "commit", changes: [{ id: "e1", before: { x: 1 }, after: { x: 2 } }] }, 0)
+  history.record({ type: "commit", changes: [{ id: "e1", before: { x: 2 }, after: { x: 3 } }] }, 1)
   assert.equal(history.undo().status, "replay")
   assert.deepEqual(history.undo(), { status: "busy" })
   assert.deepEqual(history.redo(), { status: "busy" })
   history.failed()
   assert.equal(history.canRedo, false)
-  assert.deepEqual(history.undo(), { status: "replay", direction: "undo", replay: { type: "commit", id: "e1", change: { x: 1 } } })
+  assert.deepEqual(history.undo(), { status: "replay", direction: "undo", replay: { type: "commit", changes: [{ id: "e1", change: { x: 1 } }] } })
 })
 
 void test("an undo that finishes after a new action does not refill the redo stack, and a redo stays below it", () => {
   const history = new History<Content, Change>()
-  history.record({ type: "commit", id: "e1", before: { x: 1 }, after: { x: 2 } }, 0)
+  history.record({ type: "commit", changes: [{ id: "e1", before: { x: 1 }, after: { x: 2 } }] }, 0)
   history.undo()
-  history.record({ type: "commit", id: "e1", before: { x: 2 }, after: { x: 5 } }, 1)
+  history.record({ type: "commit", changes: [{ id: "e1", before: { x: 2 }, after: { x: 5 } }] }, 1)
   history.replayed()
   assert.equal(history.canRedo, false)
 
   const other = new History<Content, Change>()
-  other.record({ type: "commit", id: "e1", before: { x: 1 }, after: { x: 2 } }, 0)
+  other.record({ type: "commit", changes: [{ id: "e1", before: { x: 1 }, after: { x: 2 } }] }, 0)
   other.undo()
   other.replayed()
   other.redo()
-  other.record({ type: "commit", id: "e2", before: { x: 7 }, after: { x: 8 } }, 1)
+  other.record({ type: "commit", changes: [{ id: "e2", before: { x: 7 }, after: { x: 8 } }] }, 1)
   other.replayed()
   const undone = other.undo()
-  assert.deepEqual(undone, { status: "replay", direction: "undo", replay: { type: "commit", id: "e2", change: { x: 7 } } })
+  assert.deepEqual(undone, { status: "replay", direction: "undo", replay: { type: "commit", changes: [{ id: "e2", change: { x: 7 } }] } })
 })
 
 void test("a re-creation where some creates failed keeps only the elements that came back", () => {
@@ -366,4 +366,50 @@ void test("a re-creation where some creates failed keeps only the elements that 
   none.undo()
   none.replayed(new Map())
   assert.equal(none.canRedo, false)
+})
+
+void test("a group move is one entry: undo and redo replay every element's change together, and an erased member is left out", () => {
+  const history = new History<Content, Change>()
+  const changes = ["e1", "e2", "e3"].map((id, index) => ({ id, before: { x: index }, after: { x: index + 10 } }))
+  history.record({ type: "commit", changes }, 0)
+  assert.deepEqual(history.undo(), {
+    status: "replay",
+    direction: "undo",
+    replay: { type: "commit", changes: changes.map(({ id, before }) => ({ id, change: before })) },
+  })
+  history.replayed()
+  history.noteErased("e2")
+  assert.deepEqual(history.redo(), {
+    status: "replay",
+    direction: "redo",
+    replay: { type: "commit", changes: [{ id: "e1", change: { x: 10 } }, { id: "e3", change: { x: 12 } }] },
+  })
+  history.replayed()
+  assert.equal(history.canRedo, false)
+  history.noteErased("e1")
+  history.noteErased("e3")
+  assert.deepEqual(history.undo(), { status: "dropped", direction: "undo" })
+})
+
+void test("group style changes coalesce only with a change of the same property on the same elements", () => {
+  const history = new History<Content, Change>()
+  const group = (ids: string[], style: string) => ids.map((id) => ({ id, before: { style: "ink" }, after: { style } }))
+  history.record({ type: "commit", changes: group(["e1", "e2"], "red"), coalesce: "stroke" }, 0)
+  history.record({ type: "commit", changes: group(["e1", "e2"], "blue"), coalesce: "stroke" }, 100)
+  history.record({ type: "commit", changes: group(["e1"], "green"), coalesce: "stroke" }, 200)
+  let count = 0
+  const undone: Change[] = []
+  for (let step = history.undo(); step.status === "replay"; step = history.undo()) {
+    count += 1
+    if (step.replay.type === "commit") undone.push(...step.replay.changes.map(({ change }) => change))
+    history.replayed()
+  }
+  assert.equal(count, 2)
+  history.redo()
+  history.replayed()
+  const redo = history.redo()
+  assert.deepEqual(redo.status === "replay" && redo.replay.type === "commit" ? redo.replay.changes.map(({ change }) => change) : [], [
+    { style: "green" },
+  ])
+  assert.deepEqual(undone.length, 3)
 })

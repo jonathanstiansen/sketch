@@ -29,12 +29,29 @@ import {
 } from "./canvas_logic"
 import { CursorSender, RemoteCursors, isRemoteCursor, type RemoteCursor } from "./cursor_logic"
 import { CursorLayer } from "./cursor_layer"
-import { DrawLayer, SelectionOverlay, isCorner, isEndpoint, setShape } from "./selection"
+import { DrawLayer, MarqueeLayer, SelectionOverlay, isCorner, isEndpoint, setShape } from "./selection"
+import {
+  EMPTY_SELECTION,
+  acceptedGroupEntries,
+  movedGroup,
+  erasedWithSelection,
+  groupPreview,
+  marqueeBox,
+  marqueeHits,
+  marqueeSelection,
+  restyleTargets,
+  sameSelection,
+  selectsAll,
+  toggled,
+  type GroupPreview,
+  type GroupPreviewEntry,
+  type Selection,
+  type Styled,
+} from "./selection_logic"
 import { TextEditor, type TextLayout } from "./text_editor"
 import { LIVE_POINTS, SEED, isSeed, randomSeed, styleAttribute, styleOf } from "../elements/dom"
 import {
   DEFAULT_STYLE,
-  appliesTo,
   isStyleProperty,
   isStyleToken,
   styleForKind,
@@ -43,7 +60,7 @@ import {
   type ElementStyle,
 } from "../elements/style"
 import { StylePanel } from "./style_panel"
-import { History, type Direction, type Entry, type Recorded, type Replay } from "./history_logic"
+import { History, type Change, type Direction, type Entry, type Recorded, type Replay } from "./history_logic"
 import {
   changePayload,
   createPayload,
@@ -78,6 +95,7 @@ import {
   defaultSize,
   deletesSelection,
   drawGesture,
+  keepsSelection,
   drawnKind,
   escapes,
   isElementKind,
@@ -112,6 +130,7 @@ const ZOOM_ATTRIBUTE = "data-zoom"
 const LINE_HEIGHT_PX = 16
 const HISTORY_STATUS_MS = 3000
 const SELECTED_ATTRIBUTE = "data-selected-element"
+const SELECTED_COUNT_ATTRIBUTE = "data-selected-count"
 const PHX_UPDATE = "phx-update"
 const OBSERVED_ATTRIBUTES = ["x", "y", "width", "height", LIVE_POINTS, ...STYLE_PROPERTIES.map(styleAttribute)]
 const TEXT_KIND_SELECTOR = TEXT_KINDS.map((kind) => `[data-element][data-kind="${kind}"]`).join(", ")
@@ -159,10 +178,45 @@ interface Copy extends Throttled {
   shape: Shape
 }
 
-type Gesture = Edit | Draw | Copy
+interface Member {
+  rect: SVGElement
+  elementId: string
+  baseVersion: number
+  origin: Shape
+  committed: Shape
+}
+
+interface GroupDrag extends Throttled {
+  mode: "group"
+  pressedId: string
+  members: Member[]
+  grab: Point
+  shapes: readonly Shape[]
+}
+
+type Gesture = Edit | Draw | Copy | GroupDrag
 
 function isEdit(gesture: Gesture): gesture is Edit {
-  return gesture.mode !== "draw" && gesture.mode !== "copy"
+  return gesture.mode === "move" || gesture.mode === "resize" || gesture.mode === "endpoint"
+}
+
+function claimedRects(gesture: Gesture): SVGElement[] {
+  if (isEdit(gesture)) return [gesture.rect]
+  return gesture.mode === "group" ? gesture.members.map(({ rect }) => rect) : []
+}
+
+function editedIds(gesture: Gesture | undefined): string[] {
+  if (gesture === undefined) return []
+  if (isEdit(gesture)) return [gesture.elementId]
+  return gesture.mode === "group" ? gesture.members.map(({ elementId }) => elementId) : []
+}
+
+interface Marquee {
+  pointerId: number
+  start: Point
+  additive: boolean
+  base: Selection
+  dragged: boolean
 }
 
 interface Erase {
@@ -254,6 +308,35 @@ function isDragRef(value: unknown): value is DragRef {
 
 function isOptionalText(value: unknown): value is string | undefined {
   return value === undefined || typeof value === "string"
+}
+
+function isGroupEntry(value: unknown): value is GroupPreviewEntry {
+  return (
+    isRecord(value) &&
+    typeof value.element_id === "string" &&
+    Number.isInteger(value.base_version) &&
+    isBox(value) &&
+    isPoints(value.points)
+  )
+}
+
+function isGroupPreview(value: unknown): value is GroupPreview {
+  return (
+    isRecord(value) &&
+    typeof value.drag_id === "string" &&
+    Number.isInteger(value.seq) &&
+    Array.isArray(value.elements) &&
+    value.elements.every(isGroupEntry)
+  )
+}
+
+function isGroupCancel(value: unknown): value is { drag_id: string; element_ids: string[] } {
+  return (
+    isRecord(value) &&
+    typeof value.drag_id === "string" &&
+    Array.isArray(value.element_ids) &&
+    value.element_ids.every((id) => typeof id === "string")
+  )
 }
 
 function isPreview(value: unknown): value is Preview {
@@ -406,8 +489,10 @@ export class Canvas extends ViewHook {
   private spaceHeld = false
   private pannedWithSpace = false
   private pan: Pan | undefined
-  private selectedId: string | undefined
-  private selectOnArrival: string | undefined
+  private selected: Selection = EMPTY_SELECTION
+  private selectOnArrival: Selection | undefined
+  private marquee: Marquee | undefined
+  private marqueeLayer!: MarqueeLayer
   private lastPointer: Point | undefined
   private nextStyle: ElementStyle = DEFAULT_STYLE
   private stylePanel!: StylePanel
@@ -423,6 +508,7 @@ export class Canvas extends ViewHook {
   override mounted(): void {
     this.selection = new SelectionOverlay(this.layer("#selection"))
     this.draws = new DrawLayer(this.layer("#draw-previews"))
+    this.marqueeLayer = new MarqueeLayer(this.layer("#marquee"))
     this.cursorLayer = new CursorLayer(this.layer("#remote-cursors"))
     this.stylePanel = new StylePanel(document.getElementById("style-panel"))
     this.observer = new MutationObserver(() => {
@@ -460,6 +546,13 @@ export class Canvas extends ViewHook {
     this.handleEvent("drag_cancel", (payload: unknown) => {
       if (isDragRef(payload)) this.cancelRemoteDrag(payload)
     })
+    this.handleEvent("group_preview", (payload: unknown) => {
+      if (isGroupPreview(payload)) this.applyRemoteGroup(payload)
+    })
+    this.handleEvent("group_cancel", (payload: unknown) => {
+      if (!isGroupCancel(payload)) return
+      for (const elementId of payload.element_ids) this.cancelRemoteDrag({ element_id: elementId, drag_id: payload.drag_id })
+    })
     this.handleEvent("draw_preview", (payload: unknown) => {
       if (isDrawPreview(payload)) this.applyRemoteDraw({ ...payload, style: styleFrom((property) => payload[property]) })
     })
@@ -493,6 +586,7 @@ export class Canvas extends ViewHook {
     this.online = false
     if (this.gesture !== undefined) this.abandonGesture(this.gesture)
     this.cancelErase()
+    this.cancelMarquee()
     this.textEditor?.commit()
   }
 
@@ -571,7 +665,7 @@ export class Canvas extends ViewHook {
       }
       return
     }
-    if (this.gesture !== undefined || this.erase !== undefined || this.pan !== undefined) return
+    if (this.gesture !== undefined || this.erase !== undefined || this.pan !== undefined || this.marquee !== undefined) return
     const target = event.target instanceof Element ? event.target : null
     const rect = target?.closest<SVGElement>("[data-element]") ?? null
     const handle = target?.closest<SVGRectElement>("rect[data-handle]")?.dataset.handle
@@ -582,22 +676,112 @@ export class Canvas extends ViewHook {
       onElement: rect !== null,
       onHandle: isCorner(handle) || isEndpoint(handle),
       altKey: event.altKey,
+      shiftKey: event.shiftKey,
     })
     if (action === "pan") this.startPan(event)
     const kind = drawnKind(this.tool)
     if (action === "draw" && kind !== undefined) this.startDraw(event, kind)
     if (action === "text") this.openText(event, rect)
     if (action === "erase") this.startErase(event)
-    if (action === "deselect") this.select(undefined)
-    if (action === "move" && rect !== null) this.startEdit(event, rect, { mode: "move" })
+    if (action === "marquee") this.startMarquee(event)
+    if (action === "toggle" && rect !== null) this.toggleSelected(event, rect)
+    if (action === "move" && rect !== null) this.startMove(event, rect)
     if (action === "copy" && rect !== null) this.startCopy(event, rect)
     if (action === "resize" && isCorner(handle)) this.editSelected(event, { mode: "resize", corner: handle })
     if (action === "resize" && isEndpoint(handle)) this.editSelected(event, { mode: "endpoint", endpoint: handle })
   }
 
   private editSelected(event: PointerEvent, grip: Grip): void {
-    const rect = this.selectedId === undefined ? null : this.elementFor(this.selectedId)
+    const [only] = this.selected
+    const rect = only === undefined || this.selected.length !== 1 ? null : this.elementFor(only)
     if (rect !== null) this.startEdit(event, rect, grip)
+  }
+
+  private toggleSelected(event: PointerEvent, rect: SVGElement): void {
+    const elementId = rect.dataset.element
+    if (elementId === undefined) return
+    event.preventDefault()
+    this.select(toggled(this.selected, elementId))
+  }
+
+  private startMove(event: PointerEvent, rect: SVGElement): void {
+    const elementId = rect.dataset.element
+    if (elementId !== undefined && this.selected.length > 1 && this.selected.includes(elementId)) {
+      this.startGroupMove(event, elementId)
+    } else {
+      this.startEdit(event, rect, { mode: "move" })
+    }
+  }
+
+  private startGroupMove(event: PointerEvent, pressedId: string): void {
+    if (!this.online) return
+    event.preventDefault()
+    this.el.setPointerCapture(event.pointerId)
+    const members = this.selected.flatMap((elementId): Member[] => {
+      const rect = this.elementFor(elementId)
+      if (rect === null) return []
+      claimElement(rect)
+      this.clearRemoteDrag(elementId)
+      const origin = renderedShape(rect)
+      return [{ rect, elementId, baseVersion: integerAttribute(rect, "data-version"), origin, committed: committedShape(rect) }]
+    })
+    this.gesture = {
+      mode: "group",
+      pressedId,
+      members,
+      grab: this.canvasPoint(event),
+      shapes: members.map(({ origin }) => origin),
+      dragId: crypto.randomUUID(),
+      pointerId: event.pointerId,
+      seq: 0,
+      lastSentAt: -Infinity,
+      previewTimer: undefined,
+    }
+  }
+
+  private startMarquee(event: PointerEvent): void {
+    event.preventDefault()
+    this.el.setPointerCapture(event.pointerId)
+    const additive = event.shiftKey
+    this.marquee = { pointerId: event.pointerId, start: this.canvasPoint(event), additive, base: this.selected, dragged: false }
+  }
+
+  private updateMarquee(marquee: Marquee, pointer: Point): void {
+    marquee.dragged ||= isDrag(marquee.start, pointer, this.zoom)
+    if (!marquee.dragged) return
+    const box = marqueeBox(marquee.start, pointer)
+    this.marqueeLayer.show(box)
+    const elements = [...this.el.querySelectorAll<SVGElement>("#elements [data-element]")].flatMap((shape) => {
+      const id = shape.dataset.element
+      return id === undefined ? [] : [{ id, box: renderedBox(shape) }]
+    })
+    const next = marqueeSelection(marquee.base, marqueeHits(elements, box), marquee.additive)
+    if (!sameSelection(next, this.selected)) this.select(next)
+  }
+
+  private finishMarquee(marquee: Marquee): void {
+    this.endMarquee(marquee)
+    if (!marquee.dragged && !marquee.additive) this.select(EMPTY_SELECTION)
+  }
+
+  private cancelMarquee(): void {
+    const marquee = this.marquee
+    if (marquee === undefined) return
+    this.endMarquee(marquee)
+    this.select(marquee.base)
+  }
+
+  private endMarquee(marquee: Marquee): void {
+    this.marquee = undefined
+    this.marqueeLayer.hide()
+    if (this.el.hasPointerCapture(marquee.pointerId)) this.el.releasePointerCapture(marquee.pointerId)
+  }
+
+  private selectAll(): void {
+    if (this.gesture !== undefined || this.textEditor !== undefined) return
+    this.useTool(DEFAULT_TOOL)
+    const ids = [...this.el.querySelectorAll<SVGElement>("#elements [data-element]")].flatMap((shape) => shape.dataset.element ?? [])
+    this.select(ids)
   }
 
   private startEdit(event: PointerEvent, rect: SVGElement, grip: Grip): void {
@@ -605,7 +789,7 @@ export class Canvas extends ViewHook {
     if (!this.online || elementId === undefined) return
 
     event.preventDefault()
-    this.select(elementId)
+    this.select([elementId])
     this.el.setPointerCapture(event.pointerId)
     claimElement(rect)
     this.clearRemoteDrag(elementId)
@@ -633,7 +817,7 @@ export class Canvas extends ViewHook {
     const elementId = rect.dataset.element
     if (!this.online || source === undefined || elementId === undefined) return
     event.preventDefault()
-    this.select(elementId)
+    this.select([elementId])
     this.el.setPointerCapture(event.pointerId)
     const origin = committedShape(rect)
     const dragId = crypto.randomUUID()
@@ -655,7 +839,7 @@ export class Canvas extends ViewHook {
   private startDraw(event: PointerEvent, kind: DrawnKind): void {
     if (!this.online) return
     event.preventDefault()
-    this.select(undefined)
+    this.select(EMPTY_SELECTION)
     this.el.setPointerCapture(event.pointerId)
     const start = this.canvasPoint(event)
     this.gesture = {
@@ -689,7 +873,8 @@ export class Canvas extends ViewHook {
       const id = shape.dataset.element
       return id === undefined || erase.pending.has(id) ? [] : [{ id, box: renderedBox(shape) }]
     })
-    for (const id of eraserHits(elements, path)) {
+    for (const id of erasedWithSelection(eraserHits(elements, path), this.selected)) {
+      if (erase.pending.has(id)) continue
       erase.pending.add(id)
       this.elementFor(id)?.setAttribute(ERASING, "")
     }
@@ -726,10 +911,18 @@ export class Canvas extends ViewHook {
   }
 
   private async commitAndRecord(elementId: string, before: ElementChange, after: ElementChange, dragId: string, coalesce?: string): Promise<void> {
-    if (!(await this.pushChange(elementId, after, dragId))) return
-    const entry: Entry<ElementSnapshot, ElementChange> =
-      coalesce === undefined ? { type: "commit", id: elementId, before, after } : { type: "commit", id: elementId, before, after, coalesce }
-    this.record(entry)
+    await this.commitGroupAndRecord([{ id: elementId, before, after }], dragId, coalesce)
+  }
+
+  private async commitGroupAndRecord(changes: readonly Change<ElementChange>[], dragId: string, coalesce?: string): Promise<Change<ElementChange>[]> {
+    const results = await Promise.all(changes.map(async (change) => ({ change, ok: await this.pushChange(change.id, change.after, dragId) })))
+    const committed = results.flatMap(({ change, ok }) => (ok ? [change] : []))
+    if (committed.length > 0) {
+      const entry: Entry<ElementSnapshot, ElementChange> =
+        coalesce === undefined ? { type: "commit", changes: committed } : { type: "commit", changes: committed, coalesce }
+      this.record(entry)
+    }
+    return results.flatMap(({ change, ok }) => (ok ? [] : [change]))
   }
 
   private async createAndRecord(snapshot: ElementSnapshot, dragId: string): Promise<string | undefined> {
@@ -743,8 +936,7 @@ export class Canvas extends ViewHook {
     const created = results.flatMap((element) => element ?? [])
     if (created.length === 0) return
     this.record({ type: "create", elements: created })
-    const [only] = created
-    if (created.length === 1 && only !== undefined) this.selectWhenPresent(only.id)
+    this.selectWhenPresent(created.map(({ id }) => id))
   }
 
   private record(entry: Entry<ElementSnapshot, ElementChange>): void {
@@ -785,7 +977,9 @@ export class Canvas extends ViewHook {
 
   private async runReplay(replay: Replay<ElementSnapshot, ElementChange>): Promise<Map<string, string> | undefined> {
     if (replay.type === "commit") {
-      return (await this.pushChange(replay.id, replay.change, crypto.randomUUID())) ? new Map() : undefined
+      const dragId = crypto.randomUUID()
+      const results = await Promise.all(replay.changes.map(({ id, change }) => this.pushChange(id, change, dragId)))
+      return results.some(Boolean) ? new Map() : undefined
     }
     if (replay.type === "erase") {
       return (await this.pushErase(replay.ids)).length > 0 ? new Map() : undefined
@@ -842,7 +1036,7 @@ export class Canvas extends ViewHook {
     this.remotePreviews.erase(elementId)
     this.clearStaleTimer(elementId)
     this.erase?.pending.delete(elementId)
-    if (this.gesture !== undefined && this.editedElementId() === elementId) this.endGesture(this.gesture)
+    if (this.gesture !== undefined && isEdit(this.gesture) && this.gesture.elementId === elementId) this.endGesture(this.gesture)
   }
 
   private onPointerMove = (event: PointerEvent): void => {
@@ -855,6 +1049,10 @@ export class Canvas extends ViewHook {
       this.eraseAlong(this.erase, [this.erase.last, this.canvasPoint(event)])
       return
     }
+    if (this.marquee?.pointerId === event.pointerId) {
+      this.updateMarquee(this.marquee, this.canvasPoint(event))
+      return
+    }
     const gesture = this.gesture
     if (gesture?.pointerId !== event.pointerId) return
     const pointer = this.canvasPoint(event)
@@ -862,6 +1060,8 @@ export class Canvas extends ViewHook {
       this.updateDraw(gesture, pointer)
     } else if (gesture.mode === "copy") {
       this.updateCopy(gesture, pointer)
+    } else if (gesture.mode === "group") {
+      this.updateGroup(gesture, pointer)
     } else {
       this.updateEdit(gesture, pointer)
     }
@@ -873,6 +1073,22 @@ export class Canvas extends ViewHook {
     this.showShape(this.draws.shape(copy.dragId, source.kind, source.seed, source.style), copy.shape, source.text)
     this.schedulePreview(copy, () => {
       this.sendPreview(copy)
+    })
+  }
+
+  private updateGroup(group: GroupDrag, pointer: Point): void {
+    const moved = movedGroup(
+      group.members.map(({ origin }) => origin),
+      subtract(pointer, group.grab),
+      this.canvasSize(),
+    )
+    group.shapes = moved.shapes
+    group.members.forEach(({ rect }, index) => {
+      const shape = moved.shapes[index]
+      if (shape !== undefined) this.showShape(rect, shape)
+    })
+    this.schedulePreview(group, () => {
+      this.sendPreview(group)
     })
   }
 
@@ -907,6 +1123,7 @@ export class Canvas extends ViewHook {
   private onPointerUp = (event: PointerEvent): void => {
     if (this.pan?.pointerId === event.pointerId) this.endPan()
     if (this.erase?.pointerId === event.pointerId) this.finishErase(this.erase)
+    if (this.marquee?.pointerId === event.pointerId) this.finishMarquee(this.marquee)
     const gesture = this.gesture
     if (gesture?.pointerId !== event.pointerId) return
     this.endGesture(gesture)
@@ -914,6 +1131,8 @@ export class Canvas extends ViewHook {
       this.finishDraw(gesture)
     } else if (gesture.mode === "copy") {
       this.finishCopy(gesture)
+    } else if (gesture.mode === "group") {
+      void this.finishGroup(gesture)
     } else {
       this.finishEdit(gesture)
     }
@@ -928,11 +1147,35 @@ export class Canvas extends ViewHook {
     const snapshot = { ...copy.source, ...copy.shape.box, points: copy.shape.points }
     void this.createAndRecord(snapshot, copy.dragId)
       .then((id) => {
-        this.selectWhenPresent(id)
+        if (id !== undefined) this.selectWhenPresent([id])
       })
       .finally(() => {
         this.draws.remove(copy.dragId)
       })
+  }
+
+  private async finishGroup(group: GroupDrag): Promise<void> {
+    const moved = group.members.flatMap((member, index) => {
+      const shape = group.shapes[index]
+      return shape === undefined || sameShape(shape, member.origin) ? [] : [{ member, box: shape.box }]
+    })
+    if (moved.length === 0) {
+      for (const { elementId } of group.members) this.revert(elementId)
+      if (group.seq > 0) this.pushGroupCancel(group)
+      this.select([group.pressedId])
+      return
+    }
+    const changes = moved.map(({ member: { elementId, committed }, box }): Change<ElementChange> => ({
+      id: elementId,
+      before: { event: "commit", x: committed.box.x, y: committed.box.y },
+      after: { event: "commit", x: box.x, y: box.y },
+    }))
+    const failed = await this.commitGroupAndRecord(changes, group.dragId)
+    for (const { id } of failed) this.revert(id)
+  }
+
+  private pushGroupCancel(group: GroupDrag): void {
+    void this.pushEvent("group_cancel", { drag_id: group.dragId, element_ids: group.members.map(({ elementId }) => elementId) })
   }
 
   private finishEdit(edit: Edit): void {
@@ -968,11 +1211,14 @@ export class Canvas extends ViewHook {
     if (this.pan?.pointerId === event.pointerId) this.endPan()
     if (this.gesture !== undefined) this.cancelGesture(this.gesture)
     this.cancelErase()
+    this.cancelMarquee()
   }
 
   private cancelGesture(gesture: Gesture): void {
     this.abandonGesture(gesture)
-    if (isEdit(gesture)) {
+    if (gesture.mode === "group") {
+      this.pushGroupCancel(gesture)
+    } else if (isEdit(gesture)) {
       void this.pushEvent("drag_cancel", { element_id: gesture.elementId, drag_id: gesture.dragId })
     } else {
       void this.pushEvent("draw_cancel", { drag_id: gesture.dragId })
@@ -990,6 +1236,11 @@ export class Canvas extends ViewHook {
     const clipboardAction = clipboardActionFor(input)
     if (clipboardAction !== undefined) {
       this.runClipboard(event, clipboardAction)
+      return
+    }
+    if (selectsAll(input)) {
+      event.preventDefault()
+      this.selectAll()
       return
     }
     const historyAction = historyActionFor(input)
@@ -1016,30 +1267,32 @@ export class Canvas extends ViewHook {
       void this.paste()
       return
     }
-    const source = this.selectedSnapshot()
-    if (source === undefined) return
+    const selected = this.selectedElements()
+    const sources = selected.flatMap((rect) => snapshotOf(rect) ?? [])
+    if (sources.length === 0) return
     if (action === "duplicate") {
-      void this.createGroup(duplicated([source], this.canvasSize()))
+      void this.createGroup(duplicated(sources, this.canvasSize()))
       return
     }
     event.preventDefault()
-    void this.copySelected(source, action === "cut")
+    const ids = selected.flatMap((rect) => rect.dataset.element ?? [])
+    void this.copySelected(sources, action === "cut" ? ids : [])
   }
 
-  private selectedSnapshot(): ElementSnapshot | undefined {
-    const rect = this.selectedId === undefined ? null : this.elementFor(this.selectedId)
-    return rect === null ? undefined : snapshotOf(rect)
+  private selectedElements(): SVGElement[] {
+    return [...this.el.querySelectorAll<SVGElement>("#elements [data-element]")].filter(
+      (rect) => rect.dataset.element !== undefined && this.selected.includes(rect.dataset.element),
+    )
   }
 
-  private async copySelected(source: ElementSnapshot, cut: boolean): Promise<void> {
-    const elementId = this.selectedId
-    if (!(await writeClipboardText(encodeElements([source])))) {
+  private async copySelected(sources: readonly ElementSnapshot[], cutIds: readonly string[]): Promise<void> {
+    if (!(await writeClipboardText(encodeElements(sources)))) {
       this.flash("Couldn't copy to the clipboard")
       return
     }
-    if (!cut || elementId === undefined) return
-    this.select(undefined)
-    await this.eraseAndRecord([elementId])
+    if (cutIds.length === 0) return
+    this.select(EMPTY_SELECTION)
+    await this.eraseAndRecord(cutIds)
   }
 
   private async paste(): Promise<void> {
@@ -1088,15 +1341,16 @@ export class Canvas extends ViewHook {
     this.hideHelp()
     if (this.gesture !== undefined) this.cancelGesture(this.gesture)
     this.cancelErase()
-    this.select(undefined)
+    this.cancelMarquee()
+    this.select(EMPTY_SELECTION)
   }
 
   private eraseSelected(event: KeyboardEvent): void {
-    const elementId = this.selectedId
-    if (elementId === undefined || this.gesture !== undefined || this.textEditor !== undefined || !this.online) return
+    const elementIds = this.selected
+    if (elementIds.length === 0 || this.gesture !== undefined || this.textEditor !== undefined || !this.online) return
     event.preventDefault()
-    this.select(undefined)
-    void this.eraseAndRecord([elementId])
+    this.select(EMPTY_SELECTION)
+    void this.eraseAndRecord(elementIds)
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {
@@ -1126,22 +1380,28 @@ export class Canvas extends ViewHook {
   }
 
   private restyleSelected(property: keyof ElementStyle, value: string): void {
-    const rect = this.selectedId === undefined ? null : this.elementFor(this.selectedId)
-    const kind = rect?.dataset.kind
-    if (rect === null || !isElementKind(kind) || !appliesTo(kind, property) || !this.online) return
-    const previous = styleOf(rect)[property]
-    if (previous === value || this.selectedId === undefined) return
+    if (!this.online) return
+    const targets = restyleTargets(this.selectedStyles(), property, value)
+    if (targets.length === 0) return
     const change = (token: string): ElementChange => ({ event: "commit_style", property, value: token })
-    void this.commitAndRecord(this.selectedId, change(previous), change(value), crypto.randomUUID(), property)
+    const changes = targets.map(({ id, before }) => ({ id, before: change(before), after: change(value) }))
+    void this.commitGroupAndRecord(changes, crypto.randomUUID(), property)
+  }
+
+  private selectedStyles(): (Styled & { id: string })[] {
+    return this.selectedElements().flatMap((rect) => {
+      const { kind, element } = rect.dataset
+      return isElementKind(kind) && element !== undefined ? [{ id: element, kind, style: styleOf(rect) }] : []
+    })
   }
 
   private syncStylePanel(): void {
-    const rect = this.selectedId === undefined ? null : this.elementFor(this.selectedId)
-    const kind = rect?.dataset.kind
-    if (rect !== null && isElementKind(kind)) {
-      this.stylePanel.show(kind, styleOf(rect))
+    const selected = this.selectedStyles()
+    if (selected.length > 0) {
+      this.stylePanel.show(selected)
     } else {
-      this.stylePanel.show(this.toolKind(), this.nextStyle)
+      const kind = this.toolKind()
+      this.stylePanel.show(kind === undefined ? [] : [{ kind, style: this.nextStyle }])
     }
   }
 
@@ -1152,7 +1412,7 @@ export class Canvas extends ViewHook {
   private useTool(tool: ToolId): void {
     if (tool === this.tool) return
     this.tool = tool
-    if (tool !== "selection") this.select(undefined)
+    if (!keepsSelection(tool)) this.select(EMPTY_SELECTION)
     this.syncStylePanel()
     this.js().setAttribute(this.el, "data-tool", tool)
     for (const button of document.querySelectorAll<HTMLElement>("[data-tool-button]")) {
@@ -1196,48 +1456,58 @@ export class Canvas extends ViewHook {
     if (this.el.hasPointerCapture(pan.pointerId)) this.el.releasePointerCapture(pan.pointerId)
   }
 
-  private select(elementId: string | undefined): void {
-    this.selectedId = elementId
+  private select(elementIds: Selection): void {
+    this.selected = elementIds
     this.selectOnArrival = undefined
     this.syncSelection()
   }
 
-  private selectWhenPresent(elementId: string | undefined): void {
-    this.selectOnArrival = elementId
+  private selectWhenPresent(elementIds: Selection): void {
+    this.selectOnArrival = elementIds
     this.syncSelection()
   }
 
   private syncSelection(): void {
-    if (this.selectOnArrival !== undefined && this.elementFor(this.selectOnArrival) !== null) {
-      this.selectedId = this.selectOnArrival
+    const arriving = this.selectOnArrival
+    if (arriving?.every((id) => this.elementFor(id) !== null) === true) {
+      this.selected = arriving
       this.selectOnArrival = undefined
     }
-    const rect = this.selectedId === undefined ? null : this.elementFor(this.selectedId)
-    if (rect === null) {
-      this.selectedId = undefined
+    const rects = this.selected.flatMap((id) => this.elementFor(id) ?? [])
+    this.selected = rects.flatMap((rect) => rect.dataset.element ?? [])
+    const [only] = rects
+    if (only === undefined) {
       this.selection.hide()
       this.js().removeAttribute(this.el, SELECTED_ATTRIBUTE)
+      this.js().removeAttribute(this.el, SELECTED_COUNT_ATTRIBUTE)
     } else {
-      this.js().setAttribute(this.el, SELECTED_ATTRIBUTE, rect.dataset.element ?? "")
-      const { box, points } = renderedShape(rect)
-      this.selection.show(box, points, selectionHandles(rect.dataset.kind))
+      this.js().setAttribute(this.el, SELECTED_ATTRIBUTE, this.selected.join(" "))
+      this.js().setAttribute(this.el, SELECTED_COUNT_ATTRIBUTE, String(rects.length))
+      this.showSelection(only, rects)
     }
     this.syncStylePanel()
   }
 
+  private showSelection(only: SVGElement, rects: readonly SVGElement[]): void {
+    if (rects.length > 1) {
+      this.selection.showGroup(rects.map(renderedBox))
+    } else {
+      const { box, points } = renderedShape(only)
+      this.selection.show(box, points, selectionHandles(only.dataset.kind))
+    }
+  }
+
   private abandonGesture(gesture: Gesture): void {
     this.endGesture(gesture)
-    if (isEdit(gesture)) {
-      this.revert(gesture.elementId)
-    } else {
-      this.draws.remove(gesture.dragId)
-    }
+    const edited = editedIds(gesture)
+    for (const elementId of edited) this.revert(elementId)
+    if (edited.length === 0) this.draws.remove(gesture.dragId)
   }
 
   private endGesture(gesture: Gesture): void {
     this.gesture = undefined
     window.clearTimeout(gesture.previewTimer)
-    if (isEdit(gesture)) releaseElement(gesture.rect)
+    for (const rect of claimedRects(gesture)) releaseElement(rect)
     if (this.el.hasPointerCapture(gesture.pointerId)) this.el.releasePointerCapture(gesture.pointerId)
   }
 
@@ -1264,6 +1534,12 @@ export class Canvas extends ViewHook {
         ...gesture.shape.box,
         points: gesture.shape.points,
       })
+    } else if (gesture.mode === "group") {
+      const members = gesture.members.flatMap(({ rect, elementId, baseVersion }, index) => {
+        const shape = gesture.shapes[index]
+        return shape === undefined || !rect.isConnected ? [] : [{ elementId, baseVersion, shape }]
+      })
+      if (members.length > 0) void this.pushEvent("group_preview", groupPreview(gesture.dragId, gesture.seq, members))
     } else if (gesture.mode === "copy") {
       const { kind, seed, style, text } = gesture.source
       void this.pushEvent("draw_preview", {
@@ -1290,13 +1566,29 @@ export class Canvas extends ViewHook {
 
   private applyRemotePreview(preview: Preview): void {
     const rect = this.elementFor(preview.element_id)
-    if (rect === null || this.editedElementId() === preview.element_id) return
+    if (rect === null || this.isEditing(preview.element_id)) return
     if (!this.remotePreviews.accept(preview, integerAttribute(rect, "data-version"))) return
 
     this.restartStaleTimer(preview.element_id, () => {
       this.cancelRemoteDrag(preview)
     })
     this.showShape(rect, { box: preview, points: preview.points }, preview.text)
+  }
+
+  private applyRemoteGroup(group: GroupPreview): void {
+    const accepted = acceptedGroupEntries(this.remotePreviews, group, (elementId) => {
+      const rect = this.elementFor(elementId)
+      return rect === null || this.isEditing(elementId) ? undefined : integerAttribute(rect, "data-version")
+    })
+    for (const entry of accepted) {
+      const rect = this.elementFor(entry.element_id)
+      if (rect === null) continue
+      const ref = { element_id: entry.element_id, drag_id: group.drag_id }
+      this.restartStaleTimer(entry.element_id, () => {
+        this.cancelRemoteDrag(ref)
+      })
+      this.showShape(rect, { box: entry, points: entry.points })
+    }
   }
 
   private applyRemoteDraw(preview: DrawPreview): void {
@@ -1338,14 +1630,14 @@ export class Canvas extends ViewHook {
   }
 
   private revert(elementId: string): void {
-    if (this.editedElementId() === elementId) return
+    if (this.isEditing(elementId)) return
     const rect = this.elementFor(elementId)
     if (rect === null) return
     this.showShape(rect, committedShape(rect), rect.dataset.text ?? "")
   }
 
-  private editedElementId(): string | undefined {
-    return this.gesture !== undefined && isEdit(this.gesture) ? this.gesture.elementId : undefined
+  private isEditing(elementId: string): boolean {
+    return editedIds(this.gesture).includes(elementId)
   }
 
   private elementFor(elementId: string): SVGElement | null {
@@ -1408,7 +1700,7 @@ export class Canvas extends ViewHook {
 
   private startText(at: Point, text: string, target: TextTarget, frame?: Box, drawn?: Draw): boolean {
     if (!this.online || this.textSession !== undefined) return false
-    this.select(undefined)
+    this.select(EMPTY_SELECTION)
     const session: TextSession = {
       target,
       text,
@@ -1480,7 +1772,7 @@ export class Canvas extends ViewHook {
       const before: ElementChange = { event: "commit_shape", box: target.committed, points: [], text: target.text }
       void this.commitAndRecord(target.elementId, before, { event: "commit_shape", box, points: [], text }, ref.drag_id)
     }
-    this.select(target.elementId)
+    this.select([target.elementId])
   }
 
   private finishCreatedText(session: TextSession, kind: TextKind, text: string, box: Box, sent: boolean): void {

@@ -7,6 +7,7 @@ defmodule SketchWeb.BoardLiveDragTest do
 
   @query_event [:sketch, :repo, :query]
   @drag_id "11111111-2222-4333-8444-555555555555"
+  @group_drag_id "22222222-3333-4444-8555-666666666666"
 
   setup %{conn: conn} do
     board = Canvas.create_board!()
@@ -312,6 +313,138 @@ defmodule SketchWeb.BoardLiveDragTest do
       render(watcher)
       refute_received {:repo_query, _pid, _query}
       assert [_rectangle] = Canvas.list_elements_for_board!(board.id)
+    end
+  end
+
+  describe "group drags (addendum D13)" do
+    setup %{board: board, rectangle: rectangle} do
+      line = Canvas.create_element!(element_attrs(:line, %{x: 300, y: 100, board_id: board.id}))
+      %{members: [rectangle, line]}
+    end
+
+    defp entry(element, dx) do
+      %{
+        "element_id" => element.id,
+        "base_version" => element.version,
+        "x" => element.x + dx,
+        "y" => element.y,
+        "width" => element.width,
+        "height" => element.height,
+        "points" => Enum.map(element.points, &%{"x" => &1.x, "y" => &1.y})
+      }
+    end
+
+    defp group_preview(members, seq, dx) do
+      %{
+        "drag_id" => @group_drag_id,
+        "seq" => seq,
+        "elements" => Enum.map(members, &entry(&1, dx))
+      }
+    end
+
+    test "group previews and the group cancel reach other views without any database query (A10)",
+         ctx do
+      %{members: [rectangle, line] = members, dragger: dragger, watcher: watcher} = ctx
+      record_queries([dragger, watcher])
+
+      for seq <- 1..50,
+          do: render_hook(dragger, "group_preview", group_preview(members, seq, seq))
+
+      render_hook(dragger, "group_cancel", %{
+        "drag_id" => @group_drag_id,
+        "element_ids" => Enum.map(members, & &1.id)
+      })
+
+      assert_push_event(watcher, "group_preview", %{
+        seq: 1,
+        drag_id: @group_drag_id,
+        elements: first
+      })
+
+      assert [%{x: 101, base_version: 0}, %{x: 301, points: [_, _]}] = first
+      assert_push_event(watcher, "group_preview", %{seq: 50, elements: [%{x: 150}, %{x: 350}]})
+      assert_push_event(watcher, "group_cancel", %{drag_id: @group_drag_id, element_ids: ids})
+      assert ids == [rectangle.id, line.id]
+
+      render(dragger)
+      render(watcher)
+      refute_received {:repo_query, _pid, _query}
+      refute_push_event(dragger, "group_preview", %{})
+
+      assert [%{x: 100, version: 0}, %{x: 300, version: 0}] =
+               ctx.board.id |> Canvas.list_elements_for_board!() |> Enum.sort_by(& &1.x)
+    end
+
+    test "group previews stay on their board (A07)", ctx do
+      %{conn: conn, members: members, dragger: dragger, watcher: watcher} = ctx
+      {:ok, outsider, _html} = live(conn, ~p"/b/#{Canvas.create_board!().id}")
+
+      render_hook(dragger, "group_preview", group_preview(members, 1, 10))
+
+      assert_push_event(watcher, "group_preview", %{seq: 1})
+      render(outsider)
+      refute_push_event(outsider, "group_preview", %{})
+    end
+
+    test "a group preview with any invalid entry is dropped whole", ctx do
+      %{members: [rectangle, line] = members, dragger: dragger, watcher: watcher} = ctx
+      valid = group_preview(members, 1, 10)
+
+      for payload <- [
+            %{valid | "elements" => []},
+            %{valid | "seq" => -1},
+            %{valid | "drag_id" => "short"},
+            %{valid | "elements" => [entry(rectangle, 10), %{entry(line, 10) | "x" => 3990}]},
+            %{
+              valid
+              | "elements" => [entry(rectangle, 10), %{entry(rectangle, 10) | "width" => 0}]
+            },
+            %{valid | "elements" => [Map.delete(entry(rectangle, 10), "base_version")]},
+            %{valid | "elements" => List.duplicate(entry(rectangle, 10), 1001)}
+          ] do
+        render_hook(dragger, "group_preview", payload)
+      end
+
+      render_hook(dragger, "group_cancel", %{
+        "drag_id" => @group_drag_id,
+        "element_ids" => ["short"]
+      })
+
+      render(watcher)
+      refute_push_event(watcher, "group_preview", %{})
+      refute_push_event(watcher, "group_cancel", %{})
+    end
+
+    test "each member commits as its own version; a commit of an erased member fails alone",
+         ctx do
+      %{board: board, members: [rectangle, line], dragger: dragger, watcher: watcher} = ctx
+      render_hook(watcher, "erase", %{"element_ids" => [line.id]})
+
+      commit = fn element ->
+        render_hook(dragger, "commit", %{
+          "element_id" => element.id,
+          "drag_id" => @group_drag_id,
+          "x" => element.x + 40,
+          "y" => element.y
+        })
+      end
+
+      commit.(rectangle)
+      commit.(line)
+
+      assert [%{id: id, x: 140, version: 1}] = Canvas.list_elements_for_board!(board.id)
+      assert id == rectangle.id
+      refute render(dragger) =~ "Could not move element"
+      refute_push_event(dragger, "revert", %{})
+    end
+
+    test "the shortcuts help lists select all and the two selection gestures", %{dragger: dragger} do
+      for action <- ~w(select_all toggle_selected select_in_box) do
+        assert SketchWeb.Shortcuts.get(action).group == :selection
+      end
+
+      assert render(dragger) =~ "Select all"
+      assert render(dragger) =~ "Add to or remove from the selection"
     end
   end
 end

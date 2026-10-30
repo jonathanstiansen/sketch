@@ -3,6 +3,7 @@ import {
   ENDPOINTS,
   absolutePoints,
   cornerPoint,
+  groupBox,
   type Box,
   type Corner,
   type Endpoint,
@@ -65,10 +66,12 @@ function placeHandle(rect: SVGRectElement, { x, y }: Point, size: number): void 
   rect.setAttribute("height", String(size))
 }
 
-interface Shown {
-  box: Box
-  points: readonly Point[]
-  handles: SelectionHandles
+type Shown =
+  | { mode: "single"; box: Box; points: readonly Point[]; handles: SelectionHandles }
+  | { mode: "group"; boxes: readonly Box[] }
+
+function outlineBox(box: Box, gap: number): Box {
+  return { x: box.x - gap, y: box.y - gap, width: box.width + 2 * gap, height: box.height + 2 * gap }
 }
 
 export class SelectionOverlay {
@@ -86,11 +89,13 @@ export class SelectionOverlay {
 
   setZoom(zoom: number): void {
     this.zoom = zoom
-    if (this.shown !== undefined) this.show(this.shown.box, this.shown.points, this.shown.handles)
+    const shown = this.shown
+    if (shown?.mode === "single") this.show(shown.box, shown.points, shown.handles)
+    if (shown?.mode === "group") this.showGroup(shown.boxes)
   }
 
   show(box: Box, points: readonly Point[], handles: SelectionHandles): void {
-    this.shown = { box, points, handles }
+    this.shown = { mode: "single", box, points, handles }
     if (handles === "endpoints" && points.length > 0) {
       this.showEndpoints(box, points)
     } else {
@@ -99,13 +104,7 @@ export class SelectionOverlay {
   }
 
   private showBox(box: Box, handles: SVGRectElement[]): void {
-    const gap = OUTLINE_GAP / this.zoom
-    setBox(this.outline, {
-      x: box.x - gap,
-      y: box.y - gap,
-      width: box.width + 2 * gap,
-      height: box.height + 2 * gap,
-    })
+    setBox(this.outline, outlineBox(box, this.gap()))
     for (const [corner, rect] of this.corners) placeHandle(rect, cornerPoint(box, corner), this.handleSize())
     if (this.outline.parentNode !== this.layer || this.layer.childElementCount !== handles.length + 1) {
       this.layer.replaceChildren(this.outline, ...handles)
@@ -123,12 +122,48 @@ export class SelectionOverlay {
     if (first?.parentNode !== this.layer) this.layer.replaceChildren(...this.endpoints.values())
   }
 
+  showGroup(boxes: readonly Box[]): void {
+    this.shown = { mode: "group", boxes }
+    const bounds = groupBox(boxes)
+    if (bounds === undefined) {
+      this.hide()
+      return
+    }
+    const members = boxes.map((box) => {
+      const outline = svgRect({ "data-selection-member": "", class: "selection-outline" })
+      setBox(outline, outlineBox(box, this.gap()))
+      return outline
+    })
+    const group = svgRect({ "data-selection-group": "", class: "selection-group-outline" })
+    setBox(group, outlineBox(bounds, 2 * this.gap()))
+    this.layer.replaceChildren(group, ...members)
+  }
+
+  private gap(): number {
+    return OUTLINE_GAP / this.zoom
+  }
+
   private handleSize(): number {
     return HANDLE_SIZE / this.zoom
   }
 
   hide(): void {
     this.shown = undefined
+    this.layer.replaceChildren()
+  }
+}
+
+export class MarqueeLayer {
+  private readonly marquee = svgRect({ "data-marquee": "", class: "selection-marquee" })
+
+  constructor(private readonly layer: Element) {}
+
+  show(box: Box): void {
+    setBox(this.marquee, box)
+    if (this.marquee.parentNode !== this.layer) this.layer.replaceChildren(this.marquee)
+  }
+
+  hide(): void {
     this.layer.replaceChildren()
   }
 }

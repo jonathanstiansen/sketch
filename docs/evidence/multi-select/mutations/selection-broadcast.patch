@@ -1,0 +1,49 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index 374c1d6..27991d0 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -546,6 +546,11 @@ export class Canvas extends ViewHook {
+     this.handleEvent("drag_cancel", (payload: unknown) => {
+       if (isDragRef(payload)) this.cancelRemoteDrag(payload)
+     })
++    this.handleEvent("selection", (payload: unknown) => {
++      if (!isRecord(payload) || !Array.isArray(payload.element_ids)) return
++      const rects = payload.element_ids.flatMap((id) => (typeof id === "string" ? (this.elementFor(id) ?? []) : []))
++      this.selection.showGroup(rects.map(renderedBox))
++    })
+     this.handleEvent("group_preview", (payload: unknown) => {
+       if (isGroupPreview(payload)) this.applyRemoteGroup(payload)
+     })
+@@ -1484,6 +1489,7 @@ export class Canvas extends ViewHook {
+       this.js().setAttribute(this.el, SELECTED_ATTRIBUTE, this.selected.join(" "))
+       this.js().setAttribute(this.el, SELECTED_COUNT_ATTRIBUTE, String(rects.length))
+       this.showSelection(only, rects)
++      if (this.online) void this.pushEvent("selection", { element_ids: this.selected })
+     }
+     this.syncStylePanel()
+   }
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index fd11dda..9b3ea1d 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -196,6 +196,11 @@ defmodule SketchWeb.BoardLive do
+       else: {:noreply, socket}
+   end
+ 
++  def handle_event("selection", %{"element_ids" => element_ids}, socket)
++      when is_list(element_ids) do
++    broadcast_preview(socket, "selection", %{element_ids: element_ids})
++  end
++
+   def handle_event("drag_cancel", %{"element_id" => element_id, "drag_id" => drag_id}, socket)
+       when is_uuid(element_id) and is_uuid(drag_id) do
+     broadcast_preview(socket, "drag_cancel", %{element_id: element_id, drag_id: drag_id})
+@@ -304,7 +309,7 @@ defmodule SketchWeb.BoardLive do
+   end
+ 
+   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket)
+-      when event in ~w(preview group_preview group_cancel drag_cancel draw_preview draw_end cursor cursor_leave) do
++      when event in ~w(preview group_preview group_cancel selection drag_cancel draw_preview draw_end cursor cursor_leave) do
+     {:noreply, push_event(socket, event, payload)}
+   end
+ 

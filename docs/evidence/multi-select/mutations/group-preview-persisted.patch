@@ -1,0 +1,18 @@
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index fd11dda..57ea7c4 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -173,6 +173,13 @@ defmodule SketchWeb.BoardLive do
+       when is_uuid(drag_id) and is_seq(seq) and length(elements) <= @max_group_elements do
+     case group_entries(elements) do
+       {:ok, entries} ->
++        for entry <- entries,
++            do:
++              Sketch.Canvas.commit_position(entry.element_id, socket.assigns.board_id, %{
++                x: entry.x,
++                y: entry.y
++              })
++
+         broadcast_preview(socket, "group_preview", %{
+           drag_id: drag_id,
+           seq: seq,

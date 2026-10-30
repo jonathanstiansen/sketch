@@ -284,3 +284,57 @@ Consequences for the earlier decisions:
   Older clients ignore the replies.
 - D10: a re-created element is drawn on top of every element created before it
   (creation order is z-order), not where it was.
+
+## D13 — Multi-select (2026-10-30)
+
+Multi-select is within the selection scope approved in D8: selection stays
+local UI state of each view and is never pushed, broadcast or stored. What a
+group of selected elements does to the board is a composition of the existing
+per-element actions; there is no new durable action and no new merge rule.
+
+- **Selecting**: with Selection, Shift+click toggles an element in the
+  selection; dragging on empty canvas draws a marquee and selects every element
+  whose bounding box touches it (Shift+marquee adds to the selection); a click
+  on empty canvas clears it; Ctrl/⌘+A selects every element and Esc clears the
+  selection. The chord is in `SketchWeb.SelectionActions` (A23). A group shows
+  an outline around the group and one around each element. Resize and endpoint
+  handles show only for a single selection: **group resize is out of scope**.
+- **Group preview** (D2 for groups): dragging any selected element moves the
+  whole group. Instead of one `preview` per element per tick, the hook pushes
+  one `group_preview`
+  `{drag_id, seq, elements: [{element_id, base_version, x, y, width, height, points}]}`,
+  one `drag_id` and one `seq` for the whole group, throttled to 20 per second
+  and never persisted (A10). `points` is the element's relative points (empty
+  for box kinds). The server checks every entry like a `preview` (and at most
+  1000 entries; a group above that moves without live previews) and drops the
+  whole message if any entry is invalid. Receivers apply the D2 rules to each
+  entry on its own: an entry whose `base_version` is below the known version,
+  whose `seq` is not newer for that element and `drag_id`, or whose element is
+  erased is dropped, and each element reverts after 2000 ms without an entry
+  (D3). A cancel (Esc, `pointercancel`) pushes `group_cancel`
+  `{drag_id, element_ids}`; a lost connection reverts locally and leaves the
+  receivers' timeouts to it.
+- **Group move clamps the delta**: the group's bounding box stays inside the
+  canvas, so every element moves by the same delta and the layout is kept at
+  the edge (elements are never clamped one by one).
+- **Commit**: on release each moved element is committed with the existing
+  `commit` event (`commit_position`), each with its own atomic version
+  increment (A09). An element that fails, for example because someone erased
+  it mid-drag, is reverted on its own; the others keep their new positions. A
+  failed commit's `drag_cancel` ends only that element's preview.
+- **Group actions**: Delete or Backspace erases the selection, and an Eraser
+  stroke that touches a selected element (the selection is kept when switching
+  to the Eraser) erases the whole selection with whatever else it touches.
+  Duplicate, copy, cut and paste work on the whole selection through the list
+  envelope; duplicated and pasted elements keep their relative positions and
+  become the selection. A style change applies to every selected element the
+  property applies to (one `commit_style` each); the properties panel shows a
+  property that applies to any selected element, marks it mixed when their
+  values differ, and leaves the others untouched.
+- **Undo**: a group move, a group restyle, a group erase, a duplicate and a
+  paste are each one undo entry (D12). Undo and redo replay every member
+  through the existing actions; a member erased by someone else is left out.
+
+Still excluded: group resize and rotation, Alt+drag of a group (Alt+drag
+copies the pressed element only), grouping as a stored object, and selection
+shared between viewers.
