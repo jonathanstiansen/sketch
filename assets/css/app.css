@@ -252,6 +252,25 @@
 .ink-palette-blue { fill: var(--palette-stroke-blue); }
 .ink-palette-orange { fill: var(--palette-stroke-orange); }
 
+.cursor-color-ink { --cursor-color: var(--palette-stroke-ink); }
+.cursor-color-red { --cursor-color: var(--palette-stroke-red); }
+.cursor-color-green { --cursor-color: var(--palette-stroke-green); }
+.cursor-color-blue { --cursor-color: var(--palette-stroke-blue); }
+.cursor-color-orange { --cursor-color: var(--palette-stroke-orange); }
+
+.cursor-dot {
+  display: inline-block;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-right: 0.25rem;
+  border-radius: 9999px;
+  background: var(--cursor-color);
+}
+
+.remote-cursor-arrow { fill: var(--cursor-color); stroke: var(--color-base-100); stroke-width: 1.5; stroke-linejoin: round; }
+.remote-cursor-tag { fill: var(--cursor-color); }
+.remote-cursor-name { fill: var(--color-base-100); font-size: 12px; font-family: ui-sans-serif, system-ui, sans-serif; }
+
 .fill-palette-auto { fill: var(--palette-fill-auto); }
 .fill-palette-none { fill: var(--palette-fill-none); }
 .fill-palette-red { fill: var(--palette-fill-red); }

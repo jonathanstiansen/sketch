@@ -40,10 +40,10 @@ the only path excluded from the A21 scan.
 | A04 | Board and Element use AshPostgres. | Enforced |
 | A05 | Every Element belongs to exactly one Board. | Enforced |
 | A06 | Board membership is immutable. | Enforced |
-| A07 | Queries and events are scoped to the selected board. | Enforced |
+| A07 | Queries and events, including live cursors, are scoped to the selected board. | Enforced |
 | A08 | Invalid coordinates and sizes cannot be persisted (addendum D1, D8): `x, y >= 0`, `width, height >= 1` (`>= 0` for point kinds such as lines, arrows and freehand strokes), `x + width` and `y + height` within the canvas, a line or arrow's two points, or a freehand stroke's 2 to 500 points, inside its box, text only on text and note elements, at most 2000 code points and non-blank for text (ADR 0003), a `seed` in `0..2_147_483_647` (addendum D9, ADR 0005), and style tokens from `Sketch.Canvas.Style`, with every property that does not apply to the kind at its default (addendum D10, ADR 0006). `Sketch.Canvas.Geometry` holds the bounds; the `FitsCanvas`, `PointsFitShape` and `TextFitsKind` validations (atomic, so they also check stored values during updates), the code-point `max_length` on `text` and PostgreSQL CHECK constraints all derive from it, and property tests compare Ash and raw SQL over arbitrary boxes, points, strings and seeds. | Enforced |
 | A09 | Durable movement, resizing and restyling increment `version` atomically (ADR 0001, ADR 0003, ADR 0006). `commit_position`, `commit_shape` and `commit_style` use `atomic_update(:version, expr(version + 1))` and each writes only its own attributes; a non-sandboxed test runs 50 interleaved moves, resizes and restyles across 25 concurrent connections and requires versions `1..50` with no duplicates, a stored row equal to the commit that returned version 50, and the box and style of the last box and last style commit. | Enforced |
-| A10 | Transient previews never trigger persistence. Previews and cancels are relayed with `SketchWeb.Endpoint.broadcast_from/4`; an instrumented LiveView test asserts they cause zero Repo queries. | Enforced |
+| A10 | Transient previews never trigger persistence. Previews, cancels and live cursors (addendum D11, ADR 0007) are relayed with `SketchWeb.Endpoint.broadcast_from/4`; an instrumented LiveView test asserts they cause zero Repo queries. | Enforced |
 | A11 | Durable events originate from successful Ash changes. | Enforced |
 | A12 | No custom GenServer, event broker or repository layer: no `lib` module implements GenServer, `:gen_server`, `:gen_statem`, `:gen_event` or GenStage, uses Agent, Registry or `:pg`, or is named `*Repository*`. | Enforced |
 | A13 | Pointer, mouse and touch event names appear only in `assets/js/hooks/canvas.ts`, the `Canvas` LiveView hook. The scan covers `assets/js` and `lib` (colocated hooks and templates). | Enforced |
@@ -107,6 +107,13 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
   depends on the viewer having a matching font, and PNG text uses the browser's own fallback.
   Copying SVG text next to the PNG and reading the clipboard need a secure context and the
   browser's permission; a refusal is shown as a message, not retried.
+
+- Live cursors (ADR 0007) are relayed per move without a rate limit beyond the client's 20 per
+  second, and the label width is estimated from the name's length. Names are random per mount,
+  so a reconnecting browser appears as a new viewer. A cursor only reaches boards through the
+  board topic; the A07 tests check two views of one board against a third view on another.
+- Exports clone `#elements > [data-element]` only, which is how the selection, draw-preview and
+  remote-cursor layers stay out of them; there is no exclusion list to extend.
 
 - The BEAM checks see static calls and module references. A module name built at runtime (for
   example with `Module.concat/1` or `String.to_existing_atom/1`) would not be seen. Code review

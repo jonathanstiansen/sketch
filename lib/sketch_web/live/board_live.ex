@@ -22,6 +22,10 @@ defmodule SketchWeb.BoardLive do
 
   defguardp is_kind(value) when is_binary(value) and value in @kinds
 
+  defguardp is_canvas_point(x, y)
+            when is_integer(x) and is_integer(y) and x >= 0 and y >= 0 and x <= @canvas_width and
+                   y <= @canvas_height
+
   defguardp is_seed(value) when is_integer(value) and value >= 0 and value <= @max_seed
 
   defguardp is_style_token(property, value)
@@ -159,6 +163,24 @@ defmodule SketchWeb.BoardLive do
     broadcast_preview(socket, "drag_cancel", %{element_id: element_id, drag_id: drag_id})
   end
 
+  def handle_event("cursor", %{"x" => x, "y" => y, "seq" => seq}, socket)
+      when is_canvas_point(x, y) and is_seq(seq) do
+    %{id: viewer_id, name: name, color: color} = socket.assigns.viewer
+
+    broadcast_preview(socket, "cursor", %{
+      viewer_id: viewer_id,
+      name: name,
+      color: color,
+      x: x,
+      y: y,
+      seq: seq
+    })
+  end
+
+  def handle_event("cursor_leave", %{"seq" => seq}, socket) when is_seq(seq) do
+    broadcast_preview(socket, "cursor_leave", %{viewer_id: socket.assigns.viewer.id, seq: seq})
+  end
+
   def handle_event("erase", %{"element_ids" => element_ids}, socket) when is_list(element_ids) do
     socket =
       if Enum.all?(element_ids, &is_uuid/1),
@@ -220,7 +242,7 @@ defmodule SketchWeb.BoardLive do
   end
 
   def handle_event(event, _params, socket)
-      when event in ~w(create_element draw_preview draw_cancel preview drag_cancel commit commit_shape commit_style) do
+      when event in ~w(create_element draw_preview draw_cancel preview drag_cancel cursor cursor_leave commit commit_shape commit_style) do
     {:noreply, socket}
   end
 
@@ -244,7 +266,7 @@ defmodule SketchWeb.BoardLive do
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket)
-      when event in ~w(preview drag_cancel draw_preview draw_end) do
+      when event in ~w(preview drag_cancel draw_preview draw_end cursor cursor_leave) do
     {:noreply, push_event(socket, event, payload)}
   end
 
@@ -263,6 +285,13 @@ defmodule SketchWeb.BoardLive do
           </button>
           <SketchWeb.Toolbar.toolbar />
           <p class="min-w-0 text-sm md:justify-self-end md:text-right">
+            <span id="viewer-name" class="mr-2 whitespace-nowrap">
+              You are
+              <span class="font-semibold">
+                <span class={"cursor-dot cursor-color-#{@viewer.color}"} aria-hidden="true"></span>
+                {@viewer.name}
+              </span>
+            </span>
             Share this board:
             <a id="board-url" class="link block truncate" href={~p"/b/#{@board_id}"}>
               {url(~p"/b/#{@board_id}")}
@@ -316,6 +345,7 @@ defmodule SketchWeb.BoardLive do
               </g>
               <g id="draw-previews" phx-update="ignore"></g>
               <g id="selection" phx-update="ignore"></g>
+              <g id="remote-cursors" phx-update="ignore" pointer-events="none"></g>
             </svg>
             <div id="text-editor-layer" phx-update="ignore" class="absolute top-0 left-0"></div>
           </div>
@@ -453,6 +483,7 @@ defmodule SketchWeb.BoardLive do
 
     socket
     |> assign(:board_id, board_id)
+    |> assign(:viewer, Sketch.Canvas.new_viewer())
     |> assign(:geometry, Sketch.Canvas.geometry())
     |> assign(:stroke_colors, Sketch.Canvas.style_tokens(:stroke_color))
     |> assign(:board_state, Sketch.Canvas.new_board_state(elements))

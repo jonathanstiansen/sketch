@@ -42,6 +42,9 @@ defmodule Sketch.Canvas do
 
   defdelegate geometry, to: Sketch.Canvas.Geometry, as: :dimensions
 
+  @doc "A fresh anonymous viewer: random id, name and colour derived from it (ADR 0007)."
+  defdelegate new_viewer, to: Sketch.Canvas.Viewer, as: :new
+
   @doc "The style properties, in panel order (ADR 0006)."
   defdelegate style_properties, to: Sketch.Canvas.Style, as: :properties
 

@@ -1,6 +1,7 @@
 import { ViewHook } from "phoenix_live_view"
 import {
   RemotePreviews,
+  clamp,
   clickBox,
   cornerPoint,
   drawnBox,
@@ -26,6 +27,8 @@ import {
   type Shape,
   type Size,
 } from "./canvas_logic"
+import { CursorSender, RemoteCursors, isRemoteCursor, type RemoteCursor } from "./cursor_logic"
+import { CursorLayer } from "./cursor_layer"
 import { DrawLayer, SelectionOverlay, isCorner, isEndpoint, setShape } from "./selection"
 import { TextEditor, type TextLayout } from "./text_editor"
 import { LIVE_POINTS, isSeed, randomSeed, styleAttribute, styleOf } from "../elements/dom"
@@ -319,6 +322,11 @@ export class Canvas extends ViewHook {
   private remotePreviews = new RemotePreviews()
   private remoteDraws = new RemotePreviews()
   private staleTimers = new Map<string, number>()
+  private cursorSender = new CursorSender()
+  private cursorTimer: number | undefined
+  private remoteCursors = new RemoteCursors()
+  private cursorSweep: number | undefined
+  private cursorLayer!: CursorLayer
   private online = true
   private tool: ToolId = DEFAULT_TOOL
   private spaceHeld = false
@@ -334,6 +342,7 @@ export class Canvas extends ViewHook {
   override mounted(): void {
     this.selection = new SelectionOverlay(this.layer("#selection"))
     this.draws = new DrawLayer(this.layer("#draw-previews"))
+    this.cursorLayer = new CursorLayer(this.layer("#remote-cursors"))
     this.stylePanel = new StylePanel(document.getElementById("style-panel"))
     this.observer = new MutationObserver(() => {
       this.syncSelection()
@@ -350,6 +359,9 @@ export class Canvas extends ViewHook {
     this.el.addEventListener(SET_STYLE_EVENT, this.onSetStyle)
     this.el.addEventListener("pointerdown", this.onPointerDown)
     this.el.addEventListener("pointermove", this.onPointerMove)
+    this.el.addEventListener("pointermove", this.onCursorMove)
+    this.el.addEventListener("pointerleave", this.onCursorLeave)
+    document.addEventListener("visibilitychange", this.onVisibilityChange)
     this.el.addEventListener("pointerup", this.onPointerUp)
     this.el.addEventListener("pointercancel", this.onPointerCancel)
     this.el.addEventListener("lostpointercapture", this.onPointerCancel)
@@ -365,6 +377,14 @@ export class Canvas extends ViewHook {
     })
     this.handleEvent("draw_end", (payload: unknown) => {
       if (isRecord(payload) && typeof payload.drag_id === "string") this.endRemoteDraw(payload.drag_id)
+    })
+    this.handleEvent("cursor", (payload: unknown) => {
+      if (isRemoteCursor(payload)) this.applyRemoteCursor(payload)
+    })
+    this.handleEvent("cursor_leave", (payload: unknown) => {
+      if (isRecord(payload) && typeof payload.viewer_id === "string" && typeof payload.seq === "number") {
+        this.removeRemoteCursor(payload.viewer_id, payload.seq)
+      }
     })
     this.handleEvent("erased", (payload: unknown) => {
       if (isRecord(payload) && typeof payload.id === "string") this.onErased(payload.id)
@@ -395,6 +415,56 @@ export class Canvas extends ViewHook {
     if (this.gesture !== undefined) window.clearTimeout(this.gesture.previewTimer)
     if (this.textSession !== undefined) this.endText(this.textSession)
     for (const timer of this.staleTimers.values()) window.clearTimeout(timer)
+    window.clearTimeout(this.cursorTimer)
+    window.clearTimeout(this.cursorSweep)
+    document.removeEventListener("visibilitychange", this.onVisibilityChange)
+  }
+
+  private onCursorMove = (event: PointerEvent): void => {
+    const canvas = this.canvasSize()
+    const point = this.canvasPoint(event)
+    const delay = this.cursorSender.move({ x: clamp(point.x, canvas.width), y: clamp(point.y, canvas.height) }, performance.now())
+    if (delay === undefined) return
+    this.cursorTimer = window.setTimeout(() => {
+      this.cursorTimer = undefined
+      const message = this.cursorSender.flush(performance.now())
+      if (message !== undefined && this.online) void this.pushEvent("cursor", message)
+    }, delay)
+  }
+
+  private onCursorLeave = (): void => {
+    this.sendCursorLeave()
+  }
+
+  private onVisibilityChange = (): void => {
+    if (document.hidden) this.sendCursorLeave()
+  }
+
+  private sendCursorLeave(): void {
+    window.clearTimeout(this.cursorTimer)
+    this.cursorTimer = undefined
+    const seq = this.cursorSender.leave()
+    if (seq !== undefined && this.online) void this.pushEvent("cursor_leave", { seq })
+  }
+
+  private applyRemoteCursor(cursor: RemoteCursor): void {
+    if (!this.remoteCursors.accept(cursor, performance.now())) return
+    this.cursorLayer.show(cursor)
+    this.scheduleCursorSweep()
+  }
+
+  private removeRemoteCursor(viewerId: string, seq: number): void {
+    if (this.remoteCursors.leave(viewerId, seq)) this.cursorLayer.remove(viewerId)
+  }
+
+  private scheduleCursorSweep(): void {
+    window.clearTimeout(this.cursorSweep)
+    const due = this.remoteCursors.nextExpiry()
+    if (due === undefined) return
+    this.cursorSweep = window.setTimeout(() => {
+      for (const viewerId of this.remoteCursors.expire(performance.now())) this.cursorLayer.remove(viewerId)
+      this.scheduleCursorSweep()
+    }, Math.max(0, due - performance.now()))
   }
 
   private onPointerDown = (event: PointerEvent): void => {

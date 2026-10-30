@@ -25,14 +25,20 @@ function recordingOptions(name: string) {
   return { recordVideo: { dir, size: recordingSize }, viewport: recordingSize }
 }
 
-export async function openSharedBoard(browser: Browser, name: string): Promise<Session> {
+export async function openSharedBoard(
+  browser: Browser,
+  name: string,
+  preparePageB: (page: Page) => Promise<void> = () => Promise.resolve(),
+): Promise<Session> {
   const contexts = await Promise.all([
     browser.newContext(recordingOptions(`${name}-a`)),
     browser.newContext(recordingOptions(`${name}-b`)),
   ])
   const [pageA, pageB] = await Promise.all(contexts.map((context) => context.newPage()))
   if (pageA === undefined || pageB === undefined) throw new Error("pages did not open")
-  await openBoard(pageB, await createBoard(pageA))
+  const path = await createBoard(pageA)
+  await preparePageB(pageB)
+  await openBoard(pageB, path)
   return { pageA, pageB, contexts }
 }
 

@@ -72,10 +72,10 @@ This lifts three SPEC §2 initial exclusions:
 - **Selection**: clicking an element selects it. Selection is local UI state
   and is never broadcast.
 
-Still excluded: undo, history, presence indicators, offline editing, CRDTs
-(and the other §2 exclusions: user accounts, external brokers, multi-node
-deployment). Styling was excluded here until D10 approved colours and stroke
-styles.
+Still excluded: undo, history, presence indicators (live cursors were approved
+later, D11), offline editing, CRDTs (and the other §2 exclusions: user accounts,
+external brokers, multi-node deployment). Styling was excluded here until D10
+approved colours and stroke styles.
 
 Consequences for the earlier decisions:
 
@@ -174,7 +174,7 @@ constraints like D1.
 Still excluded: fonts and font sizes, opacity, layers and z-order (elements
 stay in creation order), gradients and patterns, per-point or per-segment
 styles, and roughness and fill styles (D9), as well as undo, history and the
-other D8 exclusions.
+other D8 exclusions (live cursors excepted, D11).
 
 Consequences for the earlier decisions:
 
@@ -199,3 +199,42 @@ Consequences for the earlier decisions:
   element's style or, with no selection, the style the next element will be
   drawn with. That next-element style is local UI state and is never
   broadcast.
+
+## D11 — Live cursors approved (2026-10-30, see ADR 0007)
+
+The human explicitly approved live cursors on 2026-10-30. This lifts the SPEC §2
+(and D8) **presence indicators** exclusion for one thing: each viewer sees the
+other viewers' pointers on the canvas, with a name label, live.
+
+- **Identity**: every open board view gets a random `viewer_id` when its
+  LiveView mounts. Its display name (an adjective and an animal from two fixed
+  lists) and its colour (one of the stroke colour tokens of `Sketch.Canvas.Style`,
+  so both themes work) are derived from that id alone. Nothing is stored and the
+  name cannot be edited. A view shows its own name next to the share link.
+- **Transport**: like D2 previews. The hook pushes `cursor` `{x, y, seq}` in
+  canvas coordinates, throttled to 20 per second and only when the position
+  changed. The server accepts integers inside the canvas (`0..4000` on each
+  axis) and a non-negative `seq`, and broadcasts
+  `{viewer_id, name, color, x, y, seq}` on the board topic to every other view.
+  Leaving the canvas or hiding the tab pushes `cursor_leave` `{seq}`, relayed as
+  `{viewer_id, seq}`; `seq` is one counter per view shared by both events.
+  Cursors are never persisted: they cause no database query (A10).
+- **Receivers** drop a message whose `seq` is not newer than the newest message
+  or leave seen for that `viewer_id`, and remove a cursor after 2000 ms without
+  a message, covering a viewer that vanished (the same timeout as D3). A viewer
+  that stops moving therefore disappears after 2000 ms and returns on its next
+  move. Tests drive that timer with Playwright's clock API (A20).
+- **Boards**: cursors travel only on the board topic, so they never cross
+  boards (A07).
+- **Rendering**: a `#remote-cursors` layer above the elements inside the canvas
+  SVG, so a cursor sits at its canvas coordinates whatever the scroll position.
+  It does not take pointer events and is not part of an export.
+
+Still excluded: user accounts, a "who's online" roster, follow mode and chat,
+as well as editable names, cursor history and the other D8 exclusions.
+
+Consequences for the earlier decisions:
+
+- D2 and D3: cursors are a second kind of transient message with the same
+  throttle, never-persisted and stale-after-2000-ms rules; they carry no
+  `base_version` because they refer to no element.
