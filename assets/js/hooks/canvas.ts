@@ -73,6 +73,7 @@ const ERASING = "data-erasing"
 const TEXT_EDITING = "data-text-editing"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
 const SET_STYLE_EVENT = "sketch:set-style"
+const SELECTED_ATTRIBUTE = "data-selected-element"
 const PHX_UPDATE = "phx-update"
 const OBSERVED_ATTRIBUTES = ["x", "y", "width", "height", LIVE_POINTS, ...STYLE_PROPERTIES.map(styleAttribute)]
 const TEXT_KIND_SELECTOR = TEXT_KINDS.map((kind) => `[data-element][data-kind="${kind}"]`).join(", ")
@@ -776,7 +777,9 @@ export class Canvas extends ViewHook {
     if (rect === null) {
       this.selectedId = undefined
       this.selection.hide()
+      this.js().removeAttribute(this.el, SELECTED_ATTRIBUTE)
     } else {
+      this.js().setAttribute(this.el, SELECTED_ATTRIBUTE, rect.dataset.element ?? "")
       const { box, points } = renderedShape(rect)
       this.selection.show(box, points, selectionHandles(rect.dataset.kind))
     }
