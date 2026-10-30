@@ -3,21 +3,19 @@ defmodule SketchWeb.ElementsTest do
 
   import Phoenix.LiveViewTest
 
-  alias SketchWeb.{Elements, RenderFixtures}
+  alias SketchWeb.{Elements, RenderFixtures, WrapFixtures}
 
   test "the committed render parity fixture is the generated one (ADR 0004)" do
     assert File.read!(RenderFixtures.path()) == RenderFixtures.render(),
            "#{RenderFixtures.path()} is stale; run mix sketch.gen.render_fixtures"
   end
 
-  test "the renderers cover exactly the kinds that left Sketch.Canvas.Kinds.Legacy" do
-    assert Enum.sort(Elements.kinds() ++ Sketch.Canvas.legacy_kinds()) ==
-             Enum.sort(Sketch.Canvas.element_kinds())
-
-    assert Elements.kinds() -- Sketch.Canvas.legacy_kinds() == Elements.kinds()
+  test "the committed wrap parity fixture is the generated one (ADR 0004)" do
+    assert File.read!(WrapFixtures.path()) == WrapFixtures.render(),
+           "#{WrapFixtures.path()} is stale; run mix sketch.gen.render_fixtures"
   end
 
-  for kind <- Elements.kinds() do
+  for kind <- Sketch.Canvas.element_kinds() do
     @kind kind
 
     test "#{kind} renders the fixture's node tree inside a wrapper translated to its box" do

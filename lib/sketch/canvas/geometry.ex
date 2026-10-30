@@ -4,9 +4,10 @@ defmodule Sketch.Canvas.Geometry do
   derives from here: `x >= 0`, `y >= 0`, `x + width <= canvas_width`, `y + height <= canvas_height`,
   a size of at least `min_size(kind)`, and for point kinds a bounded number of points, each relative
   to the box origin and inside `[0, width] x [0, height]`. Text kinds hold text of at most
-  `max_text_length` code points, laid out one line per `line_height` at a fixed `font_size`: a
-  `:text` element needs non-blank text, a `:note` may be empty and wraps its text at `char_width`
-  inside `note_padding`; every other kind holds empty text. The per-kind tables (point counts, text
+  `max_text_length` code points, split into lines at CRLF, CR or LF and laid out one line per
+  `line_height` at a fixed `font_size`: a required text kind needs non-blank text, an optional one
+  may be empty, and every other kind holds empty text. `wrap_text/3` wraps text at `char_width`
+  per code point; the note renderer wraps inside `note_padding`. The per-kind tables (point counts, text
   kinds and default sizes) derive from the specs in `Sketch.Canvas.Kinds` (ADR 0004).
   """
 
@@ -15,7 +16,6 @@ defmodule Sketch.Canvas.Geometry do
   @canvas_width 4000
   @canvas_height 4000
   @default_size Kinds.fetch!(:rectangle).default_size
-  @note_size Kinds.fetch!(:note).default_size
   @min_size 1
   @point_counts for %{id: id, geometry: {:points, range}} <- Kinds.all(),
                     into: %{},
@@ -31,6 +31,8 @@ defmodule Sketch.Canvas.Geometry do
   @char_width 12
   @note_padding 12
   @text_whitespace [?\s, ?\t, ?\n, ?\r]
+  @text_whitespace_strings Enum.map(@text_whitespace, &<<&1::utf8>>)
+  @line_breaks ["\r\n", "\r", "\n"]
   @cascade_start 100
   @cascade_step 150
   @cascade_length 20
@@ -56,9 +58,7 @@ defmodule Sketch.Canvas.Geometry do
           line_height: pos_integer(),
           text_baseline: pos_integer(),
           char_width: pos_integer(),
-          note_padding: pos_integer(),
-          note_width: pos_integer(),
-          note_height: pos_integer()
+          note_padding: pos_integer()
         }
 
   @spec canvas_width() :: pos_integer()
@@ -108,6 +108,61 @@ defmodule Sketch.Canvas.Geometry do
   end
 
   def text_fits_kind?(_kind, text), do: text == ""
+
+  @doc """
+  The characters that separate words and make text blank: space, tab, CR and LF. Other Unicode
+  spaces, such as a no-break space, are part of a word.
+  """
+  @spec text_whitespace() :: [String.t()]
+  def text_whitespace, do: @text_whitespace_strings
+
+  @doc "The lines of a text, split at CRLF, CR or LF."
+  @spec text_lines(String.t()) :: [String.t()]
+  def text_lines(text), do: String.split(text, @line_breaks)
+
+  @doc """
+  The lines of a text wrapped to `max_width` at `char_width` per code point: each line of the text
+  breaks greedily between words, which `text_whitespace/0` separates and one space joins, and a
+  word longer than a line breaks into lines that fit. A line holds at least one code point, even
+  when `max_width` is smaller than `char_width`.
+  """
+  @spec wrap_text(String.t(), integer(), pos_integer()) :: [String.t()]
+  def wrap_text(text, max_width, char_width) do
+    chars = max(1, Integer.floor_div(max_width, char_width))
+    text |> text_lines() |> Enum.flat_map(&wrap_paragraph(&1, chars))
+  end
+
+  defp wrap_paragraph(paragraph, chars) do
+    {lines, current} =
+      paragraph
+      |> String.split(@text_whitespace_strings)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.reduce({[], ""}, &add_word(&1, &2, chars))
+
+    Enum.reverse([current | lines])
+  end
+
+  defp add_word(word, {lines, current}, chars) do
+    joined = join_word(current, word)
+
+    if code_point_count(joined) <= chars,
+      do: {lines, joined},
+      else: break_word(word, push_line(lines, current), chars)
+  end
+
+  defp join_word("", word), do: word
+  defp join_word(current, word), do: current <> " " <> word
+
+  defp push_line(lines, ""), do: lines
+  defp push_line(lines, line), do: [line | lines]
+
+  defp break_word(word, lines, chars) do
+    chunks = word |> String.codepoints() |> Enum.chunk_every(chars) |> Enum.map(&Enum.join/1)
+    {last, full} = List.pop_at(chunks, -1)
+    {Enum.reverse(full, lines), last}
+  end
+
+  defp code_point_count(text), do: text |> String.codepoints() |> length()
 
   @doc "Whether every point lies inside `[0, width] x [0, height]`."
   @spec points_inside?([point()], non_neg_integer(), non_neg_integer()) :: boolean()
@@ -185,9 +240,7 @@ defmodule Sketch.Canvas.Geometry do
       line_height: @line_height,
       text_baseline: @text_baseline,
       char_width: @char_width,
-      note_padding: @note_padding,
-      note_width: @note_size.width,
-      note_height: @note_size.height
+      note_padding: @note_padding
     }
   end
 end

@@ -26,24 +26,19 @@ import {
   type Shape,
   type Size,
 } from "./canvas_logic"
-import {
-  DrawLayer,
-  SelectionOverlay,
-  isCorner,
-  isEndpoint,
-  layoutCommittedNote,
-  setShape,
-  type TextLayout,
-} from "./selection"
-import { TextEditor } from "./text_editor"
+import { DrawLayer, SelectionOverlay, isCorner, isEndpoint, setShape } from "./selection"
+import { TextEditor, type TextLayout } from "./text_editor"
 import { LIVE_POINTS } from "../elements/dom"
 import { TEXT_KINDS, type TextKind } from "../generated/manifest"
 import {
   DEFAULT_TOOL,
+  defaultSize,
   deletesSelection,
+  drawGesture,
   drawnKind,
-  isPointKind,
   isPreviewKind,
+  isTextKind,
+  isTypedKind,
   isPanKey,
   nextTool,
   panScroll,
@@ -66,7 +61,7 @@ const ERASING = "data-erasing"
 const TEXT_EDITING = "data-text-editing"
 const SELECT_TOOL_EVENT = "sketch:select-tool"
 const PHX_UPDATE = "phx-update"
-const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", "data-text", LIVE_POINTS]
+const BOX_SIZE_ATTRIBUTES = ["x", "y", "width", "height", LIVE_POINTS]
 const TEXT_KIND_SELECTOR = TEXT_KINDS.map((kind) => `[data-element][data-kind="${kind}"]`).join(", ")
 
 interface PreviewClock {
@@ -252,10 +247,6 @@ function committedShape(shape: Element): Shape {
   }
 }
 
-function isTextKind(value: string | undefined): value is TextKind {
-  return TEXT_KINDS.some((kind) => kind === value)
-}
-
 function subtract(a: Point, b: Point): Point {
   return { x: a.x - b.x, y: a.y - b.y }
 }
@@ -316,7 +307,6 @@ export class Canvas extends ViewHook {
     this.selection = new SelectionOverlay(this.layer("#selection"))
     this.draws = new DrawLayer(this.layer("#draw-previews"))
     this.observer = new MutationObserver(() => {
-      this.layoutNotes()
       this.syncSelection()
     })
     this.observer.observe(this.layer("#elements"), {
@@ -324,7 +314,6 @@ export class Canvas extends ViewHook {
       childList: true,
       attributeFilter: BOX_SIZE_ATTRIBUTES,
     })
-    this.layoutNotes()
     window.addEventListener("keydown", this.onKeyDown)
     window.addEventListener("keyup", this.onKeyUp)
     window.addEventListener("blur", this.releaseSpace)
@@ -544,7 +533,7 @@ export class Canvas extends ViewHook {
   private updateDraw(draw: Draw, pointer: Point): void {
     draw.dragged ||= isDrag(draw.start, pointer)
     if (!draw.dragged) return
-    if (draw.kind === "freedraw") {
+    if (drawGesture(draw.kind) === "path") {
       draw.path = thinStroke([...draw.path, pointer], STROKE_MIN_DISTANCE, this.maxPoints())
       draw.shape = shapeAround(draw.path, this.canvasSize())
     } else {
@@ -558,7 +547,7 @@ export class Canvas extends ViewHook {
 
   private drawnShape(kind: DrawnKind, start: Point, end: Point): Shape {
     const canvas = this.canvasSize()
-    return isPointKind(kind) ? shapeAround([start, end], canvas) : { box: drawnBox(start, end, canvas), points: [] }
+    return drawGesture(kind) === "box" ? { box: drawnBox(start, end, canvas), points: [] } : shapeAround([start, end], canvas)
   }
 
   private onPointerUp = (event: PointerEvent): void => {
@@ -588,12 +577,12 @@ export class Canvas extends ViewHook {
   }
 
   private finishDraw(draw: Draw): void {
-    if (!draw.dragged && isPointKind(draw.kind)) return
+    if (!draw.dragged && drawGesture(draw.kind) !== "box") return
     const { box, points } = draw.dragged
       ? draw.shape
-      : { box: clickBox(draw.start, this.defaultSize(draw.kind), this.canvasSize()), points: [] }
-    if (draw.kind === "note") {
-      this.openNote(draw, box)
+      : { box: clickBox(draw.start, defaultSize(draw.kind), this.canvasSize()), points: [] }
+    if (isTextKind(draw.kind)) {
+      this.openDrawnText(draw, draw.kind, box)
       return
     }
     void this.pushEvent("create_element", { kind: draw.kind, drag_id: draw.dragId, ...box, points }).finally(
@@ -877,16 +866,16 @@ export class Canvas extends ViewHook {
       text,
     }
     const box = renderedBox(element)
-    if (this.startText(box, text, target, kind === "note" ? box : undefined)) {
+    if (this.startText(box, text, target, isTypedKind(kind) ? undefined : box)) {
       element.setAttribute(TEXT_EDITING, "")
       this.clearRemoteDrag(elementId)
     }
   }
 
-  private openNote(draw: Draw, box: Box): void {
-    const target: TextTarget = { mode: "create", kind: "note" }
-    const shape = this.draws.shape(draw.dragId, "note")
-    this.showShape(shape, { box, points: [] })
+  private openDrawnText(draw: Draw, kind: DrawnKind & TextKind, box: Box): void {
+    const target: TextTarget = { mode: "create", kind }
+    const shape = this.draws.shape(draw.dragId, kind)
+    this.showShape(shape, { box, points: [] }, "")
     this.draws.hideText(draw.dragId)
     this.startText(box, "", target, box, draw)
   }
@@ -995,8 +984,6 @@ export class Canvas extends ViewHook {
     return {
       fontSize: integerAttribute(this.el, "data-font-size"),
       lineHeight: integerAttribute(this.el, "data-line-height"),
-      baseline: integerAttribute(this.el, "data-text-baseline"),
-      charWidth: integerAttribute(this.el, "data-char-width"),
       notePadding: integerAttribute(this.el, "data-note-padding"),
     }
   }
@@ -1012,21 +999,8 @@ export class Canvas extends ViewHook {
     return integerAttribute(this.el, "data-max-points")
   }
 
-  private defaultSize(kind: DrawnKind): Size {
-    const prefix = kind === "note" ? "note" : "default"
-    return {
-      width: integerAttribute(this.el, `data-${prefix}-width`),
-      height: integerAttribute(this.el, `data-${prefix}-height`),
-    }
-  }
-
   private showShape(element: Element, { box, points }: Shape, text?: string): void {
-    setShape(element, box, points, text, this.textLayout())
-  }
-
-  private layoutNotes(): void {
-    const layout = this.textLayout()
-    for (const note of this.el.querySelectorAll('#elements [data-kind="note"]')) layoutCommittedNote(note, layout)
+    setShape(element, box, points, text)
   }
 
   private canvasPoint(event: PointerEvent): Point {

@@ -8,9 +8,6 @@ defmodule SketchWeb.BoardLive do
   @kinds Enum.map(Sketch.Canvas.element_kinds(), &Atom.to_string/1)
   @point_kinds Enum.map(Sketch.Canvas.point_kinds(), &Atom.to_string/1)
   @max_text_bytes Sketch.Canvas.geometry().max_text_length * 4
-  @font_size Sketch.Canvas.geometry().font_size
-  @note_padding Sketch.Canvas.geometry().note_padding
-  @rendered_kinds Map.from_keys(SketchWeb.Elements.kinds(), true)
 
   defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
 
@@ -243,17 +240,11 @@ defmodule SketchWeb.BoardLive do
           data-tool="selection"
           data-canvas-width={@geometry.canvas_width}
           data-canvas-height={@geometry.canvas_height}
-          data-default-width={@geometry.default_width}
-          data-default-height={@geometry.default_height}
           data-max-points={@geometry.max_points}
           data-max-text-length={@geometry.max_text_length}
           data-font-size={@geometry.font_size}
           data-line-height={@geometry.line_height}
-          data-text-baseline={@geometry.text_baseline}
-          data-char-width={@geometry.char_width}
           data-note-padding={@geometry.note_padding}
-          data-note-width={@geometry.note_width}
-          data-note-height={@geometry.note_height}
           class="relative min-h-0 flex-1 overflow-auto border-t border-base-300"
         >
           <svg
@@ -277,7 +268,7 @@ defmodule SketchWeb.BoardLive do
               </marker>
             </defs>
             <g id="elements" phx-update="stream">
-              <.element_shape
+              <SketchWeb.Elements.element
                 :for={{dom_id, element} <- @streams.elements}
                 dom_id={dom_id}
                 element={element}
@@ -290,66 +281,6 @@ defmodule SketchWeb.BoardLive do
         </div>
       </div>
     </Layouts.app>
-    """
-  end
-
-  attr :dom_id, :string, required: true
-  attr :element, :map, required: true
-
-  defp element_shape(%{element: %{kind: kind}} = assigns) when is_map_key(@rendered_kinds, kind),
-    do: SketchWeb.Elements.element(assigns)
-
-  defp element_shape(%{element: %{kind: :note}} = assigns) do
-    assigns = assign(assigns, font_size: @font_size, padding: @note_padding)
-
-    ~H"""
-    <g
-      id={@dom_id}
-      x={@element.x}
-      y={@element.y}
-      width={@element.width}
-      height={@element.height}
-      data-element={@element.id}
-      data-kind={@element.kind}
-      data-x={@element.x}
-      data-y={@element.y}
-      data-width={@element.width}
-      data-height={@element.height}
-      data-text={@element.text}
-      data-version={@element.version}
-      class="cursor-grab touch-none"
-    >
-      <rect
-        data-note-body
-        x={@element.x}
-        y={@element.y}
-        width={@element.width}
-        height={@element.height}
-        rx="6"
-        stroke-width="2"
-        class="note-body"
-      />
-      <svg
-        data-note-clip
-        x={@element.x}
-        y={@element.y}
-        width={@element.width}
-        height={@element.height}
-        overflow="hidden"
-        pointer-events="none"
-      >
-        <text
-          id={"#{@dom_id}-text"}
-          data-text-body
-          data-note-text
-          phx-update="ignore"
-          transform={"translate(#{@padding} #{@padding})"}
-          font-size={@font_size}
-          class="text-element fill-base-content"
-        >
-        </text>
-      </svg>
-    </g>
     """
   end
 

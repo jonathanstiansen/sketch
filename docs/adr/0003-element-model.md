@@ -95,3 +95,8 @@ needs relationships (bound arrows, grouping) or styling.
 
 The kinds are now declared once in a registry and checked everywhere else
 (ADR 0004).
+
+Outcome (2026-10-29): with note, the last kind, on the registry, the server
+renders every element, notes included. Note wrapping moved from the client to
+`Sketch.Canvas.Geometry.wrap_text/3`, with the client copy forced equal by a
+parity fixture, so the server now renders wrapped note lines.

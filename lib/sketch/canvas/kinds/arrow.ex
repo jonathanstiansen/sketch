@@ -10,6 +10,7 @@ defmodule Sketch.Canvas.Kinds.Arrow do
       id: :arrow,
       geometry: {:points, 2..2//1},
       text: :none,
+      draw_gesture: :two_point,
       default_size: %{width: 120, height: 80}
     }
 end

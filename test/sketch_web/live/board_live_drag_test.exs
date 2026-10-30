@@ -198,16 +198,12 @@ defmodule SketchWeb.BoardLiveDragTest do
     assert [%{x: 100, version: 0}] = Canvas.list_elements_for_board!(rectangle.board_id)
   end
 
-  test "the canvas hook gets the canvas size and default element size from the server", %{
-    dragger: dragger
-  } do
-    %{canvas_width: width, canvas_height: height, default_width: w, default_height: h} =
-      Canvas.geometry()
+  test "the canvas hook gets the canvas size from the server", %{dragger: dragger} do
+    %{canvas_width: width, canvas_height: height} = Canvas.geometry()
 
     assert has_element?(
              dragger,
-             "#canvas-viewport[data-canvas-width='#{width}'][data-canvas-height='#{height}']" <>
-               "[data-default-width='#{w}'][data-default-height='#{h}']"
+             "#canvas-viewport[data-canvas-width='#{width}'][data-canvas-height='#{height}']"
            )
   end
 

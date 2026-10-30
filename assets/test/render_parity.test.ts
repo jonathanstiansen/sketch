@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs"
 import { test } from "node:test"
 import { RENDERERS } from "../js/elements/index.ts"
 import { attributeString, type LocalShape, type SvgNode } from "../js/elements/renderer.ts"
-import { MIGRATED_KINDS } from "../js/generated/manifest.ts"
+import { ELEMENT_KINDS } from "../js/generated/manifest.ts"
 
 interface NormalizedNode {
   tag: string
@@ -31,11 +31,11 @@ function normalize(nodes: readonly SvgNode[]): NormalizedNode[] {
   }))
 }
 
-void test("the parity fixture covers exactly the kinds with a renderer (mix sketch.gen.render_fixtures)", () => {
-  assert.deepEqual(Object.keys(fixture).sort(), [...MIGRATED_KINDS].sort())
+void test("the parity fixture covers every element kind (mix sketch.gen.render_fixtures)", () => {
+  assert.deepEqual(Object.keys(fixture).sort(), [...ELEMENT_KINDS].sort())
 })
 
-for (const kind of MIGRATED_KINDS) {
+for (const kind of ELEMENT_KINDS) {
   void test(`the ${kind} client renderer draws the same node tree as the server renderer for every fixture shape`, () => {
     const cases = fixture[kind] ?? []
     assert.ok(cases.length > 0, `no fixture cases for ${kind}`)

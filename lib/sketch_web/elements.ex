@@ -2,14 +2,12 @@ defmodule SketchWeb.Elements do
   @moduledoc """
   The element renderers (ADR 0004) and the one wrapper every rendered element shares.
 
-  A kind is rendered here once its spec has left `Sketch.Canvas.Kinds.Legacy`; until then
-  `SketchWeb.BoardLive` draws it with its old clause. This module fails to compile unless its
-  renderers cover exactly the kinds outside `Legacy`, so a kind cannot move without a renderer or
-  gain a renderer while it is still legacy.
+  This module fails to compile unless its renderers cover exactly the kinds in
+  `Sketch.Canvas.Kinds`, so a kind cannot be added without a renderer.
   """
   use Phoenix.Component
 
-  alias SketchWeb.Elements.{Arrow, Diamond, Ellipse, Freedraw, Line, Rectangle, Text}
+  alias SketchWeb.Elements.{Arrow, Diamond, Ellipse, Freedraw, Line, Note, Rectangle, Text}
 
   @renderers [
     rectangle: Rectangle,
@@ -18,24 +16,21 @@ defmodule SketchWeb.Elements do
     arrow: Arrow,
     freedraw: Freedraw,
     line: Line,
-    text: Text
+    text: Text,
+    note: Note
   ]
 
   @kinds Keyword.keys(@renderers)
-  @expected Sketch.Canvas.element_kinds() -- Sketch.Canvas.legacy_kinds()
+  @expected Sketch.Canvas.element_kinds()
 
   if Enum.sort(@kinds) != Enum.sort(@expected) or length(Enum.uniq(@kinds)) != length(@kinds) do
     raise CompileError,
       description:
-        "SketchWeb.Elements must render exactly the kinds outside Sketch.Canvas.Kinds.Legacy: " <>
+        "SketchWeb.Elements must render exactly the kinds in Sketch.Canvas.Kinds: " <>
           "expected #{inspect(@expected)}, has renderers for #{inspect(@kinds)}"
   end
 
   @renderer_map Map.new(@renderers)
-
-  @doc "The kinds rendered by a renderer here, in registry order."
-  @spec kinds() :: [atom()]
-  def kinds, do: Enum.filter(Sketch.Canvas.element_kinds(), &is_map_key(@renderer_map, &1))
 
   @doc "The children a kind's renderer draws for a shape in local coordinates."
   @spec render_children(atom(), SketchWeb.ElementRenderer.local_shape()) :: [

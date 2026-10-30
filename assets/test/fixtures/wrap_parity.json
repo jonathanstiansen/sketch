@@ -1,0 +1,887 @@
+[
+  {"char_width":12,"lines":[""],"max_width":-24,"text":""},
+  {"char_width":12,"lines":[""],"max_width":-23,"text":""},
+  {"char_width":12,"lines":[""],"max_width":-12,"text":""},
+  {"char_width":12,"lines":[""],"max_width":-1,"text":""},
+  {"char_width":12,"lines":[""],"max_width":0,"text":""},
+  {"char_width":12,"lines":[""],"max_width":1,"text":""},
+  {"char_width":12,"lines":[""],"max_width":11,"text":""},
+  {"char_width":12,"lines":[""],"max_width":12,"text":""},
+  {"char_width":12,"lines":[""],"max_width":13,"text":""},
+  {"char_width":12,"lines":[""],"max_width":23,"text":""},
+  {"char_width":12,"lines":[""],"max_width":24,"text":""},
+  {"char_width":12,"lines":[""],"max_width":25,"text":""},
+  {"char_width":12,"lines":[""],"max_width":35,"text":""},
+  {"char_width":12,"lines":[""],"max_width":36,"text":""},
+  {"char_width":12,"lines":[""],"max_width":37,"text":""},
+  {"char_width":12,"lines":[""],"max_width":167,"text":""},
+  {"char_width":12,"lines":[""],"max_width":168,"text":""},
+  {"char_width":12,"lines":[""],"max_width":169,"text":""},
+  {"char_width":12,"lines":[""],"max_width":176,"text":""},
+  {"char_width":12,"lines":[""],"max_width":-24,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":-23,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":-12,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":-1,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":0,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":1,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":11,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":12,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":13,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":23,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":24,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":25,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":35,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":36,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":37,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":167,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":168,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":169,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":176,"text":" "},
+  {"char_width":12,"lines":[""],"max_width":-24,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":-23,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":-12,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":-1,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":0,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":1,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":11,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":12,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":13,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":23,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":24,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":25,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":35,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":36,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":37,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":167,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":168,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":169,"text":"\t \t"},
+  {"char_width":12,"lines":[""],"max_width":176,"text":"\t \t"},
+  {"char_width":12,"lines":["",""],"max_width":-24,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":-23,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":-12,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":-1,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":0,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":1,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":11,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":12,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":13,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":23,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":24,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":25,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":35,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":36,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":37,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":167,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":168,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":169,"text":"\n"},
+  {"char_width":12,"lines":["",""],"max_width":176,"text":"\n"},
+  {"char_width":12,"lines":["a"],"max_width":-24,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":-23,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":-12,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":-1,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":0,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":1,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":11,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":12,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":13,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":23,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":24,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":25,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":35,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":36,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":37,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":167,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":168,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":169,"text":"a"},
+  {"char_width":12,"lines":["a"],"max_width":176,"text":"a"},
+  {"char_width":12,"lines":["t","h","e","q","u","i","c","k","b","r","o","w","n","f","o","x","j","u","m","p","s","o","v","e","r","t","h","e","l","a","z","y","d","o","g"],"max_width":-24,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["t","h","e","q","u","i","c","k","b","r","o","w","n","f","o","x","j","u","m","p","s","o","v","e","r","t","h","e","l","a","z","y","d","o","g"],"max_width":-23,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["t","h","e","q","u","i","c","k","b","r","o","w","n","f","o","x","j","u","m","p","s","o","v","e","r","t","h","e","l","a","z","y","d","o","g"],"max_width":-12,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["t","h","e","q","u","i","c","k","b","r","o","w","n","f","o","x","j","u","m","p","s","o","v","e","r","t","h","e","l","a","z","y","d","o","g"],"max_width":-1,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["t","h","e","q","u","i","c","k","b","r","o","w","n","f","o","x","j","u","m","p","s","o","v","e","r","t","h","e","l","a","z","y","d","o","g"],"max_width":0,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["t","h","e","q","u","i","c","k","b","r","o","w","n","f","o","x","j","u","m","p","s","o","v","e","r","t","h","e","l","a","z","y","d","o","g"],"max_width":1,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["t","h","e","q","u","i","c","k","b","r","o","w","n","f","o","x","j","u","m","p","s","o","v","e","r","t","h","e","l","a","z","y","d","o","g"],"max_width":11,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["t","h","e","q","u","i","c","k","b","r","o","w","n","f","o","x","j","u","m","p","s","o","v","e","r","t","h","e","l","a","z","y","d","o","g"],"max_width":12,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["t","h","e","q","u","i","c","k","b","r","o","w","n","f","o","x","j","u","m","p","s","o","v","e","r","t","h","e","l","a","z","y","d","o","g"],"max_width":13,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["t","h","e","q","u","i","c","k","b","r","o","w","n","f","o","x","j","u","m","p","s","o","v","e","r","t","h","e","l","a","z","y","d","o","g"],"max_width":23,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["th","e","qu","ic","k","br","ow","n","fo","x","ju","mp","s","ov","er","th","e","la","zy","do","g"],"max_width":24,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["th","e","qu","ic","k","br","ow","n","fo","x","ju","mp","s","ov","er","th","e","la","zy","do","g"],"max_width":25,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["th","e","qu","ic","k","br","ow","n","fo","x","ju","mp","s","ov","er","th","e","la","zy","do","g"],"max_width":35,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["the","qui","ck","bro","wn","fox","jum","ps","ove","r","the","laz","y","dog"],"max_width":36,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["the","qui","ck","bro","wn","fox","jum","ps","ove","r","the","laz","y","dog"],"max_width":37,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["the quick","brown fox","jumps over","the lazy dog"],"max_width":167,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["the quick","brown fox","jumps over the","lazy dog"],"max_width":168,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["the quick","brown fox","jumps over the","lazy dog"],"max_width":169,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["the quick","brown fox","jumps over the","lazy dog"],"max_width":176,"text":"the quick brown fox jumps over the lazy dog"},
+  {"char_width":12,"lines":["s","u","p","e","r","c","a","l","i","f","r","a","g","i","l","i","s","t","i","c","e","x","p","i","a","l","i","d","o","c","i","o","u","s"],"max_width":-24,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["s","u","p","e","r","c","a","l","i","f","r","a","g","i","l","i","s","t","i","c","e","x","p","i","a","l","i","d","o","c","i","o","u","s"],"max_width":-23,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["s","u","p","e","r","c","a","l","i","f","r","a","g","i","l","i","s","t","i","c","e","x","p","i","a","l","i","d","o","c","i","o","u","s"],"max_width":-12,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["s","u","p","e","r","c","a","l","i","f","r","a","g","i","l","i","s","t","i","c","e","x","p","i","a","l","i","d","o","c","i","o","u","s"],"max_width":-1,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["s","u","p","e","r","c","a","l","i","f","r","a","g","i","l","i","s","t","i","c","e","x","p","i","a","l","i","d","o","c","i","o","u","s"],"max_width":0,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["s","u","p","e","r","c","a","l","i","f","r","a","g","i","l","i","s","t","i","c","e","x","p","i","a","l","i","d","o","c","i","o","u","s"],"max_width":1,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["s","u","p","e","r","c","a","l","i","f","r","a","g","i","l","i","s","t","i","c","e","x","p","i","a","l","i","d","o","c","i","o","u","s"],"max_width":11,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["s","u","p","e","r","c","a","l","i","f","r","a","g","i","l","i","s","t","i","c","e","x","p","i","a","l","i","d","o","c","i","o","u","s"],"max_width":12,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["s","u","p","e","r","c","a","l","i","f","r","a","g","i","l","i","s","t","i","c","e","x","p","i","a","l","i","d","o","c","i","o","u","s"],"max_width":13,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["s","u","p","e","r","c","a","l","i","f","r","a","g","i","l","i","s","t","i","c","e","x","p","i","a","l","i","d","o","c","i","o","u","s"],"max_width":23,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["su","pe","rc","al","if","ra","gi","li","st","ic","ex","pi","al","id","oc","io","us"],"max_width":24,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["su","pe","rc","al","if","ra","gi","li","st","ic","ex","pi","al","id","oc","io","us"],"max_width":25,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["su","pe","rc","al","if","ra","gi","li","st","ic","ex","pi","al","id","oc","io","us"],"max_width":35,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["sup","erc","ali","fra","gil","ist","ice","xpi","ali","doc","iou","s"],"max_width":36,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["sup","erc","ali","fra","gil","ist","ice","xpi","ali","doc","iou","s"],"max_width":37,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["supercalifrag","ilisticexpial","idocious"],"max_width":167,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["supercalifragi","listicexpialid","ocious"],"max_width":168,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["supercalifragi","listicexpialid","ocious"],"max_width":169,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["supercalifragi","listicexpialid","ocious"],"max_width":176,"text":"supercalifragilisticexpialidocious"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":-24,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":-23,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":-12,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":-1,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":0,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":1,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":11,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":12,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":13,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":23,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":24,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":25,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a","b","c","d","e"],"max_width":35,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a b","c d","e"],"max_width":36,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a b","c d","e"],"max_width":37,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a b c d e"],"max_width":167,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a b c d e"],"max_width":168,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a b c d e"],"max_width":169,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["a b c d e"],"max_width":176,"text":"a  b   c    d     e"},
+  {"char_width":12,"lines":["l","e","a","d","i","n","g","a","n","d","t","r","a","i","l","i","n","g"],"max_width":-24,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["l","e","a","d","i","n","g","a","n","d","t","r","a","i","l","i","n","g"],"max_width":-23,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["l","e","a","d","i","n","g","a","n","d","t","r","a","i","l","i","n","g"],"max_width":-12,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["l","e","a","d","i","n","g","a","n","d","t","r","a","i","l","i","n","g"],"max_width":-1,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["l","e","a","d","i","n","g","a","n","d","t","r","a","i","l","i","n","g"],"max_width":0,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["l","e","a","d","i","n","g","a","n","d","t","r","a","i","l","i","n","g"],"max_width":1,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["l","e","a","d","i","n","g","a","n","d","t","r","a","i","l","i","n","g"],"max_width":11,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["l","e","a","d","i","n","g","a","n","d","t","r","a","i","l","i","n","g"],"max_width":12,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["l","e","a","d","i","n","g","a","n","d","t","r","a","i","l","i","n","g"],"max_width":13,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["l","e","a","d","i","n","g","a","n","d","t","r","a","i","l","i","n","g"],"max_width":23,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["le","ad","in","g","an","d","tr","ai","li","ng"],"max_width":24,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["le","ad","in","g","an","d","tr","ai","li","ng"],"max_width":25,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["le","ad","in","g","an","d","tr","ai","li","ng"],"max_width":35,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["lea","din","g","and","tra","ili","ng"],"max_width":36,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["lea","din","g","and","tra","ili","ng"],"max_width":37,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["leading and","trailing"],"max_width":167,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["leading and","trailing"],"max_width":168,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["leading and","trailing"],"max_width":169,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["leading and","trailing"],"max_width":176,"text":"  leading and trailing  "},
+  {"char_width":12,"lines":["n","o"," ","b","r","e","a","k"," ","s","p","a","c","e","b","e","t","w","e","e","n","w","o","r","d","s"],"max_width":-24,"text":"no break space between words"},
+  {"char_width":12,"lines":["n","o"," ","b","r","e","a","k"," ","s","p","a","c","e","b","e","t","w","e","e","n","w","o","r","d","s"],"max_width":-23,"text":"no break space between words"},
+  {"char_width":12,"lines":["n","o"," ","b","r","e","a","k"," ","s","p","a","c","e","b","e","t","w","e","e","n","w","o","r","d","s"],"max_width":-12,"text":"no break space between words"},
+  {"char_width":12,"lines":["n","o"," ","b","r","e","a","k"," ","s","p","a","c","e","b","e","t","w","e","e","n","w","o","r","d","s"],"max_width":-1,"text":"no break space between words"},
+  {"char_width":12,"lines":["n","o"," ","b","r","e","a","k"," ","s","p","a","c","e","b","e","t","w","e","e","n","w","o","r","d","s"],"max_width":0,"text":"no break space between words"},
+  {"char_width":12,"lines":["n","o"," ","b","r","e","a","k"," ","s","p","a","c","e","b","e","t","w","e","e","n","w","o","r","d","s"],"max_width":1,"text":"no break space between words"},
+  {"char_width":12,"lines":["n","o"," ","b","r","e","a","k"," ","s","p","a","c","e","b","e","t","w","e","e","n","w","o","r","d","s"],"max_width":11,"text":"no break space between words"},
+  {"char_width":12,"lines":["n","o"," ","b","r","e","a","k"," ","s","p","a","c","e","b","e","t","w","e","e","n","w","o","r","d","s"],"max_width":12,"text":"no break space between words"},
+  {"char_width":12,"lines":["n","o"," ","b","r","e","a","k"," ","s","p","a","c","e","b","e","t","w","e","e","n","w","o","r","d","s"],"max_width":13,"text":"no break space between words"},
+  {"char_width":12,"lines":["n","o"," ","b","r","e","a","k"," ","s","p","a","c","e","b","e","t","w","e","e","n","w","o","r","d","s"],"max_width":23,"text":"no break space between words"},
+  {"char_width":12,"lines":["no"," b","re","ak"," s","pa","ce","be","tw","ee","n","wo","rd","s"],"max_width":24,"text":"no break space between words"},
+  {"char_width":12,"lines":["no"," b","re","ak"," s","pa","ce","be","tw","ee","n","wo","rd","s"],"max_width":25,"text":"no break space between words"},
+  {"char_width":12,"lines":["no"," b","re","ak"," s","pa","ce","be","tw","ee","n","wo","rd","s"],"max_width":35,"text":"no break space between words"},
+  {"char_width":12,"lines":["no ","bre","ak ","spa","ce","bet","wee","n","wor","ds"],"max_width":36,"text":"no break space between words"},
+  {"char_width":12,"lines":["no ","bre","ak ","spa","ce","bet","wee","n","wor","ds"],"max_width":37,"text":"no break space between words"},
+  {"char_width":12,"lines":["no break spac","e between","words"],"max_width":167,"text":"no break space between words"},
+  {"char_width":12,"lines":["no break space","between words"],"max_width":168,"text":"no break space between words"},
+  {"char_width":12,"lines":["no break space","between words"],"max_width":169,"text":"no break space between words"},
+  {"char_width":12,"lines":["no break space","between words"],"max_width":176,"text":"no break space between words"},
+  {"char_width":12,"lines":["i","d","e","o","g","r","a","p","h","i","c","　","s","p","a","c","e","a","n","d"," ","l","i","n","e","s","e","p","a","r","a","t","o","r"],"max_width":-24,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["i","d","e","o","g","r","a","p","h","i","c","　","s","p","a","c","e","a","n","d"," ","l","i","n","e","s","e","p","a","r","a","t","o","r"],"max_width":-23,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["i","d","e","o","g","r","a","p","h","i","c","　","s","p","a","c","e","a","n","d"," ","l","i","n","e","s","e","p","a","r","a","t","o","r"],"max_width":-12,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["i","d","e","o","g","r","a","p","h","i","c","　","s","p","a","c","e","a","n","d"," ","l","i","n","e","s","e","p","a","r","a","t","o","r"],"max_width":-1,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["i","d","e","o","g","r","a","p","h","i","c","　","s","p","a","c","e","a","n","d"," ","l","i","n","e","s","e","p","a","r","a","t","o","r"],"max_width":0,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["i","d","e","o","g","r","a","p","h","i","c","　","s","p","a","c","e","a","n","d"," ","l","i","n","e","s","e","p","a","r","a","t","o","r"],"max_width":1,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["i","d","e","o","g","r","a","p","h","i","c","　","s","p","a","c","e","a","n","d"," ","l","i","n","e","s","e","p","a","r","a","t","o","r"],"max_width":11,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["i","d","e","o","g","r","a","p","h","i","c","　","s","p","a","c","e","a","n","d"," ","l","i","n","e","s","e","p","a","r","a","t","o","r"],"max_width":12,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["i","d","e","o","g","r","a","p","h","i","c","　","s","p","a","c","e","a","n","d"," ","l","i","n","e","s","e","p","a","r","a","t","o","r"],"max_width":13,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["i","d","e","o","g","r","a","p","h","i","c","　","s","p","a","c","e","a","n","d"," ","l","i","n","e","s","e","p","a","r","a","t","o","r"],"max_width":23,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["id","eo","gr","ap","hi","c　","sp","ac","e","an","d ","li","ne","se","pa","ra","to","r"],"max_width":24,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["id","eo","gr","ap","hi","c　","sp","ac","e","an","d ","li","ne","se","pa","ra","to","r"],"max_width":25,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["id","eo","gr","ap","hi","c　","sp","ac","e","an","d ","li","ne","se","pa","ra","to","r"],"max_width":35,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["ide","ogr","aph","ic　","spa","ce","and"," li","ne","sep","ara","tor"],"max_width":36,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["ide","ogr","aph","ic　","spa","ce","and"," li","ne","sep","ara","tor"],"max_width":37,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["ideographic　s","pace and line","separator"],"max_width":167,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["ideographic　sp","ace and line","separator"],"max_width":168,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["ideographic　sp","ace and line","separator"],"max_width":169,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["ideographic　sp","ace and line","separator"],"max_width":176,"text":"ideographic　space and line separator"},
+  {"char_width":12,"lines":["😀","😀","😀","😀","😀","😀","😀","😀","😀","😀","𝄞","𝄞","𝄞","𝄞","𝄞","𝄞","👩","‍","💻","👩","‍","💻"],"max_width":-24,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀","😀","😀","😀","😀","😀","😀","😀","😀","😀","𝄞","𝄞","𝄞","𝄞","𝄞","𝄞","👩","‍","💻","👩","‍","💻"],"max_width":-23,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀","😀","😀","😀","😀","😀","😀","😀","😀","😀","𝄞","𝄞","𝄞","𝄞","𝄞","𝄞","👩","‍","💻","👩","‍","💻"],"max_width":-12,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀","😀","😀","😀","😀","😀","😀","😀","😀","😀","𝄞","𝄞","𝄞","𝄞","𝄞","𝄞","👩","‍","💻","👩","‍","💻"],"max_width":-1,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀","😀","😀","😀","😀","😀","😀","😀","😀","😀","𝄞","𝄞","𝄞","𝄞","𝄞","𝄞","👩","‍","💻","👩","‍","💻"],"max_width":0,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀","😀","😀","😀","😀","😀","😀","😀","😀","😀","𝄞","𝄞","𝄞","𝄞","𝄞","𝄞","👩","‍","💻","👩","‍","💻"],"max_width":1,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀","😀","😀","😀","😀","😀","😀","😀","😀","😀","𝄞","𝄞","𝄞","𝄞","𝄞","𝄞","👩","‍","💻","👩","‍","💻"],"max_width":11,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀","😀","😀","😀","😀","😀","😀","😀","😀","😀","𝄞","𝄞","𝄞","𝄞","𝄞","𝄞","👩","‍","💻","👩","‍","💻"],"max_width":12,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀","😀","😀","😀","😀","😀","😀","😀","😀","😀","𝄞","𝄞","𝄞","𝄞","𝄞","𝄞","👩","‍","💻","👩","‍","💻"],"max_width":13,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀","😀","😀","😀","😀","😀","😀","😀","😀","😀","𝄞","𝄞","𝄞","𝄞","𝄞","𝄞","👩","‍","💻","👩","‍","💻"],"max_width":23,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀😀","😀😀","😀😀","😀😀","😀😀","𝄞𝄞","𝄞𝄞","𝄞𝄞","👩‍","💻👩","‍💻"],"max_width":24,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀😀","😀😀","😀😀","😀😀","😀😀","𝄞𝄞","𝄞𝄞","𝄞𝄞","👩‍","💻👩","‍💻"],"max_width":25,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀😀","😀😀","😀😀","😀😀","😀😀","𝄞𝄞","𝄞𝄞","𝄞𝄞","👩‍","💻👩","‍💻"],"max_width":35,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀😀😀","😀😀😀","😀😀😀","😀","𝄞𝄞𝄞","𝄞𝄞𝄞","👩‍💻","👩‍💻"],"max_width":36,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀😀😀","😀😀😀","😀😀😀","😀","𝄞𝄞𝄞","𝄞𝄞𝄞","👩‍💻","👩‍💻"],"max_width":37,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀😀😀😀😀😀😀😀😀😀","𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"],"max_width":167,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀😀😀😀😀😀😀😀😀😀","𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"],"max_width":168,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀😀😀😀😀😀😀😀😀😀","𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"],"max_width":169,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["😀😀😀😀😀😀😀😀😀😀","𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"],"max_width":176,"text":"😀😀😀😀😀😀😀😀😀😀 𝄞𝄞𝄞𝄞𝄞𝄞 👩‍💻👩‍💻"},
+  {"char_width":12,"lines":["o","n","e","t","w","o","i","s","l","o","n","g","e","r","t","h","a","n","a","l","i","n","e","","i","n","d","e","n","t","e","d","c","r","l","f","c","r"],"max_width":-24,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["o","n","e","t","w","o","i","s","l","o","n","g","e","r","t","h","a","n","a","l","i","n","e","","i","n","d","e","n","t","e","d","c","r","l","f","c","r"],"max_width":-23,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["o","n","e","t","w","o","i","s","l","o","n","g","e","r","t","h","a","n","a","l","i","n","e","","i","n","d","e","n","t","e","d","c","r","l","f","c","r"],"max_width":-12,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["o","n","e","t","w","o","i","s","l","o","n","g","e","r","t","h","a","n","a","l","i","n","e","","i","n","d","e","n","t","e","d","c","r","l","f","c","r"],"max_width":-1,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["o","n","e","t","w","o","i","s","l","o","n","g","e","r","t","h","a","n","a","l","i","n","e","","i","n","d","e","n","t","e","d","c","r","l","f","c","r"],"max_width":0,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["o","n","e","t","w","o","i","s","l","o","n","g","e","r","t","h","a","n","a","l","i","n","e","","i","n","d","e","n","t","e","d","c","r","l","f","c","r"],"max_width":1,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["o","n","e","t","w","o","i","s","l","o","n","g","e","r","t","h","a","n","a","l","i","n","e","","i","n","d","e","n","t","e","d","c","r","l","f","c","r"],"max_width":11,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["o","n","e","t","w","o","i","s","l","o","n","g","e","r","t","h","a","n","a","l","i","n","e","","i","n","d","e","n","t","e","d","c","r","l","f","c","r"],"max_width":12,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["o","n","e","t","w","o","i","s","l","o","n","g","e","r","t","h","a","n","a","l","i","n","e","","i","n","d","e","n","t","e","d","c","r","l","f","c","r"],"max_width":13,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["o","n","e","t","w","o","i","s","l","o","n","g","e","r","t","h","a","n","a","l","i","n","e","","i","n","d","e","n","t","e","d","c","r","l","f","c","r"],"max_width":23,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["on","e","tw","o","is","lo","ng","er","th","an","a","li","ne","","in","de","nt","ed","cr","lf","cr"],"max_width":24,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["on","e","tw","o","is","lo","ng","er","th","an","a","li","ne","","in","de","nt","ed","cr","lf","cr"],"max_width":25,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["on","e","tw","o","is","lo","ng","er","th","an","a","li","ne","","in","de","nt","ed","cr","lf","cr"],"max_width":35,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["one","two","is","lon","ger","tha","n a","lin","e","","ind","ent","ed","crl","f","cr"],"max_width":36,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["one","two","is","lon","ger","tha","n a","lin","e","","ind","ent","ed","crl","f","cr"],"max_width":37,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["one","two is longer","than a line","","indented","crlf","cr"],"max_width":167,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["one","two is longer","than a line","","indented","crlf","cr"],"max_width":168,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["one","two is longer","than a line","","indented","crlf","cr"],"max_width":169,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["one","two is longer","than a line","","indented","crlf","cr"],"max_width":176,"text":"one\ntwo is longer than a line\n\n  indented\r\ncrlf\rcr"},
+  {"char_width":12,"lines":["t","a","b","s","e","p","a","r","a","t","e","d","w","o","r","d","s"],"max_width":-24,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["t","a","b","s","e","p","a","r","a","t","e","d","w","o","r","d","s"],"max_width":-23,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["t","a","b","s","e","p","a","r","a","t","e","d","w","o","r","d","s"],"max_width":-12,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["t","a","b","s","e","p","a","r","a","t","e","d","w","o","r","d","s"],"max_width":-1,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["t","a","b","s","e","p","a","r","a","t","e","d","w","o","r","d","s"],"max_width":0,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["t","a","b","s","e","p","a","r","a","t","e","d","w","o","r","d","s"],"max_width":1,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["t","a","b","s","e","p","a","r","a","t","e","d","w","o","r","d","s"],"max_width":11,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["t","a","b","s","e","p","a","r","a","t","e","d","w","o","r","d","s"],"max_width":12,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["t","a","b","s","e","p","a","r","a","t","e","d","w","o","r","d","s"],"max_width":13,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["t","a","b","s","e","p","a","r","a","t","e","d","w","o","r","d","s"],"max_width":23,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["ta","b","se","pa","ra","te","d","wo","rd","s"],"max_width":24,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["ta","b","se","pa","ra","te","d","wo","rd","s"],"max_width":25,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["ta","b","se","pa","ra","te","d","wo","rd","s"],"max_width":35,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["tab","sep","ara","ted","wor","ds"],"max_width":36,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["tab","sep","ara","ted","wor","ds"],"max_width":37,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["tab separated","words"],"max_width":167,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["tab separated","words"],"max_width":168,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["tab separated","words"],"max_width":169,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["tab separated","words"],"max_width":176,"text":"tab\tseparated\twords"},
+  {"char_width":12,"lines":["<","b",">","x","<","/","b",">","&","&","a","m","p",";"],"max_width":-24,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<","b",">","x","<","/","b",">","&","&","a","m","p",";"],"max_width":-23,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<","b",">","x","<","/","b",">","&","&","a","m","p",";"],"max_width":-12,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<","b",">","x","<","/","b",">","&","&","a","m","p",";"],"max_width":-1,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<","b",">","x","<","/","b",">","&","&","a","m","p",";"],"max_width":0,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<","b",">","x","<","/","b",">","&","&","a","m","p",";"],"max_width":1,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<","b",">","x","<","/","b",">","&","&","a","m","p",";"],"max_width":11,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<","b",">","x","<","/","b",">","&","&","a","m","p",";"],"max_width":12,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<","b",">","x","<","/","b",">","&","&","a","m","p",";"],"max_width":13,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<","b",">","x","<","/","b",">","&","&","a","m","p",";"],"max_width":23,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<b",">x","</","b>","&","&a","mp",";"],"max_width":24,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<b",">x","</","b>","&","&a","mp",";"],"max_width":25,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<b",">x","</","b>","&","&a","mp",";"],"max_width":35,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<b>","x</","b>","&","&am","p;"],"max_width":36,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<b>","x</","b>","&","&am","p;"],"max_width":37,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<b>x</b> &","&amp;"],"max_width":167,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<b>x</b> &","&amp;"],"max_width":168,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<b>x</b> &","&amp;"],"max_width":169,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["<b>x</b> &","&amp;"],"max_width":176,"text":"<b>x</b> & &amp;"},
+  {"char_width":12,"lines":["a","中","文","中","文","\f","<","😀","𝄞","b","c","","👩","‍","💻"," ","\f","﻿"," ","﻿","中","文","-","","-","<"," ","<"," ",""],"max_width":9,"text":"a中文中文\f<😀\r𝄞bc\r\n \r👩‍💻 \f﻿   ﻿\n\t  中文-  -< \r\n  <\r  "},
+  {"char_width":5,"lines":["\u000B","　","😀","中文　 -  a\u000B\f﻿bc\f😀","中文\f中文","","W\u000B 中文中文 W﻿👩‍💻","😀","bc"],"max_width":240,"text":"\u000B\r　\r😀\r \t中文　 -  a\u000B\f﻿bc\f😀\n 中文\f中文\r\n\n   W\u000B 中文中文 W﻿👩‍💻\n😀\rbc"},
+  {"char_width":12,"lines":["","﻿","\f👩‍💻","<","　"," aa",""," ","𝄞　　"," 𝄞<éé　　　","　a中文"],"max_width":326,"text":"\n﻿\r\f👩‍💻\r\n<\n 　\r\n aa  \r\n\n \n𝄞　　 \r\n 𝄞<éé　　　\n　a中文"},
+  {"char_width":1,"lines":["W<😀 👩‍💻 \f👩‍💻﻿ 👩‍💻中文","W😀　- 👩‍💻﻿😀 W 𝄞"," 𝄞 a😀bc\f","\u000B😀W \u000BWbc𝄞  bc \f  W\u000Ba"],"max_width":27,"text":"W<😀 👩‍💻 \f👩‍💻﻿\t 👩‍💻中文\r\nW😀　- 👩‍💻﻿😀 W\t𝄞\n 𝄞 a😀bc\f\r\n\u000B😀W \u000BWbc𝄞   bc  \f   W\u000Ba"},
+  {"char_width":1,"lines":["","中文ééW W"," <","𝄞😀"],"max_width":167,"text":"\t\r中文ééW \t W\n  <\r\n𝄞😀"},
+  {"char_width":1,"lines":["é"," \u000B\u000B😀a bc😀 𝄞﻿","\faaa  ","　👩‍💻 𝄞<","bc﻿ 中文"],"max_width":105,"text":" é \r  \u000B\u000B😀a\tbc😀   𝄞﻿\r\faaa  \n　👩‍💻\t𝄞<\rbc﻿ 中文"},
+  {"char_width":12,"lines":[""],"max_width":151,"text":""},
+  {"char_width":12,"lines":["","👩","‍","💻","<","b","c"],"max_width":-5,"text":"\r \t👩‍💻<\r\nbc"},
+  {"char_width":1,"lines":["  中文 W 𝄞é","😀 中文 👩‍💻 😀𝄞👩‍💻👩‍💻👩‍💻\fa 👩‍💻 <中文中文W 😀𝄞 ﻿","- ﻿bc　 ébc\f"],"max_width":264,"text":"  中文  W  𝄞é\r😀 中文 👩‍💻 😀𝄞👩‍💻👩‍💻👩‍💻\fa  👩‍💻 <中文中文W 😀𝄞 ﻿\r-  ﻿bc　 ébc\f  \t  "},
+  {"char_width":12,"lines":[" <","a",""],"max_width":347,"text":" <\na\r\n"},
+  {"char_width":1,"lines":["👩‍💻 \f﻿-","﻿ -","W","","<W\u000B𝄞 W  ﻿𝄞bc 中文 -\u000B😀 中文😀 😀 　 é<👩‍💻 a","bca<","中文"],"max_width":142,"text":"👩‍💻 \f﻿-\r﻿  -\rW  \n\n<W\u000B𝄞 W  ﻿𝄞bc  中文 -\u000B😀 中文😀\t😀 　  \t é<👩‍💻 a\nbca<\r\n中文"},
+  {"char_width":5,"lines":["👩‍💻<  　﻿𝄞aé😀 👩‍💻<-👩‍💻﻿\u000B﻿ 👩‍💻😀éW𝄞","","Waa< 𝄞bc中文\fW"],"max_width":202,"text":"👩‍💻<  　﻿𝄞aé😀 👩‍💻<-👩‍💻﻿\u000B﻿ 👩‍💻😀éW𝄞\r\n\r\n Waa<  𝄞bc中文\fW"},
+  {"char_width":5,"lines":["<"," ","中","文"," "," ","","-","W","é"," ","b","c"," ","\u000B","é","é","\f","a","𝄞","\f","<","中","文",""," "," ","中","文","﻿"," ","﻿","é","","",""," "," ","-"],"max_width":8,"text":"< 中文  -W\né bc \u000Béé\fa 𝄞\f<中文     中文\t﻿ ﻿é  -"},
+  {"char_width":5,"lines":["-","","中文 \u000B﻿ bc中文W\f　中文😀😀<"],"max_width":194,"text":"-\n\n中文 \u000B﻿ \tbc中文W\f　中文😀😀<"},
+  {"char_width":5,"lines":["","𝄞","-  ﻿\f a","","\f W 👩‍💻é中文","﻿","W\u000B"],"max_width":325,"text":"\r\n𝄞\t\r -   ﻿\f a\r\n\n\f W 👩‍💻é中文\r\n﻿\nW\u000B"},
+  {"char_width":1,"lines":[""," <中文 ","\u000B　\u000Bbc","","","😀𝄞é<"],"max_width":239,"text":"\r <中文 \n \u000B　\u000Bbc\n\r\n\n😀𝄞é<"},
+  {"char_width":12,"lines":["","","𝄞𝄞\f","\f<👩‍💻　-","𝄞  bc"],"max_width":86,"text":"\r\r𝄞𝄞\f\r\n\f<👩‍💻　-\r𝄞 \tbc"},
+  {"char_width":12,"lines":["﻿ -bc👩‍💻-"],"max_width":171,"text":"﻿\t-bc👩‍💻-"},
+  {"char_width":12,"lines":["","bc","﻿ ","中文","👩‍","💻a","","😀👩","‍💻","Wé","","𝄞𝄞","\u000B\u000B"," ","a","\f ","\u000B😀","é","😀","𝄞\u000B","\u000B﻿","","bc","é","  ","a","\f"],"max_width":29,"text":"\rbc﻿ 中文👩‍💻a\n\r😀👩‍💻Wé \t\r𝄞𝄞\u000B\u000B \na \f \r\u000B😀é \r\n😀 𝄞\u000B\u000B﻿\r\nbcé\t  a  \f"},
+  {"char_width":12,"lines":["ébc😀\u000B","W<😀﻿Waéé","😀\f𝄞 "],"max_width":132,"text":"ébc😀\u000B  \rW<😀﻿Waéé  😀\f𝄞 "},
+  {"char_width":5,"lines":[""],"max_width":159,"text":"  "},
+  {"char_width":1,"lines":["中文 ","","bc<a","a"],"max_width":197,"text":"中文 \n\r\nbc<a  \r\na  "},
+  {"char_width":12,"lines":["-","","<< bc W\f","中文 WWW "],"max_width":362,"text":"-\n  \r<< bc W\f\n中文 WWW  "},
+  {"char_width":1,"lines":["中文 😀\f    𝄞  a","　bc","","中文𝄞  𝄞\fW😀","😀"],"max_width":32,"text":"中文\t😀\f    𝄞  a\r　bc \n\r中文𝄞\t  𝄞\fW😀\r\n  😀"},
+  {"char_width":5,"lines":["-","W<W--中文 ﻿　 a"],"max_width":295,"text":"-\t\rW<W--中文 ﻿　  a\t"},
+  {"char_width":12,"lines":["","<　\u000B  😀　 <﻿ ","　 \u000B ","","-   bc😀👩‍💻bc  中文 é 　 中文"],"max_width":337,"text":"\r<　\u000B  😀　\t<﻿ \r　 \u000B    \n\r-    bc😀👩‍💻bc \t中文  é 　 中文  "},
+  {"char_width":5,"lines":["","","𝄞👩‍💻😀 aa 　中文\u000B bcbca< 　W ","\u000B"," bc 👩‍💻 　ébc<a𝄞W　bc﻿﻿"," éé𝄞","Wbc中文"],"max_width":256,"text":"\n\r𝄞👩‍💻😀\taa \t　中文\u000B\t bcbca< 　W \r\n\u000B\n bc 👩‍💻  　ébc<a𝄞W　bc﻿﻿\n\t éé𝄞\r\nWbc中文"},
+  {"char_width":12,"lines":["","W < 中文 ","﻿","\u000B<  \f👩‍💻\u000Bbc😀"],"max_width":256,"text":"\r\nW\t<\t中文 \r﻿\n  \u000B<\t \f👩‍💻\u000Bbc😀"},
+  {"char_width":5,"lines":["","　","\u000B","﻿   W 　中文"],"max_width":321,"text":"\r　\r\n  \u000B\r﻿     W 　中文"},
+  {"char_width":5,"lines":[" ","中文﻿-W﻿\u000B",""," <","é 中文W𝄞<  <👩‍💻a\f中文﻿👩‍💻 𝄞<-W\f\f 𝄞﻿"],"max_width":347,"text":" \n中文﻿-W﻿\u000B\r\n\n\t<\ré 中文W𝄞<   <👩‍💻a\f中文﻿👩‍💻  𝄞<-W\f\f 𝄞﻿"},
+  {"char_width":12,"lines":["👩‍💻"," ","𝄞 𝄞<bc 𝄞\f-","👩‍💻  <W "," "],"max_width":126,"text":"👩‍💻\r\n \r𝄞 𝄞<bc 𝄞\f-👩‍💻     <W \r\n  "},
+  {"char_width":5,"lines":[""," bc 中文👩‍💻 é  ","　","\u000B😀 bc😀中文😀 -W","","é<　a𝄞 \u000B  <é   <𝄞𝄞👩‍💻"],"max_width":324,"text":"\n bc 中文👩‍💻 é\t \n　\n \u000B😀  bc😀中文😀 -W\r\ré<　a𝄞 \u000B  <é  \t<𝄞𝄞👩‍💻"},
+  {"char_width":1,"lines":["a-éa😀é\f","","éaW -bc<😀","bcWW  　","a 𝄞 ﻿ <W中文😀 ","","a"],"max_width":195,"text":"a-éa😀é\f\r\r\n  \téaW   -bc<😀\r\nbcWW  　\ra 𝄞\t﻿ <W中文😀 \n\ra"},
+  {"char_width":1,"lines":["\u000B\f","  　< W",""],"max_width":293,"text":"\u000B\f\n   　< W\r"},
+  {"char_width":12,"lines":["\u000B　中文𝄞< ","👩‍💻﻿😀 - 😀 bc -<","　","　\u000B  ","　﻿﻿-","<","　 中文"],"max_width":238,"text":"\u000B　中文𝄞< \r👩‍💻﻿😀  - 😀 bc  -<\r　\n　\u000B   \r　﻿﻿-\r\n<\n　\t中文"},
+  {"char_width":12,"lines":["𝄞","b","c"," ","　"," ","a","　"," ","😀","﻿","\u000B","𝄞","中","文","\u000B","𝄞","W"," ","","中","文"," ","\f","﻿","é","b","c","﻿","b","c","\u000B","　",""," "],"max_width":-21,"text":"𝄞\nbc  \r　 a　 😀﻿\u000B 𝄞中文\u000B𝄞W \r中文 \f\r\n ﻿é\rbc﻿bc\r\t\u000B\r\n　 "},
+  {"char_width":1,"lines":[" bc","\f é ","﻿  bc 𝄞W😀"," "," \f "],"max_width":30,"text":" bc\r\n\f é \r\n﻿ \tbc 𝄞W😀\r \r\n \f "},
+  {"char_width":12,"lines":["","a  😀","  👩‍💻𝄞﻿"],"max_width":216,"text":"\ra  😀\n   👩‍💻𝄞﻿\t"},
+  {"char_width":1,"lines":["﻿","\u000B👩‍💻\f中文-","a  ","中文👩‍💻\u000B  "],"max_width":202,"text":"﻿\r\n\u000B👩‍💻\f中文-\na    \r\n中文👩‍💻\u000B  "},
+  {"char_width":1,"lines":["bc"," W𝄞   W中文"],"max_width":381,"text":"bc \r\n\t W𝄞    W中文"},
+  {"char_width":1,"lines":[""],"max_width":28,"text":""},
+  {"char_width":12,"lines":[""],"max_width":287,"text":" "},
+  {"char_width":1,"lines":["👩‍💻 W\f<"," ","< Wé👩‍💻😀𝄞 < a 　bc 👩‍💻<   Wé \f-😀\f",""],"max_width":309,"text":"👩‍💻 W\f<\r  \r\n< Wé👩‍💻😀𝄞 <  a 　bc 👩‍💻<   Wé \f-😀\f\r"},
+  {"char_width":12,"lines":["\u000B-","𝄞","😀\u000B\u000B 👩‍💻"],"max_width":106,"text":"\u000B- \n𝄞  😀\u000B\u000B 👩‍💻"},
+  {"char_width":1,"lines":["","W","b","c","𝄞","\u000B"," ","　"," ","中","文","a"," ","a","　","","\u000B","﻿","😀"," "," ","𝄞","b","c","𝄞"," "," ","👩","‍","💻","﻿","𝄞","😀"],"max_width":-16,"text":"\rW bc𝄞\u000B 　 中文a\n a\t　\r\n  \u000B﻿\n😀  \n𝄞bc𝄞   👩‍💻 ﻿𝄞😀"},
+  {"char_width":1,"lines":["😀"],"max_width":186,"text":"😀"},
+  {"char_width":12,"lines":["bc\u000B﻿  𝄞😀  \u000B","<<a ","","𝄞a\u000B😀 ﻿😀-","é\u000B","bc-",""],"max_width":397,"text":"bc\u000B﻿  𝄞😀  \u000B\r\n<<a \n\r\n𝄞a\u000B😀 ﻿😀-\né\u000B\nbc-\t\t \n"},
+  {"char_width":12,"lines":["👩‍💻 　é","𝄞<👩‍💻中文","   中文﻿","\f ﻿<中文﻿","👩‍💻 ","　\f👩‍💻中","文 ﻿\u000B","中文<\f𝄞","\u000B👩‍💻a","<<\f"],"max_width":90,"text":"👩‍💻 　é\r𝄞<👩‍💻中文 \t 中文﻿\t\f ﻿<中文﻿👩‍💻 \r\n　\f👩‍💻中文\t﻿\u000B \r中文<\f𝄞\r\t\u000B👩‍💻a\r<<\f"},
+  {"char_width":5,"lines":[" ","-","中","文"," ","😀","😀","中","文","W","W"," ","\f"," ","<"," ","中","文","a","<","\f","b","c","","","b","c","-","﻿","é","😀","　","\f","\f"],"max_width":-16,"text":" \t-中文 😀😀中文W   W  \f <  中文a<\r\n\fbc\tbc-﻿ \r\né😀 　\f\f"},
+  {"char_width":12,"lines":["﻿ 𝄞<","-👩‍💻","👩‍💻中文","","😀-"," W﻿ 　 a <","　W"],"max_width":284,"text":" ﻿ 𝄞<\n-👩‍💻\r\n👩‍💻中文\r\n  \t\r\n😀-\r W﻿  　 a <\n　W "},
+  {"char_width":12,"lines":["","😀 　  \fa<a","𝄞𝄞\f-﻿中文 𝄞\fW 　"],"max_width":192,"text":"   \t  \r\n😀  　  \fa<a\n𝄞𝄞\f-﻿中文 𝄞\fW 　"},
+  {"char_width":12,"lines":[" ","👩","‍","💻","<"," ","\u000B","\f","　","b","c"," ","<","👩","‍","💻","　","﻿"," "],"max_width":-13,"text":" \r\n👩‍💻< \u000B\f\n 　bc  <👩‍💻　\r\n﻿\r  "},
+  {"char_width":12,"lines":["éWabc-","WW<Wa-é bcbc 👩‍💻\u000B"],"max_width":342,"text":"éWabc-\nWW<Wa-é\tbcbc 👩‍💻\u000B"},
+  {"char_width":5,"lines":["a👩‍💻bc👩‍💻 bc﻿\f \f","","bc-","　 a"," "," ﻿","","𝄞ébca﻿𝄞\u000B<中文W bc中文 bc","\u000B","😀","é"," "],"max_width":187,"text":"  a👩‍💻bc👩‍💻   bc﻿\f\t\f\r\n\t \rbc-\n　 a \r\n \n ﻿ \n\r\n𝄞ébca﻿𝄞\u000B<中文W bc中文 bc\n\u000B\n😀\r\né \r\n "},
+  {"char_width":12,"lines":["﻿\f","𝄞"],"max_width":248,"text":"﻿\f\r\t𝄞"},
+  {"char_width":5,"lines":["W","﻿","-","﻿\fbc","   é\f bc\f<","W中文\u000B中文\u000B👩‍💻\u000Ba","bc","<<中文"," bc\fbcWa中文bc 𝄞- 😀",""],"max_width":149,"text":"W\r\n﻿\r\n- \r\n﻿\fbc\r\n   é\f  bc\f<  \rW中文\u000B中文\u000B👩‍💻\u000Ba\rbc\t\r\n<<中文\n bc\fbcWa中文bc 𝄞- 😀 \r\n"},
+  {"char_width":1,"lines":[" 𝄞﻿ 😀W","","中文中文中文é中文中文👩‍💻 \u000B"],"max_width":19,"text":" 𝄞﻿ 😀W\n\r中文中文中文é中文中文👩‍💻 \u000B"},
+  {"char_width":1,"lines":["","a中文\u000Bbc中文 W\u000B😀 中文\u000B👩‍💻𝄞  ","中文é﻿éa< 　中文\u000Ba　  - ﻿","bc",""," "],"max_width":175,"text":"\ra中文\u000Bbc中文  W\u000B😀  中文\u000B👩‍💻𝄞  \r\n中文é﻿éa< 　中文\u000Ba　\t\t - ﻿\nbc\r\n\n   "},
+  {"char_width":5,"lines":["a bc😀","😀","W中文","bc <","","é"," "],"max_width":32,"text":"a bc😀\n 😀\nW中文 bc <   \r\r\né\r\n "},
+  {"char_width":1,"lines":["-\u000B👩‍💻中文","W😀 中文é  "," ","-é","bcé","< a "],"max_width":178,"text":"-\u000B👩‍💻中文\nW😀 中文é  \n \r\n-é\rbcé    \r\n< a "},
+  {"char_width":12,"lines":["😀","\f","😀","　"," ","é"," ","\u000B","😀"," ","","","　"," ","\u000B","W","﻿","-","﻿","\f","﻿","﻿","😀"," "," ","\f"],"max_width":-26,"text":"😀\f😀　 é \n\u000B😀 \n 　 \u000BW﻿-﻿\n    \f﻿  ﻿ 😀   \f"},
+  {"char_width":1,"lines":["","﻿ é \f　","a"," 😀 ","👩‍💻😀","-","😀bc"," ","","-  bcbc👩‍💻👩‍💻"," a   a 　   -中文 "],"max_width":329,"text":"\n﻿ é  \f　\r\na\r 😀  \t\r👩‍💻😀\r\n-\n😀bc\n   \r\n\t\r\n- \tbcbc👩‍💻👩‍💻  \r a\t  a    　\t   -中文  "},
+  {"char_width":5,"lines":[" ","<","<","😀","b","c"," ","W","a","\f","-"," ","👩","‍","💻","👩","‍","💻","中","文","a","😀","a","é","<","a","-"," ","a","","b","c","W","W"," "," ","",""],"max_width":-21,"text":" <<\r😀bc W\ra\r  \f\t\t  \n- 👩‍💻\t\r 👩‍💻 中文a😀\r\naé\n  <a-   abcWW   \n  "},
+  {"char_width":12,"lines":["a👩‍💻é𝄞","\u000B a \f 👩‍💻　 bcé 　😀 　 😀\fé","-é< \f😀W👩‍💻"],"max_width":354,"text":"a👩‍💻é𝄞 \r\u000B  \ta \f  👩‍💻　 bcé 　😀\t　 😀\fé -é< \f😀W👩‍💻"},
+  {"char_width":12,"lines":["　 　 é﻿\fé"," ﻿","👩‍💻","-é　\u000B","","﻿"],"max_width":123,"text":"　 　\té﻿\fé    ﻿\r\t👩‍💻\r\n-é　\u000B \r\n\n ﻿"},
+  {"char_width":1,"lines":["bcaé😀👩‍💻    \u000B𝄞"],"max_width":133,"text":"bcaé😀👩‍💻     \u000B𝄞"},
+  {"char_width":12,"lines":["\f","👩‍💻-  😀﻿","😀 ﻿ 👩‍💻 bc﻿ 😀","abc","𝄞é\f   <﻿- -  ","😀 中文"],"max_width":316,"text":"\f\r\n👩‍💻-\t 😀﻿\r\n😀 ﻿ 👩‍💻  bc﻿ 😀\r\nabc\r𝄞é\f     <﻿- -   \r\n😀  中文  "},
+  {"char_width":12,"lines":["﻿","W","b","c","b","c","　","-","﻿","𝄞","　"],"max_width":-25,"text":" ﻿Wbc   bc　\r\n-﻿𝄞　"},
+  {"char_width":1,"lines":["","中文中文👩‍💻","😀 　 -<< \u000B﻿ 中文   "],"max_width":130,"text":"\t\r中文中文👩‍💻\r😀 　  -<< \u000B﻿ 中文   "},
+  {"char_width":1,"lines":["bc -","","bc中文< 𝄞  -","𝄞-　 W","","\f","W \f","\u000B﻿　","中文👩‍💻 \fW","😀   <\f👩‍💻"," "],"max_width":79,"text":"bc -\n\r\nbc中文<  𝄞   -\r𝄞-　 W\r\r\f\r W \f\n\u000B﻿　\n中文👩‍💻 \fW\r\n😀    <\f👩‍💻\n "},
+  {"char_width":1,"lines":["-﻿👩‍💻-a a\f﻿é","","  \f-"],"max_width":327,"text":"-﻿👩‍💻-a a\f﻿é\r\n\n  \f-"},
+  {"char_width":12,"lines":["W中文","﻿é","𝄞 😀","a"],"max_width":46,"text":"W中文﻿é  𝄞\t😀\na"},
+  {"char_width":5,"lines":[" W<    <　👩‍💻👩‍💻　 é ","\u000Béé𝄞﻿👩‍💻  bc𝄞a中文 é 中文<Wa< ","\u000B a"],"max_width":142,"text":" W<\t   <　👩‍💻👩‍💻　  é \n\u000Béé𝄞﻿👩‍💻 \tbc𝄞a中文  é\t中文<Wa< \t\t\n\u000B\ta  "},
+  {"char_width":5,"lines":["　"," ","😀","﻿","中","文","𝄞","<","👩","‍","💻"," "," ","é","👩","‍","💻","\u000B","👩","‍","💻"," ","😀","\f","","é"],"max_width":-16,"text":"　\n  😀﻿中文𝄞   \r<\r\n👩‍💻  \r é👩‍💻\u000B 👩‍💻   😀\n   \f \n\ré"},
+  {"char_width":1,"lines":["bc","é中文\u000B中文bc ","👩‍💻﻿","😀W﻿ 👩‍💻< - 👩‍💻👩‍💻"," 　 <𝄞","\u000Bé  ﻿\u000B 中文<　　é　","😀\u000B  é"],"max_width":134,"text":"bc\né中文\u000B中文bc \r👩‍💻﻿\r😀W﻿ 👩‍💻<\t- 👩‍💻👩‍💻\n    　 <𝄞 \r\u000Bé    ﻿\u000B  中文<　　é　\r\n😀\u000B   é\t  "},
+  {"char_width":5,"lines":["👩‍💻 𝄞bc -中文","- ﻿","","𝄞\f ﻿𝄞é  W😀👩‍💻W  bcW","  😀bc \u000B𝄞W<<👩‍💻- bc中文😀　𝄞"],"max_width":228,"text":"👩‍💻 𝄞bc -中文  \r\n\t - ﻿ \t\r\n\r𝄞\f ﻿𝄞é  W😀👩‍💻W   bcW\n \t😀bc \u000B𝄞W<<👩‍💻- bc中文😀　𝄞"},
+  {"char_width":1,"lines":["- a﻿W\u000B","😀 bc< ﻿é𝄞 bc bca\faW","𝄞","\f𝄞😀😀<","<　 bc中文","\f "],"max_width":264,"text":"   - a﻿W\u000B\r\n😀 bc< ﻿é𝄞\tbc bca\faW  \r𝄞\n\f𝄞😀😀<\n<　 bc中文\r\f  "},
+  {"char_width":1,"lines":[" a𝄞 <a","\f👩‍💻　中文 中文 中文","< \u000BW W<","","👩‍💻中文"],"max_width":159,"text":" a𝄞 <a\r\n\f👩‍💻　中文 中文\t中文\r\n<\t\u000BW W<\r\n \r\n👩‍💻中文"},
+  {"char_width":12,"lines":["中文","\f 😀"],"max_width":353,"text":"中文  \r\f 😀"},
+  {"char_width":5,"lines":[" ","😀"," ","","é","﻿","a"," ","-","W","𝄞","W"],"max_width":-23,"text":"\t 😀 \n\r\n é  \r\n﻿a\n -\t W𝄞W"},
+  {"char_width":5,"lines":["","W"],"max_width":-14,"text":"W"},
+  {"char_width":5,"lines":["\u000B👩‍💻Wa","a 𝄞","éW","a  ","\u000B","\f \u000B\f中文","<"],"max_width":40,"text":"\u000B👩‍💻Wa   \r\na 𝄞  \néW\r\na  \r\u000B \r\n\f \u000B\f中文  \n<"},
+  {"char_width":5,"lines":["","é\u000B",""," \fbc😀\f 中文bc 中文 \f😀bc\u000B<\u000B\u000B"],"max_width":386,"text":"\r\né\u000B\n\r\t \fbc😀\f  中文bc 中文 \f😀bc\u000B<\u000B\u000B"},
+  {"char_width":1,"lines":["中","文","é","W","𝄞","😀","W","　","😀"," ","W","　"," ","\f","é","𝄞"," "],"max_width":-21,"text":" 中文é\nW𝄞 😀W  　😀\n   W　   \f\ré𝄞 "},
+  {"char_width":1,"lines":[" \f中文 👩‍💻W"," ","bc  \u000B\f   \u000B",""],"max_width":127,"text":" \f中文 👩‍💻W\n \nbc   \u000B\f     \u000B \r\n"},
+  {"char_width":5,"lines":["\u000B- \u000B\u000Ba -bc é﻿","\f ","😀< \fW<    \f<","","é👩‍💻𝄞bc-","\f𝄞","-𝄞 👩‍💻　W -W﻿"],"max_width":313,"text":"\u000B- \t\u000B\u000Ba -bc é﻿\t\r\f \r😀<\t\fW< \t     \f<  \r\ré👩‍💻𝄞bc-\n\f𝄞\n-𝄞 👩‍💻　W -W﻿"},
+  {"char_width":12,"lines":["\u000B"],"max_width":58,"text":"\u000B"},
+  {"char_width":12,"lines":["👩‍💻　 𝄞  \u000B中文 　é-"," 中文\f👩‍💻","中文 　bc  -"],"max_width":347,"text":"👩‍💻　 𝄞    \u000B中文 　é-\n 中文\f👩‍💻\r中文 　bc  -"},
+  {"char_width":1,"lines":[" \f👩‍💻\f<　😀é"],"max_width":328,"text":" \f👩‍💻\f<　😀é"},
+  {"char_width":5,"lines":["👩‍💻","Wbc"," ","👩‍💻😀\f 😀\u000B😀"," bc","é  \fa﻿bc <中文  a  "," "," 😀𝄞　 ",""],"max_width":102,"text":"👩‍💻\nWbc \r  \n👩‍💻😀\f  😀\u000B😀  \n bc\né  \fa﻿bc <中文   a  \r\n \r\n 😀𝄞　 \r\n "},
+  {"char_width":1,"lines":[" a \u000B𝄞 中文 \u000B𝄞 👩‍💻 ﻿é 😀  \fé😀　"," ﻿\u000B ","　﻿ <Wbc👩‍💻 \f\fa"],"max_width":298,"text":" a  \u000B𝄞 中文 \u000B𝄞 👩‍💻 ﻿é\t😀  \fé😀　\r ﻿\u000B \r\t　﻿  <Wbc👩‍💻    \f\fa"},
+  {"char_width":5,"lines":["  ","","é　","bc",""],"max_width":184,"text":"  \n \ré　\rbc  \r\n"},
+  {"char_width":12,"lines":["W\u000B","W<bc-   a 　\u000Ba","﻿",""],"max_width":179,"text":"\tW\u000B\r\t W<bc-   a 　\u000Ba \r\n \t﻿\n"},
+  {"char_width":1,"lines":["é","　\f👩‍💻👩‍💻","<𝄞　","bc👩‍💻<中文 bc中文","W\u000B👩‍💻<中文é 𝄞\f","　  😀 \u000B \u000B","","\u000B é👩‍💻 ﻿-a-"],"max_width":157,"text":"é\n　\f👩‍💻👩‍💻\n<𝄞　\r\nbc👩‍💻<中文 bc中文\nW\u000B👩‍💻<中文é\t    𝄞\f\r　 \t😀 \u000B \u000B\r\n\n\u000B é👩‍💻 ﻿-a-"},
+  {"char_width":5,"lines":["﻿W  -bc  ","<"],"max_width":197,"text":"﻿W  -bc   \r\n<"},
+  {"char_width":12,"lines":["👩‍💻bc\u000B\u000BbcW<\f　 👩‍💻 bc 中文 \f\f","\u000B-W"," 𝄞 　   　﻿中文bc"],"max_width":369,"text":"👩‍💻bc\u000B\u000BbcW<\f　 👩‍💻 bc  中文 \f\f\n\u000B-W\r\n 𝄞 　     　﻿中文bc "},
+  {"char_width":5,"lines":["﻿👩‍💻bc👩‍💻😀","　W"],"max_width":274,"text":"﻿👩‍💻bc👩‍💻😀\r　W "},
+  {"char_width":12,"lines":["","\u000Ba"],"max_width":191,"text":"\r\u000Ba\t"},
+  {"char_width":5,"lines":["a"],"max_width":260,"text":"a"},
+  {"char_width":12,"lines":["😀","﻿","\f","👩","‍","💻","","　","a","<","a","-"," "," ","","👩","‍","💻"," ","","-","𝄞","b","c","𝄞","﻿","é"," ","𝄞","\u000B"," ","","\f","👩","‍","💻","W"," ","😀","é"," ","　","　","\f","\u000B"],"max_width":-6,"text":"😀﻿\f 👩‍💻　a<a-  👩‍💻\r\n -𝄞bc    𝄞﻿é 𝄞\u000B  \n\f  👩‍💻\tW\r  \r😀é 　　\f\t\u000B"},
+  {"char_width":12,"lines":["中文- \u000B "],"max_width":263,"text":"中文-\t\u000B  "},
+  {"char_width":5,"lines":["bc",""],"max_width":261,"text":"bc\r\n"},
+  {"char_width":12,"lines":["bc","-","é","é","𝄞中","文\f"," \f","𝄞<","a-","W中","文","﻿b","cW","😀𝄞","a ","bc","\fé","﻿",""," 👩","‍💻","-<","éW","<😀","😀 "],"max_width":32,"text":"bc-\téé\r\n𝄞中文\f   \f𝄞<\r\na-W中文 ﻿bcW 😀𝄞\na bc\fé﻿\n  👩‍💻-<éW<😀\t😀 "},
+  {"char_width":1,"lines":["﻿𝄞<bc　\f　 ","","\u000B 😀😀𝄞 😀　","<a👩‍💻 \u000Babc","\u000B","","𝄞W-é aW< é 😀  ﻿ "],"max_width":33,"text":"﻿𝄞<bc　\f　 \r\n\r\n\u000B 😀😀𝄞\t😀　\r\n   <a👩‍💻 \u000Babc\n \u000B\n\r𝄞W-é \taW< é  😀  ﻿ \t"},
+  {"char_width":5,"lines":["﻿"," "," ","a","\u000B","",""],"max_width":-18,"text":"﻿ \n a\u000B\r\n"},
+  {"char_width":5,"lines":["","中文👩","‍💻-","Wa","","\u000B","","😀"],"max_width":18,"text":"\r   中文👩‍💻-Wa\r  \n\u000B\n\t\r😀"},
+  {"char_width":12,"lines":["👩‍💻a𝄞"," éé😀","<　","","bca  中文　 　 Wé𝄞　"],"max_width":358,"text":"👩‍💻a𝄞\r éé😀\r\n<　 \t \n\rbca \t中文　\t　 Wé𝄞　"},
+  {"char_width":12,"lines":[" a-中文\f","中文-","中文"],"max_width":378,"text":" a-中文\f\n中文- \r中文"},
+  {"char_width":12,"lines":["","　 　\f","  ﻿　<","﻿ 😀 𝄞"," 𝄞👩‍💻 中","文 ","bc中文-","  😀-﻿"],"max_width":100,"text":"\r\n　  　\f\r\t   ﻿　<\t﻿ 😀  𝄞\t 𝄞👩‍💻 中文 \nbc中文-\r\n \t😀-﻿"},
+  {"char_width":12,"lines":["","-👩‍💻"," bc👩‍💻  é","😀\u000BW👩‍💻👩‍💻bc"],"max_width":173,"text":"\r\n-👩‍💻\n bc👩‍💻\t é\n😀\u000BW👩‍💻👩‍💻bc"},
+  {"char_width":5,"lines":["","﻿<<𝄞","\u000Ba\f ","　"],"max_width":242,"text":" \r﻿<<𝄞\n\u000Ba\f\t\n　"},
+  {"char_width":12,"lines":["","  a","\u000B 😀 中文","中文a<  中文𝄞é 👩‍💻\u000B𝄞bc\f","\f 😀 😀bc  \u000B　 é"," ","-éW \u000B -","　 👩‍💻",""],"max_width":329,"text":"\r\n   a\r\n\u000B 😀\t中文\r\n中文a<  中文𝄞é 👩‍💻\u000B𝄞bc\f\t\r\n\f 😀 😀bc \t\u000B　 é\r \r\n-éW \u000B  -\n　 👩‍💻 \n "},
+  {"char_width":5,"lines":["bc\f\u000B 　",""," a","é👩‍💻 éa","W𝄞😀 <W - 👩‍💻bc< ","","- - ","","","﻿Wé"],"max_width":190,"text":"bc\f\u000B\t　  \r\n\r\n a\r\n\t  é👩‍💻 éa\r\nW𝄞😀  <W\t- 👩‍💻bc< \r\n\r- - \r\n\r\n\n﻿Wé"},
+  {"char_width":12,"lines":["W-<<\f"," ﻿　 ","\f<👩‍💻","é \fbc","bc","W  bc","中文😀 ",""],"max_width":64,"text":"W-<<\f ﻿　 \f<👩‍💻é \fbc\tbc\rW  bc\n中文😀 \t\r"},
+  {"char_width":12,"lines":["-𝄞","b","c","﻿"],"max_width":32,"text":"-𝄞bc\r﻿"},
+  {"char_width":1,"lines":[" ﻿ \f -𝄞  😀-  <"],"max_width":152,"text":" ﻿   \f -𝄞  😀- \t<\t"},
+  {"char_width":12,"lines":["é  a😀中文","中文﻿𝄞<\f中文-<𝄞W W <<𝄞中文👩‍💻 😀<","　😀"],"max_width":320,"text":"é   a😀中文  \t\r中文﻿𝄞<\f中文-<𝄞W\tW  <<𝄞中文👩‍💻   😀< 　😀"},
+  {"char_width":1,"lines":[""],"max_width":262,"text":""},
+  {"char_width":5,"lines":["　-　😀bc   <"],"max_width":76,"text":"　-　😀bc   <"},
+  {"char_width":5,"lines":["",""],"max_width":-2,"text":"\n"},
+  {"char_width":1,"lines":["\f\u000B 　a𝄞  aé<𝄞a   -\u000B  ","😀Wé -","a< "],"max_width":93,"text":"\f\u000B 　a𝄞    aé<𝄞a\t   -\u000B   \r\n😀Wé\t-\ra< "},
+  {"char_width":5,"lines":["\u000B 👩‍💻   ﻿  中文﻿　","\u000B😀 😀 a ","bc","<𝄞 \f\f  𝄞 bca  中文😀﻿","<中文","a 😀bc 😀-\u000B"],"max_width":109,"text":"\u000B  👩‍💻   ﻿  中文﻿　\r\u000B😀 😀 a \rbc\r\n<𝄞 \f\f  𝄞 bca \t中文😀﻿\t\n  <中文\na 😀bc 😀-\u000B"},
+  {"char_width":12,"lines":[" 𝄞","","","😀W","W　a<","😀\u000B"],"max_width":245,"text":"   𝄞\r\n\r\r😀W\r\nW　a<   \n😀\u000B"},
+  {"char_width":5,"lines":["　"," ","﻿","👩","‍","💻","b","c","\f","-","👩","‍","💻","中","文","😀","😀"," ","﻿"," ","\u000B","﻿","　","😀","-","﻿","𝄞","a","中","文","\f","<","W","é",""," "," ","é","﻿","W"," ","﻿","﻿","𝄞","W","b","c"],"max_width":0,"text":"　 ﻿👩‍💻bc \f-👩‍💻  中文😀\n😀 ﻿\n \u000B﻿　😀-﻿\r𝄞a中文\f<Wé\r\r\n  é﻿W\t ﻿﻿𝄞Wbc"},
+  {"char_width":5,"lines":["  bc"],"max_width":371,"text":"  bc"},
+  {"char_width":12,"lines":["𝄞éWa﻿W"," 中文- 　﻿é","","\f😀","  😀﻿","abc👩‍💻"," \f﻿ bc","< \fé\f😀","𝄞\u000B﻿  ","👩‍💻中文"],"max_width":131,"text":"𝄞éWa﻿W\t \t 中文- 　﻿é\n\r\f😀\r\n  😀﻿ abc👩‍💻\r\n \f﻿\t\tbc\r<  \fé\f😀\r𝄞\u000B﻿   \n👩‍💻中文"},
+  {"char_width":1,"lines":[" "],"max_width":310,"text":"  "},
+  {"char_width":1,"lines":["\f<﻿--👩‍💻  a a \f 　𝄞W ﻿ 　W﻿中文","﻿","中文　","😀"," \u000B﻿\u000B👩‍💻 👩‍💻 😀< \u000B\fbc a","﻿﻿﻿"],"max_width":311,"text":"\f<﻿--👩‍💻  a a \f 　𝄞W ﻿\t　W﻿中文\r\n﻿\n中文　\r\n😀\r\n \u000B﻿\u000B👩‍💻\t👩‍💻 😀<\t\u000B\fbc a\r﻿﻿﻿"},
+  {"char_width":1,"lines":["","","é","𝄞 👩‍💻\f","中文éé ﻿é","aa﻿中文bc   中文","\u000B﻿  "," 😀 中文 👩‍💻--","","﻿👩‍💻é中文--𝄞ébc","W\f 👩‍💻"],"max_width":13,"text":" \r\n  \né\r\n𝄞 👩‍💻\f\r中文éé ﻿é\naa﻿中文bc\t  中文\r\u000B﻿   \r\t😀  中文 👩‍💻--\r\n\r﻿👩‍💻é中文--𝄞ébcW\f 👩‍💻"},
+  {"char_width":12,"lines":["<bca","\f\f\f  👩‍💻👩‍","💻😀𝄞","","  ","👩‍💻-😀 𝄞","﻿👩‍💻 𝄞  ","\fW"],"max_width":126,"text":"<bca\r\n\f\f\f  👩‍💻👩‍💻😀𝄞\r\r\n  \r👩‍💻-😀  𝄞\t﻿👩‍💻\t𝄞   \fW "},
+  {"char_width":5,"lines":["-éW﻿a👩‍💻 𝄞"],"max_width":288,"text":"-éW﻿a👩‍💻 𝄞  "},
+  {"char_width":5,"lines":["﻿","é","中","文"," ","-","\f","𝄞","-",""," ","-"," ","é","é"," ","a",""],"max_width":-27,"text":"﻿é中文 -\f𝄞 -  \r\n\r\n - éé a\t  "},
+  {"char_width":5,"lines":["😀bc","","W﻿😀Wbc  　"," \f\u000B "," 👩‍💻","😀😀a"," -\fa\u000BW","ébc\u000B <<　","<😀 -"],"max_width":328,"text":"😀bc\n   \n W﻿😀Wbc   　\n \f\u000B \r\n 👩‍💻\r😀😀a\n  -\fa\u000BW\r\nébc\u000B  <<　\n\t<😀  -"},
+  {"char_width":1,"lines":["a","  <😀 éé \u000B 👩‍💻　中文\u000B中文 é a","\u000Ba中文W ﻿　","   a\u000B"],"max_width":305,"text":"a\r\n\t  <😀 éé \t\u000B 👩‍💻　中文\u000B中文 é a\r\u000Ba中文W ﻿　\r   a\u000B "},
+  {"char_width":1,"lines":["𝄞👩‍💻-﻿ ﻿ Wé𝄞 \u000B W","👩‍💻 -\f   \fW","é👩‍💻","",""],"max_width":231,"text":"𝄞👩‍💻-﻿  ﻿\tWé𝄞\t\u000B\tW\r👩‍💻\t -\f\t  \fW\r\né👩‍💻\n\r\n\t"},
+  {"char_width":12,"lines":["😀 𝄞😀 　 ","  \f","a"],"max_width":110,"text":"😀\t𝄞😀 　 \n\t\t  \t\f\t\n a"},
+  {"char_width":1,"lines":["  ","\u000B👩‍💻bc","bca<\u000B ","𝄞"],"max_width":6,"text":"   \r\u000B👩‍💻bcbca<\u000B 𝄞"},
+  {"char_width":1,"lines":["<   ","中文 bc<W"," 𝄞W😀","﻿","é"],"max_width":381,"text":"< \t \n中文 bc<W\r\n 𝄞W😀\n﻿\r\né \t"},
+  {"char_width":5,"lines":["aWé  \u000B -😀 \fW\u000B","-　-\u000Ba \u000B😀bc- -- \u000B<😀中文bc 　 W\f ","W-中文Wa",""," ",""],"max_width":262,"text":"aWé   \u000B -😀\t  \fW\u000B\r\n    -　-\u000Ba \u000B😀bc-  -- \u000B<😀中文bc 　 W\f \rW-中文Wa\r\r\n \r\n"},
+  {"char_width":12,"lines":["𝄞\f","　 　　   ","W\u000B W é😀","- <中文😀 bc😀　",""],"max_width":186,"text":"𝄞\f\r\n　  　　 \t \r W\u000B W   é😀\n -  <中文😀 bc😀　 \r\t"},
+  {"char_width":5,"lines":["<𝄞"],"max_width":104,"text":"<𝄞"},
+  {"char_width":5,"lines":["\u000B é"],"max_width":204,"text":"\u000B\té"},
+  {"char_width":12,"lines":["中文﻿","\f 😀👩‍💻"],"max_width":286,"text":"中文﻿\r\n\f 😀👩‍💻  "},
+  {"char_width":12,"lines":["👩‍💻","","\f","\u000B ","﻿ ","","👩‍💻😀Wa中文","<","",""],"max_width":177,"text":"👩‍💻\r\n\n\f\n\u000B  \n﻿ \r\r\n👩‍💻😀Wa中文\n<\n\r"},
+  {"char_width":1,"lines":["W 😀𝄞bc𝄞W\u000B","😀𝄞   \f中文"],"max_width":150,"text":"W 😀𝄞bc𝄞W\u000B\r\n😀𝄞    \f中文"},
+  {"char_width":1,"lines":["","","𝄞　\f bc\f 😀 <","𝄞　👩‍💻\u000B ","　","bc <"," a",""," bc bc﻿　éW a <　"],"max_width":218,"text":"\n\r\t 𝄞　\f bc\f 😀 <\r\n𝄞　👩‍💻\u000B  \r　\r  bc <\t\n a\n\r\n\tbc\tbc﻿　éW a <　"},
+  {"char_width":5,"lines":["-中文 <𝄞 　","𝄞W ","𝄞𝄞𝄞﻿","- bcW\u000B  ","👩‍💻"],"max_width":292,"text":"-中文\t  <𝄞 　\t  \r\n𝄞W \r𝄞𝄞𝄞﻿\n- bcW\u000B  \n👩‍💻 "},
+  {"char_width":5,"lines":["中文 W\u000B","中文 𝄞 𝄞- 𝄞\u000B👩‍💻","","﻿a<👩‍💻𝄞 ﻿<中文 ﻿W","👩‍💻W<👩‍💻W\f "],"max_width":103,"text":"中文 W\u000B\n中文 𝄞\t𝄞- 𝄞\u000B👩‍💻\n\r﻿a<👩‍💻𝄞\t﻿<中文 ﻿W 👩‍💻W<👩‍💻W\f "},
+  {"char_width":5,"lines":["👩‍💻é　  a  ","\u000B中文😀﻿","","👩‍💻","\u000B😀bc< 👩‍💻　- 　中文a中文\u000B\u000B\f<"],"max_width":338,"text":"👩‍💻é　  a\t    \r \u000B中文😀﻿\r\r 👩‍💻\r\n\t\u000B😀bc<\t👩‍💻　-\t　中文a中文\u000B\u000B\f< "},
+  {"char_width":5,"lines":["a\f<W","𝄞　𝄞﻿👩","‍💻\f","W中文👩‍","💻<中文𝄞","😀 \u000B"],"max_width":28,"text":"a\f<W  𝄞　𝄞﻿👩‍💻\f\tW中文👩‍💻<中文𝄞😀 \u000B "},
+  {"char_width":5,"lines":["a","W"," ","中","文"," ","b","c","\f","👩","‍","💻","","-",""," ","<","é","a"," ","👩","‍","💻","W","﻿","\u000B","W","W","","W","<","","\u000B","中","文"," ","😀"," ","中","文"," ","a","﻿","𝄞"],"max_width":-6,"text":"aW 中文  bc\f  👩‍💻-  <éa 👩‍💻W﻿\u000B WW\t\tW\n<\u000B中文 😀\t\n   中文 a﻿𝄞"},
+  {"char_width":5,"lines":["","﻿a ﻿"," \f","<  <\u000B👩‍💻\f\u000B","﻿😀中文　  < 　中文 -é\f👩‍💻\fbcbc𝄞😀"],"max_width":200,"text":" \r\n﻿a ﻿\r\n \f\r\n<   <\u000B👩‍💻\f\u000B\r\n﻿😀中文　  < 　中文 -é\f👩‍💻\fbcbc𝄞😀 "},
+  {"char_width":1,"lines":["W😀 😀  中文é-W"],"max_width":247,"text":"W😀 😀   中文é-W"},
+  {"char_width":12,"lines":["\u000B中文 a😀<𝄞 aW𝄞 \u000B","a -é👩‍💻 aa ","W\u000BbcW"],"max_width":387,"text":"\u000B中文    a😀<𝄞  aW𝄞 \u000B\r\na -é👩‍💻  aa\t\nW\u000BbcW"},
+  {"char_width":12,"lines":[" \u000Bé中文\u000B\u000Ba   👩‍💻　𝄞","W😀  W﻿ ﻿👩‍💻"],"max_width":260,"text":"\t \u000Bé中文\u000B\u000Ba    👩‍💻　𝄞\nW😀  W﻿   ﻿👩‍💻  "},
+  {"char_width":5,"lines":["﻿<W𝄞","　","aWé 　<","😀　","","abc𝄞","","","bc \u000Babc<   a　","  W𝄞-é"],"max_width":138,"text":"  ﻿<W𝄞\r\n 　\raWé 　<\r\n😀　\n\nabc𝄞  \n\r\n\r\nbc\t\u000Babc<   a　 \r \tW𝄞-é  "},
+  {"char_width":5,"lines":["bc 😀-bc <\f𝄞 \f \u000B",""],"max_width":177,"text":"bc\t\t😀-bc\t<\f𝄞  \f \u000B  \r\n"},
+  {"char_width":1,"lines":[" éa　é"],"max_width":70,"text":" éa　é"},
+  {"char_width":12,"lines":["","𝄞﻿﻿中文﻿ \u000Bbc😀  \u000B< a 😀  ","👩‍💻😀\fbc　éé👩‍💻﻿\u000B","< 𝄞\u000B\f -中文bc","- \u000Ba"],"max_width":291,"text":"\r 𝄞﻿﻿中文﻿   \u000Bbc😀 \t\u000B<  a 😀   👩‍💻😀\fbc　éé👩‍💻﻿\u000B\r<  𝄞\u000B\f -中文bc\r\n- \u000Ba"},
+  {"char_width":12,"lines":["　","b","c","　","\u000B","a","é"," ","\f"," "," ","👩","‍","💻","W","\u000B","a","中","文","b","c"],"max_width":-26,"text":"   　\rbc  　\u000B aé  \f  👩‍💻W\u000B  a中文bc\t"},
+  {"char_width":1,"lines":["中文𝄞 ","é bc -中文W﻿ a ﻿a","👩‍💻　 W\u000B","","　  W﻿ 𝄞 ﻿\u000Babc 👩‍💻 abc"],"max_width":148,"text":"中文𝄞 \né  bc\t-中文W﻿ a ﻿a  \r\n👩‍💻　 W\u000B\r\r　  W﻿ 𝄞  ﻿\u000Babc  👩‍💻 abc"},
+  {"char_width":1,"lines":["中文","","aéa𝄞 "],"max_width":376,"text":"中文\n\naéa𝄞 "},
+  {"char_width":12,"lines":["<bc \f"],"max_width":213,"text":"<bc \f"},
+  {"char_width":1,"lines":["-𝄞-<é👩‍💻𝄞\u000B\u000Bé W<","  👩‍💻 é","﻿","\u000B","bc\u000Ba <  ","👩‍💻","bc"],"max_width":19,"text":"-𝄞-<é👩‍💻𝄞\u000B\u000Bé W<\n \t👩‍💻  é\n﻿\r  \u000B\r\nbc\u000Ba <   \r\n👩‍💻\r\nbc"},
+  {"char_width":5,"lines":["\u000B","👩‍💻aWa é　﻿bc ","bc< 　\f\u000B","😀﻿  ﻿ 😀-bc中文\f","W","  W"],"max_width":292,"text":"\u000B\r 👩‍💻aWa é　﻿bc  \n  bc< 　\f\u000B\r\n😀﻿\t ﻿ 😀-bc中文\f \r\nW\n  W"},
+  {"char_width":1,"lines":[""," ",""," \u000B𝄞"],"max_width":228,"text":"\r \r\n\r \u000B𝄞 "},
+  {"char_width":5,"lines":["a bc👩‍💻    👩‍💻𝄞﻿é 𝄞😀 a"," W﻿","\u000B a  ","😀","\u000B👩‍💻 ﻿-\f　 \u000B\fW-"],"max_width":180,"text":" a bc👩‍💻    👩‍💻𝄞﻿é 𝄞😀 a\r  W﻿\n\u000B \ta   \r😀\r\n\u000B👩‍💻 ﻿-\f　 \u000B\fW-"},
+  {"char_width":5,"lines":["  W\u000Ba 　 W ﻿a  "],"max_width":276,"text":"   W\u000Ba  　 W ﻿a  "},
+  {"char_width":12,"lines":["   ","aéé -","<𝄞é","👩‍💻W\u000B﻿ ","é","😀-éé﻿　W","  𝄞a","　👩‍💻aa","😀","👩‍💻 😀aW"," ","- ",""],"max_width":94,"text":"    aéé -<𝄞é 👩‍💻W\u000B﻿ é\r\n😀-éé﻿　W  𝄞a 　👩‍💻aa\t😀\n👩‍💻\t😀aW  \r\n\t - \n"},
+  {"char_width":12,"lines":["","👩","‍","💻","a","　","<","W","𝄞","-"," ","\u000B","\f","-","\u000B"],"max_width":-3,"text":"\r 👩‍💻a　<W𝄞-\t \r\n\u000B\t\f-\u000B"},
+  {"char_width":12,"lines":["- 😀","\u000B","","ébc","a　👩‍💻 a中文　\u000B"," bcé<👩‍💻a　 𝄞 -","","😀﻿中文 bc "],"max_width":188,"text":"-\t 😀\r\u000B\r\n \r  ébc\r\n  a　👩‍💻 a中文　\u000B\r\n bcé<👩‍💻a　 𝄞 -\r\n\r😀﻿中文 bc   "},
+  {"char_width":5,"lines":["-\u000B﻿bc \u000B\f😀Wé","　é😀 　 😀 中文   𝄞bc"," "],"max_width":345,"text":"-\u000B﻿bc \u000B\f😀Wé \r\n　é😀 　 😀\t中文    𝄞bc\r\n "},
+  {"char_width":5,"lines":["","bc 𝄞","👩‍💻 \fbc😀","  𝄞 ","bcéé😀","","W é\f ","-","👩‍💻W👩‍💻","中文 😀﻿"],"max_width":44,"text":"\nbc  𝄞 👩‍💻 \fbc😀  𝄞  \r\nbcéé😀\r\n\rW é\f \r\n-   👩‍💻W👩‍💻 \r\n中文 😀﻿"},
+  {"char_width":12,"lines":[" aW\f中文 ",""," <\u000Bbc👩‍💻","\f𝄞　\f　W","\u000B 😀bc👩‍💻<é😀\f ","-"],"max_width":156,"text":" aW\f中文 \n\r\n\t <\u000Bbc👩‍💻 \f𝄞　\f　W \u000B 😀bc👩‍💻<é😀\f -"},
+  {"char_width":1,"lines":["中","文","<","é","　","W","-"," ","﻿","　","b","c","a","𝄞"," ","W","W","👩","‍","💻"," ","中","文"," ","-","a","👩","‍","💻","😀"," ","","b","c","","<"," ","中","文"," ","a","W","<","","W"],"max_width":-5,"text":"中文\t<é　W - \r\n﻿　bca𝄞 WW\n👩‍💻 中文 -a👩‍💻😀 \rbc< \r\n中文   aW <W"},
+  {"char_width":5,"lines":["  👩‍💻bc\u000B<"],"max_width":353,"text":" \t     👩‍💻bc\u000B<"},
+  {"char_width":5,"lines":["a\u000B"],"max_width":339,"text":"  a\u000B"},
+  {"char_width":12,"lines":["a","　　<a<👩‍💻<👩","‍💻﻿  中文\u000B"," <W👩‍💻𝄞 b","c","\u000B\u000B👩‍💻 　","　-","👩‍💻　\u000B😀 "],"max_width":147,"text":"a\r\n　　<a<👩‍💻<👩‍💻﻿  中文\u000B\r <W👩‍💻𝄞 bc\n\u000B\u000B👩‍💻 　   \r　-\t👩‍💻　\u000B😀 "},
+  {"char_width":1,"lines":["- 　ébc\u000B😀😀  \u000B-Wa﻿\f-bcbc\u000B😀bc😀　\f　  中文 ﻿","👩‍💻  bc < aW - é","中文","\u000B"],"max_width":340,"text":"- 　ébc\u000B😀😀  \u000B-Wa﻿\f-bcbc\u000B😀bc😀　\f　\t 中文  ﻿\r\n👩‍💻  bc  < aW\t- é\r\n 中文\r\u000B"},
+  {"char_width":5,"lines":["W","W","中","文"," ","a"," ","👩","‍","💻","W","<","","\f","","中","文"],"max_width":-24,"text":" W  W中文\n \r\n  a 👩‍💻W<\r\r\f \n中文"},
+  {"char_width":12,"lines":["-  ","W","中文\u000B ","","\u000B","<  é","","中文"],"max_width":362,"text":"-  \r\nW\n中文\u000B \n\n\u000B  \r\n <   é\n\r中文"},
+  {"char_width":12,"lines":[" ","👩","‍","💻","𝄞","a",""," ","𝄞","\f"," ","中","文","b","c","﻿","𝄞","","é","　","<","👩","‍","💻","","\u000B","﻿"," ","﻿","\u000B","W","中","文","é","😀","<",""," ","𝄞"," ","W"],"max_width":5,"text":" 👩‍💻𝄞a \n𝄞\f 中文bc  ﻿𝄞\né\t 　\r\n<👩‍💻\u000B﻿    ﻿\u000B\tW中文  é😀< 𝄞 W"},
+  {"char_width":5,"lines":["<👩‍💻-- W 😀　- 𝄞a- -😀< ","👩‍💻 𝄞","𝄞"," ",""],"max_width":171,"text":"<👩‍💻--   W 😀　- 𝄞a- -😀< \r\n👩‍💻\t𝄞\r𝄞\n  \t \n"},
+  {"char_width":5,"lines":["é\u000B"],"max_width":155,"text":"é\u000B"},
+  {"char_width":12,"lines":["é中文","<﻿","\u000B𝄞\fé-﻿é  ","  　 W"," ﻿","😀bc","  W W\u000B bcé","-﻿　\fé\f\f中文"],"max_width":177,"text":"é中文\r\n<﻿\n\u000B𝄞\fé-﻿é  \r\n  　 W\n ﻿\n😀bc\n   W   W\u000B\t bcé\r  -﻿　\fé\f\f中文"},
+  {"char_width":5,"lines":["﻿😀<bcé <- \f",""],"max_width":335,"text":"﻿😀<bcé\t<- \f\n"},
+  {"char_width":12,"lines":["bc ","< 👩‍💻 -bc中文<","　\u000B<　 <𝄞　"],"max_width":400,"text":"bc \t\n<  👩‍💻 -bc中文<\n\t　\u000B<　 <𝄞　 \t\t  "},
+  {"char_width":5,"lines":["\f\f","　中文﻿bc é😀","　 ébc ﻿\f-中文"],"max_width":307,"text":"\f\f  \n　中文﻿bc\té😀\r\n　\tébc ﻿\f-中文"},
+  {"char_width":1,"lines":[" ","\f  ﻿𝄞𝄞 \u000B👩‍💻",""," ","﻿\f","-👩‍💻"],"max_width":288,"text":"  \r\f \t ﻿𝄞𝄞 \u000B👩‍💻\r\n\n \n﻿\f\t\r     -👩‍💻"},
+  {"char_width":1,"lines":[" 中文\u000B中文 \f 　\f"],"max_width":178,"text":" 中文\u000B中文 \f 　\f"},
+  {"char_width":12,"lines":["😀 a 中文  ","\u000B 😀","é","--𝄞\u000B 👩‍💻😀","𝄞\f😀-𝄞\u000B é","　﻿\u000B< ﻿W𝄞<\f中文 😀"],"max_width":255,"text":"😀\ta\t  中文  \n\u000B 😀\r\né\n--𝄞\u000B 👩‍💻😀\n𝄞\f😀-𝄞\u000B é 　﻿\u000B< ﻿W𝄞<\f中文 😀 "},
+  {"char_width":5,"lines":["<<","","中文é-𝄞a 𝄞","　é     é  ","","𝄞﻿bca","﻿","-a 👩‍💻 \f "],"max_width":52,"text":"<<  \t\n\r中文é-𝄞a\t𝄞 　é\t     é   \r\r𝄞﻿bca\r\n﻿\r-a\t👩‍💻 \f  "},
+  {"char_width":12,"lines":["","﻿ W","﻿𝄞 ","﻿","👩‍💻","a\u000B ","W","👩‍💻"," 中文"," ","\u000BW👩","‍💻"," 𝄞　","  😀","\f中文","W ","　b","c- "],"max_width":36,"text":"\n﻿ W﻿𝄞  ﻿  👩‍💻\ra\u000B  W 👩‍💻 中文   \u000BW👩‍💻\r\n 𝄞　\r  😀  \t\f中文\r\nW \r\n　bc- "},
+  {"char_width":12,"lines":["👩","‍","💻","","b","c","中","文"," ","a","𝄞","<"," ","👩","‍","💻"," ","a","-","a","b","c","<","𝄞","a","W","-","W"," ","é","　","\u000B","\f","é","a","","　"],"max_width":-12,"text":"👩‍💻\nbc\r\n中文   a𝄞< 👩‍💻   a-abc<𝄞  aW-\nW \ré　 \r\u000B\fé a　"},
+  {"char_width":12,"lines":["W","\f","é","a","\u000B","👩","‍","💻","<","👩","‍","💻","　","W","-","-","\u000B","a","👩","‍","💻","\f","\f","中","文","﻿","é","<","\u000B","","\f"," ","a","𝄞"," ","W","b","c","W","é","\f","b","c"," ","😀"],"max_width":4,"text":"W\féa\u000B👩‍💻<👩‍💻　\rW\t--\u000B\ra\t👩‍💻\f\f中文﻿é\r<\u000B\r\r\n\f a\r\t𝄞 WbcWé\fbc 😀"},
+  {"char_width":12,"lines":["　","𝄞bcaé- a \u000B","　é"," \f","","< "," -","\f - 　 ﻿ bc😀　bc"," ",""],"max_width":195,"text":"　\r\n  𝄞bcaé- a \u000B\r　é \r \f\r\n\n<  \r\n\t -\n\f - 　 ﻿ bc😀　bc\r\n \r"},
+  {"char_width":1,"lines":["中文bc😀﻿<<  👩‍💻 👩‍💻\f𝄞bc"," a","　  中文﻿bc𝄞a﻿\f中文é 👩‍💻 - bc"," W﻿","中文W   a　 \u000B<","𝄞﻿\u000Bbc"],"max_width":259,"text":"中文bc😀﻿<<  👩‍💻 👩‍💻\f𝄞bc\n a\r\n　  中文﻿bc𝄞a﻿\f中文é 👩‍💻\t-  bc\r W﻿\r中文W \t a　 \u000B<\n𝄞﻿\u000Bbc"},
+  {"char_width":5,"lines":["a","　 \f- 𝄞\u000B bc 　 a\fa 😀\fWbc中文é","\f　 \u000B éé W",""," 𝄞"],"max_width":346,"text":"a\r　  \f-  𝄞\u000B\tbc 　   a\fa 😀\fWbc中文é\n\f　\t\u000B éé\tW\r\n\r\n 𝄞"},
+  {"char_width":5,"lines":["中文 -中文","","bc <W","","- a-<𝄞bc\u000B","","","中文　 ","-é\f \u000B\u000B \f-﻿👩‍💻ééW𝄞 é中文\f"],"max_width":384,"text":"中文\t-中文\n\nbc <W\r\r - a-<𝄞bc\u000B\r\n\r\n\n中文　  \r-é\f \u000B\u000B \f-﻿👩‍💻ééW𝄞 é中文\f"},
+  {"char_width":5,"lines":["","é","中文﻿"],"max_width":173,"text":"\né\n中文﻿"},
+  {"char_width":12,"lines":["中文a 　 ","  -","","a\f  \u000B é","😀éW ","中文中文👩‍💻<﻿\f","","a","--","   "],"max_width":276,"text":"中文a 　  \r  - \r\n\ra\f  \u000B é\r\n😀éW \r中文中文👩‍💻<﻿\f \r\n\r\n  a\r\n--  \n   \t"},
+  {"char_width":1,"lines":["中文bc  <bcé","W ","\u000B　 - 　\u000B","W","中文\u000B- ﻿ <","  bc中文𝄞 a"],"max_width":177,"text":"中文bc   <bcé\r\nW \n\u000B　 -   　\u000B\rW\r\n中文\u000B-\t﻿ <\n  bc中文𝄞 a"},
+  {"char_width":1,"lines":[" 𝄞","\u000B﻿","\f中文   中文","﻿\u000Ba\f",""," é𝄞","\fbc　 𝄞  \f","\f👩‍💻　 bc\u000B \f \u000B","😀𝄞","　-"],"max_width":397,"text":" 𝄞 \r\n\u000B﻿\n\f中文   中文\r﻿\u000Ba\f\r\r\n é𝄞\r\fbc　   𝄞  \f  \r\n \t\f👩‍💻　 bc\u000B \f \u000B\r  😀𝄞\r\n　-"},
+  {"char_width":1,"lines":["中文中文👩‍💻","中文中文bc﻿中文<","中文a 👩‍💻-😀","<- ﻿ ﻿bc","- 中文\u000B<"," a 　",""],"max_width":376,"text":"中文中文👩‍💻\r\n中文中文bc﻿中文<\n中文a 👩‍💻-😀\r\n<- ﻿    ﻿bc\r\n- 中文\u000B<\n a 　\r\n"},
+  {"char_width":5,"lines":[" <"],"max_width":209,"text":" < \t"},
+  {"char_width":5,"lines":[" \f"],"max_width":116,"text":" \f"},
+  {"char_width":5,"lines":["😀\u000B ","",""],"max_width":384,"text":"😀\u000B \r\r\n"},
+  {"char_width":12,"lines":["a <👩‍💻﻿\u000B 　","   😀W <","","é \u000B  bca W","\u000B<Wé﻿\u000B","　 \u000B 𝄞<-\f<𝄞𝄞  bc👩‍💻"],"max_width":360,"text":"a <👩‍💻﻿\u000B 　\r\n   \t\t😀W  <\r\n\ré \u000B  bca  W\r\u000B<Wé﻿\u000B\n\t　\t \u000B 𝄞<-\f<𝄞𝄞\t bc👩‍💻\t"},
+  {"char_width":1,"lines":[" 中文 😀\u000B﻿-👩‍💻𝄞a- 𝄞👩‍💻 < \u000B　﻿W -","","𝄞\u000B中文\fa😀中文  😀 W𝄞 bc","﻿<👩‍💻","a\f  "],"max_width":289,"text":" 中文   😀\u000B﻿-👩‍💻𝄞a- 𝄞👩‍💻 <  \u000B　﻿W -\r\n \r\n𝄞\u000B中文\fa😀中文  😀 W𝄞 bc \r﻿<👩‍💻\r\n   a\f  "},
+  {"char_width":12,"lines":["﻿<中文\f","\f\u000B 𝄞<< \f","","a"],"max_width":144,"text":"﻿<中文\f\r\f\u000B\t𝄞<<\t\f\n\na"},
+  {"char_width":12,"lines":["-","😀","𝄞","𝄞","a","　","👩","‍","💻","中","文","b","c"," ","﻿","b","c","a","\u000B","😀","　","W","﻿","中","文"," ","中","文"," ","👩","‍","💻","b","c"," ",""],"max_width":17,"text":"-\r😀\t𝄞𝄞a　  👩‍💻中文\rbc     ﻿bca\u000B😀　W\n﻿中文 中文 👩‍💻\tbc "},
+  {"char_width":12,"lines":["　é 　"],"max_width":105,"text":"\t　é  　"},
+  {"char_width":5,"lines":["😀 "," bc　𝄞\u000B ﻿ <😀　　 \f𝄞👩‍💻 a"],"max_width":242,"text":"😀 \r bc　𝄞\u000B\t﻿ <😀　　\t\f𝄞👩‍💻 a "},
+  {"char_width":12,"lines":["bc𝄞a a  -   bcé"],"max_width":245,"text":"bc𝄞a a  -   bcé"},
+  {"char_width":5,"lines":["﻿"," ","﻿","W","b","c"," ","　","中","文",""," "],"max_width":-29,"text":"﻿ \n ﻿W\r\n  bc 　\t中文  \t"},
+  {"char_width":12,"lines":["é \f中文﻿a","bc a<","","﻿ -",""," é\u000B𝄞 中文","中文 中文bc﻿中文 bc éa",""],"max_width":307,"text":"é \f中文﻿a\rbc  a<\r  \n﻿ -\r\r é\u000B𝄞  中文\r中文 中文bc﻿中文\tbc  éa\r\n"},
+  {"char_width":12,"lines":["bc"," -","W","W<","　W"," ","","\u000B　"],"max_width":35,"text":"bc\n -W  W<　W \r\n \u000B　"},
+  {"char_width":5,"lines":["  "],"max_width":82,"text":"  "},
+  {"char_width":1,"lines":["﻿","中","文","b","c","﻿","😀","W"," "," ","𝄞"," ","é","b","c","a"," ","　","-"," "," "," ","","　","👩","‍","💻","a","﻿","中","文","-"," ","W","b","c","W"," ","\f"," ","\u000B","中","文"],"max_width":-8,"text":"﻿中文bc﻿  😀W  𝄞 é bca 　-  \r      　👩‍💻a﻿    中文-\t  W\t\nbcW\n \f \u000B中文\t"},
+  {"char_width":5,"lines":["","中文a","-\fbc😀W﻿ 中文W　bc  < é中文😀😀","bc\u000B\fbc -"],"max_width":267,"text":"  \r\n中文a\r\n-\fbc😀W﻿ 中文W　bc   < é中文😀😀\r\nbc\u000B\fbc -"},
+  {"char_width":12,"lines":["é\u000B ","😀","👩‍💻　 "," 👩‍💻 \u000B👩‍💻﻿","中文-中文é　\f中文👩‍💻中文 a"],"max_width":257,"text":"é\u000B   \r\n 😀\r👩‍💻　 \n  👩‍💻 \u000B👩‍💻﻿\n中文-中文é　\f中文👩‍💻中文 a"},
+  {"char_width":12,"lines":["éé ","bc 👩‍💻中文　 \u000B﻿👩‍💻𝄞　  \f",""," ﻿😀W","-","ééé　😀  ","é中文  中文"],"max_width":377,"text":"éé \nbc 👩‍💻中文　 \u000B﻿👩‍💻𝄞　  \f\n\r\n ﻿😀W\r-\nééé　😀  \né中文\t  中文\t "},
+  {"char_width":12,"lines":["  　\u000Bé  <👩‍💻 é","﻿ ","a-a中文"],"max_width":347,"text":"   　\u000Bé\t <👩‍💻 é\r﻿ \r\n a-a中文"},
+  {"char_width":5,"lines":["bc \f bc","é<﻿　aW\f-   "," bc <\f","　<","👩‍💻 - <aa W","W﻿bc𝄞"],"max_width":314,"text":"bc\t \f\tbc \né<﻿　aW\f-   \r bc <\f\n    　<\r👩‍💻  -     <aa W\rW﻿bc𝄞"},
+  {"char_width":1,"lines":["","bcbc a  ﻿<","👩‍💻\f é﻿","\f中文W <","bc é﻿ 𝄞 bcW "],"max_width":165,"text":"\rbcbc a   ﻿<\n👩‍💻\f\té﻿ \r\f中文W <\r\nbc\té﻿ 𝄞 bcW "},
+  {"char_width":12,"lines":[" 😀","é ","😀a <𝄞W  \u000B","    \f  "," ","","😀 é𝄞é","bc-中文　 \f","-😀","bc   　W﻿"],"max_width":112,"text":" 😀\né \n😀a <𝄞W   \u000B     \f   \n \r\n \n😀 é𝄞é bc-中文　 \f\r\n-😀\nbc    　W﻿"},
+  {"char_width":1,"lines":["-👩‍💻 < < 中文\f<  \u000B - a","a","　　a\u000Ba"],"max_width":329,"text":"-👩‍💻 < <\t 中文\f<  \u000B -  \ta\na\r\n　　a\u000Ba"},
+  {"char_width":5,"lines":["-","   ","aa 中文 "," W中文","<中文﻿    W\u000B","　",""],"max_width":392,"text":"-\r    \r\naa 中文 \t  \n W中文\r <中文﻿    W\u000B\r\n　\r"},
+  {"char_width":12,"lines":[""," ","","😀","W","é","-","b","c","<","é","-","a","😀","　","","中","文","﻿","😀","﻿","a",""," ","𝄞","b","c","-","b","c"," ","a","é","中","文","a",""],"max_width":-20,"text":"\r  \n 😀\tWé\r   - bc<é\r\n-a😀　  \n中文  ﻿\n😀﻿a 𝄞bc-bc\r\n aé中文a \r"},
+  {"char_width":1,"lines":["𝄞 a 中文　😀","👩‍💻\f -﻿ ","中文\u000B"],"max_width":345,"text":"𝄞 a  中文　😀\r\n👩‍💻\f -﻿ \r\n中文\u000B"},
+  {"char_width":12,"lines":["  ","W中文a　","bc  中文   <","﻿ 　😀😀 ﻿😀　"],"max_width":209,"text":"  \rW中文a　\nbc  中文   <\r\n﻿ 　😀😀  ﻿😀　"},
+  {"char_width":1,"lines":["😀","　 👩‍💻","😀","\u000B　-<","﻿\u000B👩‍💻","é　\f  -bc ﻿","  ﻿\u000B","👩‍💻<👩‍💻﻿","< ","𝄞 👩‍💻"],"max_width":220,"text":"😀\r\n　 👩‍💻\r\n  😀\n\u000B　-<\r﻿\u000B👩‍💻\r\né　\f   -bc ﻿\r\n  ﻿\u000B\r\n👩‍💻<👩‍💻﻿ \r\n< \r𝄞   👩‍💻  "},
+  {"char_width":1,"lines":["","﻿ W","　-﻿中文"," 👩‍💻👩‍💻😀W😀a\u000B é"],"max_width":246,"text":"\n﻿  W\r　-﻿中文\n 👩‍💻👩‍💻😀W😀a\u000B é"},
+  {"char_width":12,"lines":["﻿👩‍💻bc　 𝄞","　中文bcé- 中文"],"max_width":309,"text":"﻿👩‍💻bc　  𝄞\r\n 　中文bcé- 中文"},
+  {"char_width":1,"lines":["a　﻿< \u000B","﻿-WW𝄞"],"max_width":289,"text":"  a　﻿< \u000B\n ﻿-WW𝄞"},
+  {"char_width":5,"lines":["﻿😀 \u000Bbc　é😀　👩‍💻<  bc﻿\u000B","\u000B 👩‍💻 \f","😀 　﻿< 中文<中文\f中文\u000B","a","\u000B😀 👩‍💻"],"max_width":172,"text":" ﻿😀 \u000Bbc　é😀　👩‍💻<  bc﻿\u000B\n\u000B  👩‍💻 \f\r😀 　﻿< 中文<中文\f中文\u000B\n a\r\n\u000B😀 👩‍💻"},
+  {"char_width":1,"lines":["-a - a   中文"," ","ébcé👩‍💻 W﻿é","\f中文　 😀"],"max_width":73,"text":"-a - a   中文\r\n \r ébcé👩‍💻 W﻿é\r\f中文　 😀"},
+  {"char_width":12,"lines":["< 👩‍💻","é 　bc-\u000B中文　--<abc😀中文 W-\fa Wé","👩‍💻a","中文 W  abc"],"max_width":343,"text":" < 👩‍💻\né  　bc-\u000B中文　--<abc😀中文  W-\fa\tWé\r👩‍💻a\r中文 W \t\tabc"},
+  {"char_width":5,"lines":["﻿ < bc　 \u000B< bc","　𝄞W 👩‍💻"," ","\u000Bbc\u000B",""," a<\u000B<","aWa"],"max_width":99,"text":"﻿  < bc　\t\u000B< bc  　𝄞W  \t👩‍💻\n \n\u000Bbc\u000B \r\r a<\u000B<\r\naWa "},
+  {"char_width":12,"lines":["<\u000B é-","﻿< \u000B< 😀WaéW中文 😀-",""," 😀 é 😀  𝄞-😀","\u000B 𝄞　𝄞","  éé"],"max_width":251,"text":"<\u000B é- \r\n﻿<\t\u000B<  😀WaéW中文 😀-\r\r\n 😀  é\t😀   𝄞-😀  \r  \u000B 𝄞　𝄞\r  éé"},
+  {"char_width":1,"lines":["\u000B　bc 　","","","-","","bcW","😀 𝄞","\u000B ﻿\u000B"," W<","W","  𝄞 ","😀W \u000B < 𝄞 \f👩‍💻\fé\f\u000B"],"max_width":293,"text":"\u000B　bc\t　\r\n   \n\r-\r  \rbcW\n😀  𝄞\r\u000B  ﻿\u000B\r\n W<\rW\r\n   𝄞 \n😀W \u000B \t< 𝄞  \t\f👩‍💻\fé\f\u000B"},
+  {"char_width":1,"lines":["","bc éé\u000B﻿","  a 中文﻿ ","","👩‍💻ébc","𝄞","-"],"max_width":239,"text":" \rbc éé\u000B﻿\r   a  中文﻿   \n\r👩‍💻ébc\n𝄞\r\n-"},
+  {"char_width":12,"lines":["  "],"max_width":361,"text":"  "},
+  {"char_width":12,"lines":[" "," "," ","\u000B","中","文","中","文","👩","‍","💻"],"max_width":-19,"text":"  \r\n \u000B 中文\r\n中文👩‍💻"},
+  {"char_width":5,"lines":["　 W","<  é",""],"max_width":368,"text":"　\tW\r\n<  é\r"},
+  {"char_width":5,"lines":["","\u000BW","　"],"max_width":363,"text":"\n\u000BW\n　"},
+  {"char_width":1,"lines":["﻿ \f","-W é 👩‍💻abc"],"max_width":146,"text":"﻿ \f\r-W\té  👩‍💻abc"},
+  {"char_width":5,"lines":["　\u000B😀﻿  中文","😀","𝄞","\u000B \f","﻿ 　😀bc","  中文　  "," \f"],"max_width":57,"text":" 　\u000B😀﻿   中文\r😀\n𝄞\t\r\u000B \f\t\r﻿ 　😀bc\n  中文　  \n \f "},
+  {"char_width":1,"lines":["bc","é","","","\u000B-a\u000B 中文﻿\fé𝄞\f"],"max_width":180,"text":"bc\ré\n\r\n\r\n\u000B-a\u000B\t中文﻿\fé𝄞\f"},
+  {"char_width":12,"lines":["<　 👩‍💻  😀",""],"max_width":247,"text":"<　 👩‍💻   😀\r"},
+  {"char_width":1,"lines":["﻿Wé"," 👩‍💻","","é中文Wé　\f \u000B\u000Bbc﻿😀","👩‍💻 👩‍💻 ﻿-a"," -- 😀\u000B","a  -W"],"max_width":137,"text":"﻿Wé\r 👩‍💻\n\r\né中文Wé　\f \t\u000B\u000Bbc﻿😀\r👩‍💻 👩‍💻 ﻿-a\r\n    -- 😀\u000B\t  \na  \t-W"},
+  {"char_width":5,"lines":["é","<﻿a -","","  ","","< 👩‍💻中文\f -  ﻿ bc 　\u000B \f","bc　 é","\u000BW"],"max_width":114,"text":"é\n<﻿a -\r\n\n   \r\n  \r< 👩‍💻中文\f\t-  \t﻿ bc 　\u000B    \f\tbc　  é\n\u000BW"},
+  {"char_width":5,"lines":["","","-","-","é","-","","é𝄞"," ﻿"," ","","\f","👩‍","💻\f","a "," "," ","bc","中文","﻿　"," ","W","\u000B😀","bc","👩‍","💻","\u000Ba"," ","\u000B😀","𝄞中","文","éa"],"max_width":12,"text":"\r\r\n-  -é -\n\né𝄞 ﻿    \f\r👩‍💻\fa  \r   bc中文﻿　  \n\tW\r\u000B😀bc  👩‍💻  \u000Ba  \u000B😀  𝄞中文éa"},
+  {"char_width":1,"lines":["é","👩‍💻  <<é é<\u000B﻿👩‍💻","W ","👩‍💻é👩‍💻é aW"],"max_width":19,"text":" é\r👩‍💻   <<é é<\u000B﻿👩‍💻\t W   \r\n👩‍💻é👩‍💻é    aW"},
+  {"char_width":5,"lines":["bc﻿bc",""],"max_width":140,"text":"bc﻿bc\r"},
+  {"char_width":12,"lines":[" ","﻿","👩","‍","💻","﻿","W","W"," ","é","","","W","　","a","👩","‍","💻","👩","‍","💻"," ","a"],"max_width":12,"text":"   \r﻿\r👩‍💻﻿ WW éW\r　a👩‍💻👩‍💻 a"},
+  {"char_width":12,"lines":["bc","é﻿𝄞中文👩‍💻  é  𝄞 ébc bc"],"max_width":327,"text":"bc\ré﻿𝄞中文👩‍💻 \t  é  𝄞 ébc bc"},
+  {"char_width":1,"lines":["-","<","中","文","😀","中","文","b","c","中","文","𝄞","\f","\u000B"," ","-"," ","\f","😀","　"," ","😀","é","","😀","\f","","<"," ","W"," ","\u000B"," ","a","é","-","中","文","𝄞","é","\u000B","-"," ","中","文","","b","c"," "],"max_width":-7,"text":"  -<中文😀中文bc\r中文𝄞\t\r\n\f\u000B \r-\t \f\r😀 　 😀é😀 \f\n\r\n< W \u000B aé-中文\r\n𝄞é\t\u000B   -\r \r中文bc  "},
+  {"char_width":1,"lines":["a𝄞","-𝄞𝄞"],"max_width":265,"text":"a𝄞\r-𝄞𝄞"},
+  {"char_width":12,"lines":[""],"max_width":-7,"text":""},
+  {"char_width":5,"lines":["","W-"],"max_width":38,"text":"\nW-"},
+  {"char_width":5,"lines":["<W","ébc𝄞👩‍💻　 é\u000B　 😀","　𝄞","é \u000B","bca 😀　"," \u000B👩‍💻< bc中文","","W","","","中文","\u000Bé Wé"],"max_width":257,"text":" <W\n\tébc𝄞👩‍💻　 é\u000B　 😀  \n　𝄞\r é  \u000B\r\nbca 😀　\n \u000B👩‍💻<  bc中文\n\nW\n\r \r中文\r\n\u000Bé Wé"},
+  {"char_width":5,"lines":["é中文","﻿--   \f","👩‍💻","﻿　","😀𝄞😀Wé𝄞a👩","‍💻 é","bcWW👩‍💻","-👩‍💻W　"],"max_width":43,"text":"é中文  ﻿--   \f👩‍💻\n﻿　 😀𝄞😀Wé𝄞a👩‍💻 é\nbcWW👩‍💻\t-👩‍💻W　"},
+  {"char_width":12,"lines":[" W","-𝄞","","-😀","𝄞b","c\u000B"," 中","文😀","bc","中文"," -"," ","﻿","bc","é ","\fa","\f","中文","< ","éb","c中","文中","文-"," a"," a","<-","\fW","-W"],"max_width":33,"text":" W-𝄞\r  -😀 𝄞bc\u000B 中文😀bc中文\r\t -   ﻿\r\nbcé \fa\f 中文< ébc中文中文- a a<-\fW-W"},
+  {"char_width":1,"lines":["W bcbcbc     bc𝄞","","bcW ",""," -bc　 😀<"],"max_width":93,"text":"W\tbcbcbc \t \t    bc𝄞\n  \nbcW  \n\r\n    -bc　 😀<"},
+  {"char_width":1,"lines":["é--","中文","😀","﻿\f","😀","bc\fa é","中文a\f👩‍💻\f  a","𝄞a<é ","bcaa 　  "],"max_width":397,"text":"é--\r 中文\n  😀\r\n﻿\f\r😀 \rbc\fa é \n中文a\f👩‍💻\f  a\r\n 𝄞a<é \t\nbcaa\t　  "},
+  {"char_width":5,"lines":[" a"," ﻿","\u000B","-- 😀","　\u000B中文"," \u000B ","　﻿😀中","文 bc","-<\u000B👩","‍💻 é"," 👩‍💻","𝄞\f"],"max_width":22,"text":" a\t ﻿\n\u000B\n-- 😀\r\n　\u000B中文 \u000B  　﻿😀中文 bc-<\u000B👩‍💻  é\r\n 👩‍💻𝄞\f"},
+  {"char_width":12,"lines":[""," 👩‍💻\f﻿ 𝄞𝄞"],"max_width":331,"text":"\n  👩‍💻\f﻿\t𝄞𝄞"},
+  {"char_width":12,"lines":["\f𝄞中文😀bc ﻿","👩‍💻< ","👩‍💻"],"max_width":353,"text":"\f𝄞中文😀bc ﻿\r\n👩‍💻< \r👩‍💻"},
+  {"char_width":1,"lines":["bc😀-中文\f𝄞bc","bc<\u000B-bc","\f\f 　中文\u000Ba","\u000Bbc\f﻿","","bcWW","W😀","","　\f  \fW","　　","𝄞"],"max_width":10,"text":"bc😀-中文\f𝄞bcbc<\u000B-bc\n\f\f 　中文\u000Ba  \u000Bbc\f﻿\r\n\nbcWW \rW😀\r\n\r　\f\t \fW\r\n　　\r\n𝄞"},
+  {"char_width":5,"lines":["a"," 　﻿ ","- \f 😀 <<W ﻿ 😀　 😀<　 é"," \f👩‍💻 - W﻿","","","\f﻿ \u000B𝄞 <"],"max_width":396,"text":"a\r\n  　﻿ \r- \f 😀\t<<W ﻿\t😀　 😀<　\té\r\n \f👩‍💻 -\tW﻿\n\r\n\r\n\f﻿ \u000B𝄞  <"},
+  {"char_width":5,"lines":["﻿ W  bc","aé"," ","　  　W","中文中文﻿bc👩‍💻　- ","👩‍💻",""],"max_width":90,"text":"﻿ W  bc\t\naé\r \n　\t 　W  中文中文﻿bc👩‍💻　-   \t👩‍💻\r"},
+  {"char_width":12,"lines":["😀","𝄞﻿ 😀　 ébc","","中文　 "],"max_width":231,"text":"  😀\n𝄞﻿ 😀　 ébc\r\r\n\t中文　 "},
+  {"char_width":1,"lines":["﻿𝄞a","𝄞W"],"max_width":125,"text":"﻿𝄞a \n 𝄞W"},
+  {"char_width":1,"lines":["👩‍💻","<a   \f 𝄞\u000B \u000B\u000B👩‍💻　 é﻿𝄞<  　   a　𝄞\u000B -"],"max_width":250,"text":"👩‍💻\r\n<a \t \f 𝄞\u000B \u000B\u000B👩‍💻　\té﻿𝄞<  　 \t a　𝄞\u000B -"},
+  {"char_width":12,"lines":["中文é-中文\u000B𝄞","👩‍💻﻿﻿a😀　 \u000B","𝄞\f﻿😀　﻿bc","𝄞 😀 𝄞","<","bc👩‍💻bca𝄞","-中文aé  中文 ","\u000B👩‍💻"," 👩‍💻 "],"max_width":124,"text":"\t中文é-中文\u000B𝄞\r\n👩‍💻﻿﻿a😀　  \u000B\r𝄞\f﻿😀　﻿bc \r\n𝄞 😀  𝄞\n<\nbc👩‍💻bca𝄞\r-中文aé  中文 \u000B👩‍💻   👩‍💻 "},
+  {"char_width":5,"lines":[" a　﻿<  ﻿😀<-  👩‍💻中文 -","",""],"max_width":122,"text":" a　﻿<  ﻿😀<-  👩‍💻中文 -   \r\n\n"},
+  {"char_width":12,"lines":[" \f<<　é","　a<﻿👩‍💻 　 W-a　","😀W  abc","\u000B😀-a bc","a"],"max_width":345,"text":" \f<<　é\r　a<﻿👩‍💻  　 W-a　\r\n😀W  abc\n\u000B😀-a bc\na"},
+  {"char_width":1,"lines":["é","-","\f","","　","👩","‍","💻","\u000B","👩","‍","💻","é","-","　"," ","　","中","文","","","　","﻿","中","文","\u000B"," ","W","﻿"," ","<","\u000B","\u000B","","𝄞"," ","","","é",""],"max_width":-2,"text":"é-\f　👩‍💻\u000B👩‍💻 \ré-　 　\r\n中文\n\r\n\n　﻿中文\u000B W﻿ <\u000B\u000B𝄞  \t é\n"},
+  {"char_width":12,"lines":["","﻿"],"max_width":236,"text":"\r\n﻿"},
+  {"char_width":1,"lines":["","W","👩‍💻 é👩‍💻é中文 a中文﻿\f 中文 é \u000B　 \u000B<éé👩‍💻-"],"max_width":153,"text":"\r\nW\n👩‍💻 é👩‍💻é中文  a中文﻿\f 中文 é \u000B　 \u000B<éé👩‍💻- "},
+  {"char_width":5,"lines":["","中文<  \u000Bé"," a   é","a\f\f"],"max_width":331,"text":"\n中文<\t \u000Bé\r a    é\r\na\f\f"},
+  {"char_width":1,"lines":["","中文👩‍💻  ﻿W  <","","😀中文 😀 𝄞a﻿𝄞< 👩‍💻   bc﻿中文W W\f👩‍💻 <  <","\u000B 　 bc  -"],"max_width":300,"text":"\r中文👩‍💻   ﻿W     <\n\r\n😀中文 😀 𝄞a﻿𝄞<\t👩‍💻   bc﻿中文W\tW\f👩‍💻 <   <\n\u000B 　  bc\t - "},
+  {"char_width":1,"lines":["　","中文é　\f<","bc𝄞","<a𝄞 中文👩‍💻 ﻿","中文- bc < ","\u000B"," \u000B𝄞"," 　a  ",""],"max_width":17,"text":"　\r\n中文é　\f<\nbc𝄞\n<a𝄞\t中文👩‍💻\t﻿ 中文- bc <     \r\u000B\r\n \u000B𝄞  \r 　a   \n"},
+  {"char_width":5,"lines":["W -","","\f","é a😀 ﻿<  ","","","😀 \f　\f\u000Bbc👩‍💻𝄞a\f é <﻿𝄞😀é","﻿中文 W中文","W","é﻿"],"max_width":257,"text":"W -\r\n\r\n\f  \ré a😀 ﻿<   \r\n\n\r\n😀   \f　\f\u000Bbc👩‍💻𝄞a\f  é <﻿𝄞😀é\r\n﻿中文 W中文\r\n\tW\ré﻿"},
+  {"char_width":12,"lines":["","﻿bca","\u000B\fW<","𝄞bcé","  \u000B"],"max_width":52,"text":"\r ﻿bca\r\n\u000B\fW<𝄞bcé  \u000B"},
+  {"char_width":12,"lines":["é　\f<👩‍💻a","-éWbc-é bc"],"max_width":137,"text":"\té　\f<👩‍💻a\r-éWbc-é  bc"},
+  {"char_width":12,"lines":[" ","","﻿é","é \u000B<","😀　Wbcbc"," 👩‍💻  \u000B","   😀-﻿","👩‍💻Wbc ","　　"],"max_width":85,"text":"    \t \r\r\n﻿é\r\té \u000B<\r\n😀　Wbcbc 👩‍💻  \u000B   😀-﻿  👩‍💻Wbc \r　　"},
+  {"char_width":12,"lines":["\f👩‍💻\u000B -  <👩‍💻< <W﻿\u000B<﻿é\f  ﻿","Wa　","👩‍💻  \f \f<\u000B\u000B  ","𝄞<　bc 😀bc﻿😀 ",""],"max_width":343,"text":"\f👩‍💻\u000B -    <👩‍💻< <W﻿\u000B<﻿é\f   ﻿ Wa　\r👩‍💻   \f \f<\u000B\u000B\t   𝄞<　bc 😀bc﻿😀 \r"},
+  {"char_width":12,"lines":["\f\f \u000B😀 😀\f-　中文𝄞","﻿中文 😀- ","a<👩‍💻","","﻿😀 　 ","-","","a","中文-","　é -  bc","　  　<👩‍💻"],"max_width":171,"text":"\f\f \u000B😀\t😀\f-　中文𝄞\r﻿中文  \t😀- \r\na<👩‍💻\r\n\r﻿😀 　 \t\r-\n\ra\n中文-\r　é -\t bc\r\n　  　<👩‍💻"},
+  {"char_width":5,"lines":["𝄞< ",""],"max_width":50,"text":"𝄞< \r\n"},
+  {"char_width":5,"lines":["  \f 中文  中文é \u000B﻿a　　𝄞W-😀-\fé <  \f\f","W   W ","👩‍💻","<\f   "],"max_width":152,"text":" \t\f 中文   中文é  \u000B﻿a　　𝄞W-😀-\fé <   \f\f W    W \t\n👩‍💻\n\t<\f    "},
+  {"char_width":5,"lines":["a","-\f-","","W﻿  ﻿\u000B bc😀 <"],"max_width":138,"text":"a\r\n-\f-\r\rW﻿  ﻿\u000B bc😀 <"},
+  {"char_width":1,"lines":[" ﻿abc\f😀\f","a <\f 𝄞😀👩‍💻  bc"," "," 中文 é ",""],"max_width":15,"text":" ﻿abc\f😀\f \ra <\f 𝄞😀👩‍💻\t  bc\t \r\n 中文 é \r"},
+  {"char_width":5,"lines":["\f<a𝄞- é","","﻿<-W Wbc"," 😀中文👩‍💻𝄞 \f😀中文𝄞 ","é \u000B","",""],"max_width":80,"text":"\f<a𝄞-  é\t\r\r  ﻿<-W Wbc  😀中文👩‍💻𝄞 \f😀中文𝄞  \né  \u000B\r\n\r"},
+  {"char_width":1,"lines":["é","b","c","b","c"],"max_width":-30,"text":"   é\rbcbc"},
+  {"char_width":1,"lines":["é","a","中","文","😀"," ","中","文",""," ","𝄞","é",""," ","","﻿","中","文"," ","a","b","c","","","👩","‍","💻","-","😀","b","c","W"," ","a"," ","\f"," "," "," ","\f","\f","b","c","﻿"],"max_width":-11,"text":"éa中文😀\r\n 中文 𝄞é\t ﻿中文  \r   abc\n\r\r\n👩‍💻-\r😀bc\nW a\r\n  \f   \f \fbc﻿"},
+  {"char_width":12,"lines":["中文　 ﻿𝄞  👩‍💻\u000B𝄞W"],"max_width":330,"text":"中文　 ﻿𝄞  👩‍💻\u000B𝄞W"},
+  {"char_width":5,"lines":["é中文😀\f   W😀\u000B　  ","bc","W < -<éW"],"max_width":165,"text":"é中文😀\f   W😀\u000B　  \rbc\r\nW  < -<éW"},
+  {"char_width":5,"lines":["","👩","‍","💻","😀","𝄞"," ","W"," ","b","c","b","c","b","c","﻿","\u000B","é"," ","𝄞","b","c",""," ","W","W","a","é","👩","‍","💻","\u000B","","","a","　","<","\f",""],"max_width":-14,"text":"👩‍💻😀𝄞\t\t\t W\r \tbcbcbc﻿\u000B é\n 𝄞\r\nbc WWaé👩‍💻\r\n\u000B\ra　  <\f"},
+  {"char_width":5,"lines":["bc中文-\u000B   　 éW  👩‍💻 ","é"],"max_width":102,"text":"bc中文-\u000B   　 éW   👩‍💻 \r\té"},
+  {"char_width":5,"lines":["","a　","👩‍","💻","\f "," ","﻿é","👩‍","💻b","c😀","-﻿"," 😀","W","<b","c","　","<","-b","c ","　"],"max_width":12,"text":"\r\na　\r👩‍💻   \f    ﻿é👩‍💻bc😀-﻿ 😀W\r <bc 　<\n-bc 　"},
+  {"char_width":5,"lines":[""],"max_width":201,"text":"  "},
+  {"char_width":12,"lines":["bc","W","<éW﻿中文𝄞😀 😀","< 𝄞"," ","a　"," ","bc中文 ","𝄞 ﻿\f\u000B","","\u000B   é 😀","𝄞"],"max_width":120,"text":"bc\rW\t<éW﻿中文𝄞😀 😀< 𝄞\r\n \ra　\n \r\nbc中文 \n𝄞 ﻿\f\u000B\n\r  \u000B   é\t😀  \n 𝄞"},
+  {"char_width":12,"lines":["中文<","é< é< ","- 😀a-"," 𝄞"],"max_width":212,"text":"中文< \ré< é< \n - 😀a-  \r\n 𝄞"},
+  {"char_width":1,"lines":["","𝄞\f--\f😀< a 😀a -﻿bc<<-","😀aa","<　-﻿ 　👩‍💻-\u000Bbcé - ﻿aé👩‍💻","😀﻿bc"],"max_width":326,"text":"\t\n𝄞\f--\f😀<\ta 😀a -﻿bc<<-\r\n  😀aa  \n<　-﻿ 　👩‍💻-\u000Bbcé - ﻿aé👩‍💻\r\n😀﻿bc"},
+  {"char_width":5,"lines":[" bc-<👩‍💻 ","﻿","𝄞 bc","a﻿<"],"max_width":218,"text":" bc-<👩‍💻 \n﻿\r\n𝄞 bc\na﻿<"},
+  {"char_width":12,"lines":["👩‍💻é😀 W","é\f<﻿😀bcW","﻿\fbc\u000B\f-中文 a-W👩‍💻 ","﻿　é👩‍💻 ﻿ 👩‍💻-😀","\u000B  ﻿ é 中文 -é","bcbc"],"max_width":220,"text":"👩‍💻é😀 W \r\né\f<﻿😀bcW  \t﻿\fbc\u000B\f-中文 a-W👩‍💻 \r﻿　é👩‍💻 ﻿ 👩‍💻-😀  \n\u000B  ﻿ é 中文\t-é  \r\nbcbc"},
+  {"char_width":12,"lines":["﻿-　<W é","<﻿  a 中文 𝄞<\u000B　 é "],"max_width":336,"text":"﻿-　<W é\r\n<﻿  a 中文 𝄞<\u000B　 é "},
+  {"char_width":1,"lines":["é  \u000B-中文","","中文 -中文","\f　W<　","😀\f"],"max_width":12,"text":"é  \u000B-中文\r\n\r\n中文  -中文  \r\n  \t \f　W<　\r 😀\f"},
+  {"char_width":5,"lines":["-　👩‍💻　éa\fWé "],"max_width":272,"text":"-　👩‍💻　éa\fWé "},
+  {"char_width":5,"lines":["\f﻿﻿𝄞\fW　  中文﻿﻿　-\fa中文< W😀　　"," 　- 中文"," a 　bcé< 中文 😀😀😀"," < bc 中文-　<"],"max_width":136,"text":"\f﻿﻿𝄞\fW　    中文﻿﻿　-\fa中文<  W😀　　\r\n 　-  中文\r\n a 　bcé< 中文  😀😀😀\r < bc 中文-　<"},
+  {"char_width":5,"lines":["bc 😀bc","a"],"max_width":345,"text":"bc 😀bc\r\na"},
+  {"char_width":12,"lines":["　W ﻿\fé  😀😀  -﻿-","-👩‍💻- W﻿é﻿中文﻿中文"," 　é \u000B \u000B<　👩‍💻  "," 中文bc ﻿﻿"],"max_width":263,"text":"　W ﻿\fé  😀😀  -﻿-\t -👩‍💻- W﻿é﻿中文﻿中文\r\n 　é  \u000B \u000B<　👩‍💻     \t 中文bc\t﻿﻿  "},
+  {"char_width":5,"lines":["  𝄞 😀 𝄞a\u000B　","\u000B\u000B-a﻿中文 bc𝄞bc𝄞","👩‍💻\u000B\u000B","a"],"max_width":130,"text":"\t  𝄞 😀 𝄞a\u000B　\r\n\u000B\u000B-a﻿中文 bc𝄞bc𝄞\r👩‍💻\u000B\u000B\ra"},
+  {"char_width":12,"lines":["Wé"," \f","中文-","　 中文","👩‍💻 ","Wéé﻿"," "," é 　","aa𝄞𝄞","éW"," < -"],"max_width":56,"text":" Wé\t\r\n \f 中文-\n　 中文\n👩‍💻 Wéé﻿     é 　aa𝄞𝄞éW\n < -"},
+  {"char_width":12,"lines":["中文-< < <﻿ < "],"max_width":257,"text":"  中文-< < <﻿ <  "},
+  {"char_width":5,"lines":["👩‍💻bc","　\fW-éb","ca﻿👩‍💻","﻿Wa ","𝄞﻿","👩‍💻a👩‍","💻<👩‍💻a"],"max_width":31,"text":"👩‍💻bc\t　\fW-ébca﻿👩‍💻﻿Wa \r𝄞﻿\n 👩‍💻a👩‍💻<👩‍💻a"},
+  {"char_width":1,"lines":["<- é","","﻿bc"],"max_width":398,"text":"<- é\n\r\n    ﻿bc"},
+  {"char_width":5,"lines":["a  \u000B  👩‍💻\f😀\f"],"max_width":345,"text":"a  \u000B  👩‍💻\f😀\f"},
+  {"char_width":1,"lines":["\f😀﻿a 中文中文 bc bcW 中文\u000Ba👩‍💻<"],"max_width":329,"text":"  \f😀﻿a 中文中文 bc  bcW 中文\u000Ba👩‍💻<"},
+  {"char_width":12,"lines":["-",""],"max_width":52,"text":"-\r"},
+  {"char_width":12,"lines":["\u000B","中","文","𝄞","中","文","😀","𝄞","<","　","-","","a","é","中","文","　","\u000B","﻿","𝄞",""," "],"max_width":2,"text":"\u000B中文𝄞中文😀𝄞<　-  aé中文　\u000B ﻿𝄞 "},
+  {"char_width":12,"lines":[" 中文< ","👩‍💻 a𝄞 ﻿\f","　𝄞😀< ","","𝄞 "],"max_width":163,"text":"  中文< \n  👩‍💻 a𝄞 ﻿\f 　𝄞😀< \r\r𝄞  "},
+  {"char_width":5,"lines":["-👩‍💻","中文<\u000B﻿"],"max_width":258,"text":"-👩‍💻\n 中文<\u000B﻿"},
+  {"char_width":5,"lines":["W -"],"max_width":285,"text":"W -"},
+  {"char_width":1,"lines":["\f𝄞<","\f中文",""],"max_width":193,"text":"\f𝄞<\r\f中文\r"},
+  {"char_width":5,"lines":["é","bc","  中文<é<　","-𝄞  -﻿ W","😀<",""," "],"max_width":57,"text":"é\rbc \r  中文<é<　  -𝄞  -﻿ W\n😀<\r\n\n "},
+  {"char_width":12,"lines":["é<-éa ﻿a   ","中文< 👩‍💻","é\f-<\f<ébc  ","","","﻿- \u000B","😀< é   \f ﻿"," ","　   𝄞",""],"max_width":144,"text":"  \té<-éa ﻿a \t  中文< 👩‍💻\ré\f-<\f<ébc\t \n\r\n\r  ﻿-\t\u000B\n😀< é    \f ﻿\r  \n　   𝄞\r\n"},
+  {"char_width":12,"lines":[" ","𝄞","\f","bc","éb","cé","é ","﻿b","c","　﻿"," "],"max_width":28,"text":"  𝄞 \t\fbcébcé\ré ﻿bc\t\n　﻿ "},
+  {"char_width":1,"lines":[" ","","中文 éa😀中文\u000B﻿\f😀","bc 😀 😀é中文"],"max_width":312,"text":" \r\r\n中文 éa😀中文\u000B﻿\f😀\r\nbc 😀 😀é中文"},
+  {"char_width":5,"lines":["","﻿ 👩‍💻","-\f aa﻿ \u000B😀   W𝄞﻿","","é中文 bc👩‍💻 ","aa W　 bcbcbc-","W","bc  W"],"max_width":178,"text":"\r\n\t﻿\t👩‍💻 \r\n-\f aa﻿ \u000B😀 \t\t  W𝄞﻿\r\ré中文  bc👩‍💻  \raa W　  bcbcbc-\nW\nbc  W"},
+  {"char_width":5,"lines":[" ",""],"max_width":347,"text":"\t \r"},
+  {"char_width":12,"lines":["\u000B😀中文é","  \u000B ","👩‍💻a"],"max_width":287,"text":"  \u000B😀中文é\r  \u000B \r\n 👩‍💻a"},
+  {"char_width":5,"lines":["中文 \f< 　   é-<<-𝄞中文a　 　 \f﻿< \u000Bé𝄞a a　é<a"],"max_width":200,"text":" \t中文 \f<  　   é-<<-𝄞中文a　  　 \f﻿< \u000Bé𝄞a a　é<a"},
+  {"char_width":12,"lines":["\fW 😀  ","👩‍💻<aé\f中文","\u000B\f 😀\f中文<𝄞aabc","","𝄞\f 𝄞","　👩‍💻👩‍💻﻿a"],"max_width":221,"text":"\fW 😀     \t\r 👩‍💻<aé\f中文\n\u000B\f  😀\f中文<𝄞aabc\r\n\r\n𝄞\f 𝄞\r\n　👩‍💻👩‍💻﻿a"},
+  {"char_width":5,"lines":["𝄞","👩‍💻😀𝄞中文　<𝄞 ","W\u000B","﻿","a<a　é","\f","","< \u000B<é﻿ééaé","😀-  \u000B\u000B𝄞","<",""],"max_width":233,"text":"𝄞 \r👩‍💻😀𝄞中文　<𝄞 \r\n\tW\u000B\r﻿\r\na<a　é\r\n\f\n\r < \u000B<é﻿ééaé\r😀-  \u000B\u000B𝄞\r<\n"},
+  {"char_width":1,"lines":["\fWa<","","中文bc﻿ ","W<　","bc　",""],"max_width":164,"text":"\fWa<\r\n \r中文bc﻿ \rW<　\rbc　\n"},
+  {"char_width":1,"lines":["W👩‍💻﻿中文 é\fW﻿","\f abc-","😀中文中文-","    𝄞👩‍💻a﻿","","W",""],"max_width":296,"text":"W👩‍💻﻿中文 é\fW﻿\n\f abc-\r😀中文中文-  \n    𝄞👩‍💻a﻿\r\n    \r\nW\n"},
+  {"char_width":5,"lines":["中","文","-","𝄞"," ","a","W","-"],"max_width":-18,"text":"中文-\r 𝄞\r\n aW-"},
+  {"char_width":12,"lines":["","","<"," 👩‍💻𝄞","","\f﻿ \f\u000B< 😀﻿\f　a😀","bc　"," a 👩‍💻中文　é𝄞","中文 -中文<中文\u000B"," 　 bc 　"],"max_width":207,"text":"\n\n<\n 👩‍💻𝄞\r\r\f﻿ \f\u000B<  😀﻿\f　a😀\rbc　\n a\t👩‍💻中文　é𝄞\r\n中文  -中文<中文\u000B\r 　\tbc 　"},
+  {"char_width":5,"lines":["\u000B\f\u000Bbc　é\u000B   éa","bc  bc- 😀 ﻿W","𝄞😀😀W"],"max_width":337,"text":"\u000B\f\u000Bbc　é\u000B    éa\rbc  bc- 😀 ﻿W\n𝄞😀😀W"},
+  {"char_width":1,"lines":["　\f ﻿ <bc 𝄞  ","a< ","\f bc-","😀😀","","　a-bc\fa-　中文","𝄞　𝄞a"," -","﻿👩‍💻中文 é bc　　"],"max_width":216,"text":"　\f ﻿  <bc 𝄞   \r\na< \r\f  bc-  \r\n😀😀\n\r　a-bc\fa-　中文\r𝄞　𝄞a \r\n -\r\n﻿👩‍💻中文 é  bc　　"},
+  {"char_width":12,"lines":["é","😀 中文"," 𝄞😀\fbc 😀bc 　 👩‍💻-a-","","é- W😀","éWW  👩‍💻W<","😀　 <\u000B"],"max_width":377,"text":" é\n😀 中文\r\n 𝄞😀\fbc 😀bc  　 👩‍💻-a-\r\n\r\né- W😀\t\r\néWW\t   👩‍💻W<\n😀　\t<\u000B"},
+  {"char_width":5,"lines":["","-","　"],"max_width":5,"text":"-　"},
+  {"char_width":1,"lines":["﻿","\f"," ","👩","‍","💻","　","👩","‍","💻","　","😀","👩","‍","💻","<","　","\f","﻿","é","<","中","文","","W","\u000B","﻿","b","c","\u000B","é","😀","-","b","c"," ","﻿","　","　","","-","👩","‍","💻","　"," "],"max_width":-5,"text":"﻿\f 👩‍💻　 \r\n👩‍💻　😀👩‍💻\r<\r\n　\f﻿é\n <中文\r\nW\u000B﻿bc\u000B  é😀-bc ﻿ 　　\t-👩‍💻　 "},
+  {"char_width":5,"lines":["𝄞 éa bcbc 👩‍💻W a ","中文 \f﻿👩‍💻👩‍💻 ","W ﻿<a "," "],"max_width":219,"text":"𝄞  éa bcbc\t👩‍💻W a \n中文 \f﻿👩‍💻👩‍💻 \nW\t﻿<a \r\n "},
+  {"char_width":12,"lines":["中文𝄞👩‍💻﻿😀\f\u000B𝄞 a <"],"max_width":240,"text":"中文𝄞👩‍💻﻿😀\f\u000B𝄞 a  <"},
+  {"char_width":12,"lines":["bc   ","\u000Bé","","﻿W\f-bc<\u000B","é中文","-﻿é👩‍💻 ","aa𝄞"],"max_width":97,"text":"bc       \r\n\u000Bé\t\r\n\r﻿W\f-bc<\u000B é中文\n-﻿é👩‍💻  aa𝄞"},
+  {"char_width":5,"lines":["👩‍💻𝄞<aa\u000Bbc👩‍💻"],"max_width":75,"text":"👩‍💻𝄞<aa\u000Bbc👩‍💻\t"},
+  {"char_width":5,"lines":["  😀👩‍💻\f","﻿aW \u000B","　","𝄞😀  ","é 😀","","","","abc","a👩‍💻\f - a　 <👩‍💻","<éé","  中文\u000B-","\f﻿"],"max_width":93,"text":"  😀👩‍💻\f\r\n  ﻿aW\t\u000B\r\n　\t\n𝄞😀\t  \né  😀\r\n\t\n\r\rabc\r\na👩‍💻\f\t- a　 <👩‍💻\r<éé\r\n   \t中文\u000B-\n\f﻿"},
+  {"char_width":5,"lines":["","👩‍💻𝄞👩‍💻中文W bc   bc  \f😀\f😀 　👩‍💻 ","<-﻿  👩‍💻中文 😀<﻿<- \fébcW",""],"max_width":376,"text":"\n 👩‍💻𝄞👩‍💻中文W bc   bc  \f😀\f😀  　👩‍💻 \t\n<-﻿  👩‍💻中文\t😀<﻿<- \fébcW\r"},
+  {"char_width":1,"lines":["　"],"max_width":356,"text":"   　"},
+  {"char_width":12,"lines":[""," bc<","中文  \u000B","","bca ","\u000B a"],"max_width":62,"text":"\n bc<中文 \t\u000B\n\r\nbca \u000B   a"},
+  {"char_width":5,"lines":[" ","﻿-W\f"],"max_width":171,"text":" \r﻿-W\f"},
+  {"char_width":1,"lines":["","<"," < ﻿　\u000B𝄞中文👩‍💻W","  < < 😀　\u000B\f","< 👩‍💻\f\u000Bbc","","  中文中文𝄞<"," ﻿","bc -é😀"],"max_width":123,"text":"\n<\r\n < ﻿　\u000B𝄞中文👩‍💻W\r   <\t< 😀　\u000B\f\r\n< 👩‍💻\f\u000Bbc\r\r\n  中文中文𝄞<\n ﻿\t\rbc\t-é😀"},
+  {"char_width":5,"lines":[" <﻿𝄞𝄞　\u000Bé  a　bcWé﻿ ﻿Wé"],"max_width":390,"text":" <﻿𝄞𝄞　\u000Bé  a　bcWé﻿ ﻿Wé"},
+  {"char_width":12,"lines":["bc","<W😀中文中文-","<bc< a< ",""," ","😀aW😀 中文-",""," a","<\f😀﻿😀 👩‍","💻","a","<éW 　","\f👩‍💻"],"max_width":99,"text":"bc  \r\n<W😀中文中文-  <bc< a< \r\r   😀aW😀 中文-\n  \n a\t<\f😀﻿😀 👩‍💻\na\n<éW 　\n\t \f👩‍💻"},
+  {"char_width":1,"lines":["𝄞　 W\f𝄞W\f　\u000BW😀--","　W﻿ a𝄞","","👩‍💻W 　-bc\f ","　<- <"],"max_width":90,"text":"𝄞　 W\f𝄞W\f　\u000BW😀--\t\t\r　W﻿ a𝄞\n\r\n  👩‍💻W  　-bc\f \n　<- <"},
+  {"char_width":1,"lines":["😀 <"],"max_width":383,"text":"😀  <"},
+  {"char_width":1,"lines":["\fW - é中文👩‍💻𝄞  WW","W","","W"],"max_width":343,"text":"\fW - é中文👩‍💻𝄞  WW\rW\r\t\r\nW"},
+  {"char_width":12,"lines":[" <😀","W\f  \f　bc ﻿bc中文﻿😀","𝄞  "],"max_width":193,"text":" <😀\nW\f  \f　bc ﻿bc中文﻿😀 𝄞  "},
+  {"char_width":12,"lines":["\u000B﻿é"],"max_width":208,"text":"\u000B﻿é"},
+  {"char_width":1,"lines":["﻿👩‍💻",""," ","👩‍💻 　<中文-👩‍💻😀aa﻿﻿𝄞👩‍💻< \fé\u000B"," ","bc👩‍💻"],"max_width":99,"text":"﻿👩‍💻\r\n \n   \n   👩‍💻 　<中文-👩‍💻😀aa﻿﻿𝄞👩‍💻< \fé\u000B\r \nbc👩‍💻"},
+  {"char_width":12,"lines":["中","文"," ","😀","中","文","a","\u000B","-","é","","é","b","c","a","中","文","<","é","-","b","c","b","c","<"],"max_width":0,"text":" 中文 😀中文a\t \u000B-é\r\r\nébca 中文<é-bcbc <"},
+  {"char_width":5,"lines":["😀","é"," "," ","<","a"," ","<","\u000B","W","\u000B","😀"," ","W","　","👩","‍","💻","👩","‍","💻","-","👩","‍","💻","﻿","",""," ","😀","﻿","中","文","😀","-","𝄞","b","c","　","b","c","　","b","c","﻿","　"," ","中","文","中","文"],"max_width":-4,"text":"😀\ré\r\n    \n<a  <\u000B\nW\u000B😀\r\n W 　\r👩‍💻👩‍💻 \n\t- 👩‍💻﻿  😀﻿中文😀-𝄞bc\t　bc\r　bc﻿　\r\n 中文\r中文"},
+  {"char_width":12,"lines":[" a👩‍💻bc<a中文 bc","　<éW-"," "," \f< ﻿","　","- bc é bc"],"max_width":312,"text":" a👩‍💻bc<a中文 bc\r　<éW-\n\t  \r\t \f<\t﻿\r  　\r-\tbc é bc"},
+  {"char_width":5,"lines":[""," ","  ﻿𝄞<  中文 中文﻿<bc <"],"max_width":238,"text":" \r \r\n   ﻿𝄞<  中文 中文﻿<bc\t<"},
+  {"char_width":1,"lines":["　W👩‍💻\u000B𝄞a bc中文𝄞"," ","  ﻿","\u000B\u000Ba😀　W中文\f","😀 　","😀a -\u000B\u000Ba\u000B bc   😀","< ",""],"max_width":253,"text":"　W👩‍💻\u000B𝄞a  bc中文𝄞\n \n   ﻿  \n\u000B\u000Ba😀　W中文\f\n😀 　\r\n😀a  -\u000B\u000Ba\u000B bc    😀\r\n< \r"},
+  {"char_width":1,"lines":["a"," ","<"],"max_width":-26,"text":"a <"},
+  {"char_width":12,"lines":["a","","😀"," ","W"," ","a","","é"," ","a","\f"," ","\u000B"," ","中","文"],"max_width":-16,"text":"a  😀 W \r\na\t\n\né\t a\f \u000B  中文"},
+  {"char_width":12,"lines":["😀<😀中文abc 　bca"," W﻿👩‍💻\f👩‍💻W",""],"max_width":177,"text":"😀<😀中文abc\t　bca\r W﻿👩‍💻\f👩‍💻W\r"},
+  {"char_width":12,"lines":["　bcé<\f",""," é","𝄞﻿ a<é　","","\u000Ba","👩‍💻 𝄞a ","bcé ","﻿W👩‍💻 é 　  \f　\f"," 👩‍💻﻿\u000B　"],"max_width":361,"text":"　bcé<\f\r\n\r é\r\n𝄞﻿\ta<é　  \r\n\r\n\u000Ba\r👩‍💻 𝄞a  \nbcé  \r\n﻿W👩‍💻 é 　   \f　\f\r 👩‍💻﻿\u000B　"},
+  {"char_width":12,"lines":["","中文\u000B","\f𝄞éW \f","\fa<",""],"max_width":77,"text":"\r中文\u000B\r\n\f𝄞éW \f\fa<  \t\r"},
+  {"char_width":12,"lines":["",""],"max_width":27,"text":"\n"},
+  {"char_width":1,"lines":["𝄞👩‍💻  -W 　-","　中文\u000B👩‍💻bc W\f-W","👩‍💻"],"max_width":184,"text":"𝄞👩‍💻 \t-W 　-\n　中文\u000B👩‍💻bc W\f-W\n👩‍💻"},
+  {"char_width":1,"lines":[""],"max_width":323,"text":""},
+  {"char_width":12,"lines":["\f中文\u000B 中文Wé"],"max_width":260,"text":"\f中文\u000B  中文Wé"},
+  {"char_width":1,"lines":[""],"max_width":279,"text":""},
+  {"char_width":5,"lines":["﻿","-","　","😀"],"max_width":1,"text":"﻿-  　😀"},
+  {"char_width":12,"lines":["W😀中文𝄞"," bc","﻿ -W-","é","😀\u000B 　﻿😀","é"," ﻿ W　<","-é","-　👩‍💻","\f 中文\f中","文\f"],"max_width":75,"text":"W😀中文𝄞 bc \n ﻿ -W-é\n😀\u000B 　﻿😀  \ré   ﻿ W　<-é    -　👩‍💻\r\f 中文\f中文\f"},
+  {"char_width":5,"lines":[" bc\f﻿  ﻿","﻿ bc\f","𝄞\f 　  bc\u000B𝄞 　","𝄞﻿﻿"],"max_width":65,"text":" bc\f﻿ \t﻿ \n﻿  bc\f\t\r 𝄞\f 　 \tbc\u000B𝄞\t　 𝄞﻿﻿"},
+  {"char_width":5,"lines":[""," a","","👩‍💻"],"max_width":382,"text":"\r\n  a\r\n \n👩‍💻"},
+  {"char_width":1,"lines":["-😀 😀","𝄞😀  ","","-","","<𝄞𝄞"],"max_width":220,"text":"-😀  😀\n𝄞😀  \r\n\t\n\t-\r\r\n <𝄞𝄞"},
+  {"char_width":5,"lines":["","﻿","W","中","文","-"," ","W"," ","\u000B","　",""],"max_width":3,"text":" \r\n﻿\rW\r中文-\t W \u000B　\r "},
+  {"char_width":5,"lines":["W"],"max_width":48,"text":"W"},
+  {"char_width":12,"lines":["👩‍💻👩","‍💻a","\f中文 ","é<﻿ ","𝄞 😀"," 👩‍💻","  　 ",""],"max_width":49,"text":"👩‍💻👩‍💻a\f中文   é<﻿   𝄞 😀\t 👩‍💻  　 "},
+  {"char_width":1,"lines":["<　","<","  é ﻿bc","-\fa bc<中文","　 ﻿👩‍💻W 👩‍💻 👩‍💻😀é👩‍💻bcW <﻿-","中文中文",""," <"],"max_width":218,"text":"<　\n<\n   \té ﻿bc\r-\fa bc<中文\n　 ﻿👩‍💻W  👩‍💻 👩‍💻😀é👩‍💻bcW\t<﻿-\n  中文中文\r\n\r <"},
+  {"char_width":5,"lines":["👩‍💻","　"," ",""," ","😀 <é　"," 𝄞 𝄞𝄞W  ","\f "," 中文WWbc","𝄞 <😀 "," "],"max_width":54,"text":"👩‍💻  \n　\r   \n\r  \r😀\t<é　\n 𝄞   𝄞𝄞W  \n\f \r   中文WWbc\n𝄞\t<😀 \r\t "},
+  {"char_width":1,"lines":["　   😀-﻿﻿","W👩‍💻a中文 "," ","","","　　 ","","\u000B - ","　　😀𝄞 <",""],"max_width":320,"text":"　 \t 😀-﻿﻿\rW👩‍💻a中文   \n \n\n\n　　 \t\r\n\u000B - \r　　😀𝄞 <\r\n"},
+  {"char_width":12,"lines":["👩‍💻 a中文bc","<","","中文","\u000B\u000B 　","﻿中文a\u000B😀👩‍💻😀bc中文<","😀\f -   -😀-bc bcWbc𝄞"],"max_width":258,"text":"👩‍💻 a中文bc\t\r \t<\n\r中文\r\u000B\u000B 　\n ﻿中文a\u000B😀👩‍💻😀bc中文<\r😀\f -    -😀-bc bcWbc𝄞"},
+  {"char_width":5,"lines":["< 中文\f ﻿ 👩‍💻 W中文﻿   ","","é<﻿bcbc","👩‍💻𝄞中文\u000B  é<  😀<-","W a \f"],"max_width":113,"text":"< 中文\f  ﻿  👩‍💻 W中文﻿   \r\n\né<﻿bcbc\r\n👩‍💻𝄞中文\u000B  é<  😀<-  \r\nW\ta \f"},
+  {"char_width":5,"lines":["","\fa\f "],"max_width":314,"text":"\r\n\fa\f "},
+  {"char_width":1,"lines":["👩‍💻","-𝄞<","  　a","",""],"max_width":4,"text":"👩‍💻\n -𝄞<    　a\n"},
+  {"char_width":1,"lines":["<"],"max_width":369,"text":"<"},
+  {"char_width":5,"lines":["﻿中文\u000Ba"," <👩‍💻","\f👩‍💻\u000B","\f  "],"max_width":26,"text":"﻿中文\u000Ba <👩‍💻\f👩‍💻\u000B  \r\n\f  "},
+  {"char_width":12,"lines":["👩‍","💻","é𝄞","中文","👩‍","💻😀","中文","bc","W","　","\fW","é𝄞","\u000B ","中文","< ","bc","","Wé"," ","","","\f👩","‍💻","<👩","‍💻","é　"," <","𝄞"],"max_width":25,"text":"👩‍💻é𝄞\t中文👩‍💻😀中文bcW\r\n　\r\n\fWé𝄞\u000B 中文<  bc\r\rWé      \r\n\r\n\f👩‍💻<👩‍💻é　 <\r𝄞"},
+  {"char_width":12,"lines":[" ","中","文","中","文","\u000B","😀","\f","　","👩","‍","💻",""],"max_width":-21,"text":" 中文中文\u000B😀\f　👩‍💻\r\n "},
+  {"char_width":12,"lines":["a  😀W😀a","a𝄞",""," 👩‍💻"],"max_width":269,"text":"a   😀W😀a\r\na𝄞\t\r\n\n  👩‍💻 "},
+  {"char_width":1,"lines":["﻿\u000B    \f\u000B𝄞"],"max_width":67,"text":" ﻿\u000B   \t \f\u000B𝄞"},
+  {"char_width":5,"lines":["","   <　","<　　é𝄞　﻿\f"," \u000B\f👩‍💻\u000B ","a👩‍💻",""," <-\u000B","","👩‍💻👩‍💻　W","W𝄞𝄞 \u000B"],"max_width":42,"text":" \n   <　\r\n <　　é𝄞　﻿\f  \u000B\f👩‍💻\u000B a👩‍💻\r\n\r <-\u000B\r\n\r👩‍💻👩‍💻　W W𝄞𝄞  \t\u000B"},
+  {"char_width":5,"lines":["","","\u000B 👩‍💻 　𝄞 \f  　   bc😀👩‍💻","-W","\f","-　 \u000B 𝄞﻿\f","﻿é𝄞😀 \u000BaWé-中文<\u000B ﻿"],"max_width":325,"text":"\r\r\n\u000B \t👩‍💻 　𝄞 \f  　\t \tbc😀👩‍💻\r -W\r\n\f\n-　 \t\u000B 𝄞﻿\f\r\n﻿é𝄞😀 \u000BaWé-中文<\u000B  ﻿"},
+  {"char_width":5,"lines":["　𝄞  \f👩‍💻 \f𝄞👩‍💻 bcé 𝄞𝄞 ","bc éé-a éW","　bc","-𝄞","﻿ 😀","　",""],"max_width":200,"text":"　𝄞    \f👩‍💻\t\f𝄞👩‍💻 bcé 𝄞𝄞 \r\nbc éé-a éW\r　bc\r-𝄞\r﻿ 😀\r\n　\r\n"},
+  {"char_width":1,"lines":["","-","\u000B﻿éé中文-","","　","﻿中文\f 　",""],"max_width":66,"text":"\n-\n\t\u000B﻿éé中文-\r\n\r　 \n﻿中文\f 　     \r\n"},
+  {"char_width":1,"lines":["👩‍💻😀中文W👩‍💻𝄞\u000BW　𝄞👩‍💻 ﻿😀","中文 a\u000B𝄞W 中文<-😀a👩‍💻 é","","","< a😀𝄞ébc  ","W 😀👩‍💻a<\u000B","　𝄞　😀"],"max_width":21,"text":"👩‍💻😀中文W👩‍💻𝄞\u000BW　𝄞👩‍💻 ﻿😀中文 a\u000B𝄞W 中文<-😀a👩‍💻 é\r\n \n\n <\ta😀𝄞ébc  \r\nW  😀👩‍💻a<\u000B\r\n\t　𝄞　😀"},
+  {"char_width":5,"lines":[" "," ","b","c","😀","W","　","W","﻿","　","a","a","😀","　","\f","𝄞","\u000B","W","é","👩","‍","💻"," ","-","﻿","<","a","　","a","W","\u000B","","é","　"," ","中","文"," ","\u000B"," ","-",""," ","\u000B"],"max_width":-30,"text":"  bc😀W　\tW﻿　a\na😀 　  \f𝄞\u000BW\ré 👩‍💻  -﻿ <a　aW\u000Bé　 中文 \u000B - \n\n \u000B "},
+  {"char_width":1,"lines":["😀 bc😀"," 😀   W   W\fW  éé bc 𝄞","W中文﻿ 😀","","﻿ 👩‍💻< 　 -\f"],"max_width":110,"text":"😀\tbc😀\n\t 😀   W   W\fW\t éé bc 𝄞\nW中文﻿ 😀\t\r\t\r\n﻿ 👩‍💻< 　  -\f"},
+  {"char_width":12,"lines":["Wé👩‍💻中文 　bc😀","W﻿\u000B👩‍💻 -bc","\u000B😀-　W a 　aW　 ",""],"max_width":293,"text":"  Wé👩‍💻中文 　bc😀\nW﻿\u000B👩‍💻 -bc\r\n\u000B😀-　W\ta  　aW　 \n"},
+  {"char_width":1,"lines":["　 　"],"max_width":14,"text":"\t  　 　"},
+  {"char_width":5,"lines":["\fbc"],"max_width":85,"text":"\fbc"},
+  {"char_width":1,"lines":["  ","　中文👩‍💻<\u000B😀","- é 👩‍💻　","W<﻿ < bc👩‍💻 ﻿👩‍💻👩‍💻\f 中文","a 😀\u000B bc","𝄞\u000B---\fa中文","　a W"],"max_width":180,"text":"  \t\r\n　中文👩‍💻<\u000B😀\n- é 👩‍💻　\r\nW<﻿ < bc👩‍💻 ﻿👩‍💻👩‍💻\f 中文\r\na 😀\u000B\tbc\n𝄞\u000B---\fa中文\r　a W"},
+  {"char_width":12,"lines":[" ","W👩‍💻 𝄞"],"max_width":340,"text":" \r\nW👩‍💻 𝄞"},
+  {"char_width":5,"lines":[""],"max_width":291,"text":" "},
+  {"char_width":1,"lines":["é<",""],"max_width":279,"text":"é<\r"},
+  {"char_width":1,"lines":["\u000B👩‍💻\u000B\u000BW  中文bc a","😀\f<","\u000B\f "],"max_width":177,"text":"\u000B👩‍💻\u000B\u000BW    中文bc a\r\n 😀\f< \r\n\u000B\f "},
+  {"char_width":5,"lines":[""," bc\u000Ba","éW ﻿\f𝄞é-   é  ","","<","a　﻿ 😀﻿  - 中文","𝄞𝄞-\f \f","bc"],"max_width":301,"text":"\r  bc\u000Ba\r\néW ﻿\f𝄞é-   é\t \r\n\r<\r\na　﻿    😀﻿   - 中文\r𝄞𝄞-\f \f\t\r\nbc"},
+  {"char_width":1,"lines":[" é","","é 👩‍💻","﻿﻿é👩‍💻","　 W <\u000B﻿𝄞W 中文\f中文- 👩‍💻　   \u000B ﻿ 𝄞 \u000BW\u000B😀","\u000B"],"max_width":107,"text":"  é\r\n\r     é 👩‍💻\n﻿﻿é👩‍💻\r　 W\t<\u000B﻿𝄞W  中文\f中文- 👩‍💻　\t  \u000B\t﻿  𝄞 \u000BW\u000B😀\r\n\u000B \t"},
+  {"char_width":1,"lines":["中","文","<"," ","👩","‍","💻","\f"," ","","\u000B","😀"," ","　"],"max_width":-8,"text":"中文<\n 👩‍💻\f \r\n\r\n\u000B\r😀 \r\n　"},
+  {"char_width":1,"lines":["中文","𝄞é😀　👩‍💻","-é 𝄞👩‍💻 é-😀a -Wé 　 <a👩‍💻　W﻿  W","<　 😀","","😀< -aW  \f",""],"max_width":156,"text":"\t中文\t\r 𝄞é😀　👩‍💻\r -é  𝄞👩‍💻 é-😀a -Wé 　 <a👩‍💻　W﻿  W\r\n<　 😀\r\n\r😀<\t-aW\t \f\r\n"},
+  {"char_width":12,"lines":["﻿<bc <- -　","﻿👩‍💻 中文\u000Bé","  中文 　𝄞WWW-　　 aW"," 😀　😀\u000B","﻿W 𝄞"," 　\f<W👩‍💻 ﻿"],"max_width":235,"text":"﻿<bc <- -　\r﻿👩‍💻  中文\u000Bé   中文 　𝄞WWW-　　 aW\n 😀　😀\u000B\r\n﻿W  𝄞 \r   　\f<W👩‍💻 ﻿"},
+  {"char_width":12,"lines":["<-a 𝄞W ","-﻿"," 中文<中文< "],"max_width":246,"text":"<-a   𝄞W   \r\n-﻿\n 中文<中文<   "},
+  {"char_width":1,"lines":["　 \u000B",""," 中文😀中文𝄞--",""],"max_width":386,"text":"　 \u000B\t\r\n\r\n 中文😀中文𝄞--\r"},
+  {"char_width":5,"lines":["bc𝄞--👩‍💻 ","-"],"max_width":247,"text":"bc𝄞--👩‍💻 \r\n-"},
+  {"char_width":1,"lines":["\fébc","-👩‍💻"],"max_width":19,"text":"\fébc\r\n-👩‍💻"},
+  {"char_width":12,"lines":["　","中","文","　","\u000B","　","<","　","é"," ","中","文","𝄞"," "," ","a"," "," ","　","a",""," "," "," ","<","","👩","‍","💻"," ","中","文","","中","文","W","","\f","","","﻿","","b","c","b","c"," ","a","b","c","","b","c"," "," ",""],"max_width":-30,"text":"　中文　\u000B　<　é 中文 𝄞  a  　a\r \t\t\t  \r\n<\t\n \n👩‍💻 中文中文W\f﻿bcbc abc  \r\nbc  \r"},
+  {"char_width":12,"lines":["é","W","W","W","W","👩","‍","💻","﻿","😀","﻿","<","中","文","😀","👩","‍","💻","😀","\u000B","a"," ","é","b","c","é","　","b","c","\f"," ","　"],"max_width":-4,"text":"éW\nWWW👩‍💻﻿😀﻿<中文 😀\t\n👩‍💻\n😀\u000Ba\r\n ébc\né　\r bc\f    　"},
+  {"char_width":5,"lines":["","𝄞  <中文","\fé\f 👩‍💻\u000B  👩‍💻<bc-bc中文","","👩‍💻","WW 𝄞Wé<","","abc  ﻿<\fbc\fbc"],"max_width":249,"text":"\r\n 𝄞  <中文\n\fé\f  👩‍💻\u000B   👩‍💻<bc-bc中文\r\n\r👩‍💻\r\nWW 𝄞Wé<\r\n\r\nabc  ﻿<\fbc\fbc"},
+  {"char_width":1,"lines":["\u000B 😀","  \u000B😀👩‍💻  W中文","W ",""],"max_width":341,"text":"\u000B  😀\r\n  \u000B😀👩‍💻   \t  W中文\rW \r"},
+  {"char_width":12,"lines":[" ","　","<"],"max_width":322,"text":" \n　\r\n<"},
+  {"char_width":12,"lines":["\u000B<\f  a<é bc　","W　\f- 　W-","aabc　﻿\f","a﻿","\f  -a👩‍💻 𝄞<　\f"],"max_width":207,"text":"  \u000B<\f  a<é bc　 \r\nW　\f- 　W-\r\naabc　﻿\f\ra﻿\r\f   -a👩‍💻 𝄞<　\f"},
+  {"char_width":1,"lines":[" - 中文-<éé\u000B<　aa","-﻿中文W a\f  \u000Bé👩‍💻\u000B \f <<","𝄞😀  𝄞-\f 👩‍💻 ","-"],"max_width":364,"text":" -\t中文-<éé\u000B<　aa\r-﻿中文W\ta\f   \u000Bé👩‍💻\u000B \f  << \n𝄞😀   𝄞-\f 👩‍💻 \n-"},
+  {"char_width":1,"lines":["W﻿","","-👩‍💻👩‍💻𝄞 👩‍💻中文 \u000B","","é"],"max_width":142,"text":"W﻿\r\r\n-👩‍💻👩‍💻𝄞 👩‍💻中文  \u000B \r\n\t\r\né"},
+  {"char_width":5,"lines":["\fW   bc😀","é<😀","﻿\u000B-👩‍💻𝄞  -é "," 👩‍💻a中文"],"max_width":263,"text":"\fW   bc😀\r\té<😀\r\n﻿\u000B-👩‍💻𝄞  -é \r\n 👩‍💻a中文"},
+  {"char_width":5,"lines":[" é👩‍💻bcbc","\u000B𝄞\f","  👩‍💻𝄞\u000B"],"max_width":234,"text":" é👩‍💻bcbc\n\u000B𝄞\f\n  👩‍💻𝄞\u000B"},
+  {"char_width":1,"lines":["\f 中文 👩‍💻𝄞中文👩‍💻<"],"max_width":176,"text":"\f  中文 👩‍💻𝄞中文👩‍💻<"},
+  {"char_width":5,"lines":["﻿a","","　","\u000B < bc\f","W👩‍💻bc　𝄞<-𝄞","","--W👩‍💻","bc\f ","😀\u000B中文 - \u000B","<"," ","ébc \f"],"max_width":282,"text":"﻿a\r\n\r　  \r\u000B < bc\f\rW👩‍💻bc　𝄞<-𝄞\r\r--W👩‍💻\n bc\f \t  \r😀\u000B中文 - \u000B\r\n<\r\n \nébc \f"},
+  {"char_width":12,"lines":["a中文W𝄞 < 😀a <a𝄞","< é中文𝄞","  ﻿\f ","😀\f👩‍💻é👩‍💻","\f\u000B","﻿　　","--bc<"],"max_width":340,"text":"a中文W𝄞  < 😀a <a𝄞\n< é中文𝄞\r\n  ﻿\f   \r\n😀\f👩‍💻é👩‍💻   \n\f\u000B\n﻿　　  \n--bc< \t"},
+  {"char_width":12,"lines":["﻿  ﻿   <a﻿é -　","<  ","👩‍💻\f ","<","é ","𝄞👩‍💻- ","-"],"max_width":242,"text":"﻿   ﻿   <a﻿é\t-　\n <   \n👩‍💻\f \n< \r\né \n𝄞👩‍💻- \n-  "},
+  {"char_width":1,"lines":["\fa","中文"],"max_width":267,"text":"\fa\r中文"},
+  {"char_width":1,"lines":["﻿中文 \u000B  ","  ﻿","  \f","𝄞"," ﻿Wé 　",""],"max_width":227,"text":"﻿中文 \u000B  \n  ﻿\r\n    \f\r\n\t𝄞\n   ﻿Wé 　\n"},
+  {"char_width":12,"lines":[" ","😀","👩","‍","💻"," ","\u000B",""," ","﻿","𝄞","😀","𝄞","　","é","中","文","-"," ","b","c","","中","文","é","-"],"max_width":-5,"text":" 😀 👩‍💻  \u000B\t ﻿𝄞 😀𝄞　é\n 中文-\r bc中文\ré-"},
+  {"char_width":5,"lines":["","﻿-\fé\f<"," ","W é 𝄞-","﻿　WWé中文"," 𝄞﻿ Wé😀","bc"],"max_width":36,"text":"\n   ﻿-\fé\f<\r \r\nW é  𝄞- ﻿　WWé中文   𝄞﻿  Wé😀  bc"},
+  {"char_width":5,"lines":["","\u000B中文é","< ﻿","　\f😀中","文aa 中","文"],"max_width":25,"text":"\n\u000B中文é < ﻿\t　\f😀中文aa 中文"},
+  {"char_width":12,"lines":["a","　","👩","‍","💻","-"," ","👩","‍","💻"," "," ","<"," ","　","a","\f","","𝄞"," "],"max_width":6,"text":"a　\r\n 👩‍💻- 👩‍💻   < \r  　a\f\t\t𝄞\r\n "},
+  {"char_width":5,"lines":["bc\f 𝄞","﻿","",""],"max_width":216,"text":"bc\f 𝄞 \r\n﻿\r\n  \r\n"},
+  {"char_width":5,"lines":["","ébc﻿ bc👩‍💻　 𝄞  😀 W W -\f 中文𝄞 👩‍💻  👩‍💻\f﻿","\f<　 中文- 👩‍💻 ","<W"],"max_width":336,"text":" \nébc﻿    bc👩‍💻　  𝄞  😀  W W -\f 中文𝄞\t 👩‍💻    👩‍💻\f﻿\r\f<　  中文- 👩‍💻 \r\n<W "},
+  {"char_width":12,"lines":["W𝄞\u000B","𝄞 ﻿é","　 -\f","\fa﻿ ",""],"max_width":54,"text":"W𝄞\u000B  𝄞  ﻿é  　 -\f\fa﻿ "},
+  {"char_width":1,"lines":["😀中文W ﻿a<< 👩‍💻<bc　a 　","﻿-𝄞"],"max_width":87,"text":"  😀中文W ﻿a<< \t👩‍💻<bc　a 　\r\n﻿-𝄞  "},
+  {"char_width":12,"lines":["中文bc \u000B < bcé ","😀W👩‍💻 \u000B 　👩‍💻\f< é"],"max_width":193,"text":"中文bc \u000B < bcé \n😀W👩‍💻 \u000B 　👩‍💻\f< é"},
+  {"char_width":1,"lines":["-W 👩‍💻  bc 　<a\fbcé","","W　<﻿","","","","a","","a\f😀 👩‍💻 𝄞","<  é ﻿　 👩‍💻"],"max_width":129,"text":"-W\t\t👩‍💻   bc\t　<a\fbcé\n\r\nW　<﻿\r\n\r\n\r\n\ra\r\n\r\na\f😀 👩‍💻 𝄞\r\n<\t é ﻿　  👩‍💻"},
+  {"char_width":12,"lines":["  W𝄞 ﻿-😀","","éa \f\u000B﻿W<","< ","aWbc< ﻿","﻿😀"],"max_width":139,"text":"  W𝄞 ﻿-😀\r\t\r\néa \f\u000B﻿W<  \r\n\t< \naWbc< ﻿\n﻿😀"},
+  {"char_width":12,"lines":["\f","👩","‍","💻","a","a"," "," ","-","\f","\u000B","中","文"," "," ","W","﻿","﻿","\f","\u000B","-","\u000B"," ","\u000B","a","a","-","<","👩","‍","💻"," ","\f","　","W","-","","<","W","b","c","\f","","","\f"],"max_width":-5,"text":" \f👩‍💻a\ra\t  -\f\u000B中文  W﻿﻿\f     \u000B\r-\u000B\n  \u000B\naa\t-<     👩‍💻 \f　W -\r\n\r<W\tbc\f\f   "},
+  {"char_width":12,"lines":["bc","　<é <","\f\f 　bc﻿é中文\f 中文é","Wbc👩‍💻中文 𝄞😀\f"," ","","\f-W👩‍💻"],"max_width":238,"text":"bc\n 　<é <\r\n\f\f   　bc﻿é中文\f 中文é\rWbc👩‍💻中文  𝄞😀\f\n \r\n\r\n\f-W👩‍💻  "},
+  {"char_width":12,"lines":["bc","\u000B﻿W𝄞\u000B\u000B\f中文",""," 中文😀　bc ","　","\u000B　é　　  　","  abc","中文  ","<👩‍💻 👩‍💻👩","‍💻","a😀  bc"],"max_width":110,"text":"bc   \u000B﻿W𝄞\u000B\u000B\f中文\n 中文😀　bc \n    　  \r\n\u000B　é　　  　   abc\r中文    \t<👩‍💻 👩‍💻👩‍💻\n  a😀  bc"},
+  {"char_width":5,"lines":["<bc -  ","é-","\f﻿","","éa a😀a","-  　",""],"max_width":351,"text":"<bc -   \r\né-\r\n\f﻿\r\n\néa a😀a\r\n-  　 \r"},
+  {"char_width":12,"lines":[" "],"max_width":2,"text":" "},
+  {"char_width":12,"lines":[" 𝄞a 𝄞  é<👩‍💻"],"max_width":184,"text":"\t 𝄞a\t𝄞   é<👩‍💻  "},
+  {"char_width":12,"lines":["a é\f\u000B😀\u000Ba","","👩‍💻W-中文 - 𝄞W👩‍💻<\f -Wé  ","中文 ","éW \f ","𝄞　 \u000B \f  ",""],"max_width":318,"text":"a  é\f\u000B😀\u000Ba \n\r\n👩‍💻W-中文 - 𝄞W👩‍💻<\f -Wé   \n 中文 \néW\t\f \n𝄞　\t\u000B \f   \n "},
+  {"char_width":12,"lines":["é-","👩‍💻a"," bc😀  "," a👩‍💻  ","é  bcé  \f  中文a😀 é","W𝄞😀\f👩‍💻<",""],"max_width":223,"text":"é-\r\n👩‍💻a  \r bc😀  \r\n a👩‍💻  \né  bcé  \f   中文a😀 é W𝄞😀\f👩‍💻<\n\t  "},
+  {"char_width":5,"lines":[""," ","👩‍💻👩‍💻　","é\u000B"," \u000B","👩‍💻\f-a 😀","W中文﻿a<","👩‍💻 \f　W😀  \u000B-中文<😀"],"max_width":208,"text":"\r  \n👩‍💻👩‍💻　  \né\u000B\n \u000B\r👩‍💻\f-a  😀\t\nW中文﻿a<\r\n👩‍💻  \f　W😀   \u000B-中文<😀"},
+  {"char_width":1,"lines":["bcaa"," ﻿👩‍💻　  ","\u000B a𝄞  \u000BbcWW﻿-  <﻿aa é","-😀　","👩‍💻"],"max_width":346,"text":"  bcaa\r\n ﻿👩‍💻　   \n\u000B  a𝄞  \u000BbcWW﻿-  <﻿aa é\r\n-😀　\r\n👩‍💻"},
+  {"char_width":5,"lines":["﻿ 中文","","-👩‍💻 ﻿","\f𝄞","","😀中文bc ","　W bc　\fbc","中文😀<","\f 😀中文 𝄞\f　\u000BW"],"max_width":348,"text":"﻿\t中文\r\r-👩‍💻 ﻿\t\r\f𝄞\r\n\n😀中文bc \r\n　W bc　\fbc \r\n中文😀<\r\f 😀中文 𝄞\f　\u000BW"},
+  {"char_width":5,"lines":["é😀 中文  a\u000B𝄞 "," W 😀𝄞<-a　中文中文é","﻿ ﻿ \f","éa\u000B﻿éWéWé \u000B 　 \fbc"],"max_width":288,"text":"é😀\t中文  a\u000B𝄞  \r\n\t W\t😀𝄞<-a　中文中文é\r﻿ ﻿\t\f\néa\u000B﻿éWéWé \u000B 　 \fbc"},
+  {"char_width":12,"lines":["","<﻿﻿a\f中文","-👩‍💻- 😀","𝄞","👩‍💻","𝄞-﻿Wa- W👩‍💻- 　","中文　\u000B -  \u000B\fa 👩‍💻",""," bc   bc"],"max_width":207,"text":"\t\n<﻿﻿a\f中文 \t\r\n-👩‍💻- 😀\r\n𝄞\n👩‍💻 𝄞-﻿Wa- W👩‍💻- 　\r\n中文　\u000B   -  \u000B\fa\t👩‍💻\n  \r\n bc   bc"},
+  {"char_width":12,"lines":["a😀　 é"],"max_width":86,"text":"  a😀　 é"},
+  {"char_width":1,"lines":["𝄞","\u000B😀","　\u000Baé 中文 ééW \f","bc 😀a<<　 ﻿bc👩‍💻　- ","-a  é  ","a 　","中文 \f😀W \f",""],"max_width":321,"text":" 𝄞 \n\u000B😀\r\t　\u000Baé  中文 ééW \f\t\r\nbc 😀a<<　 ﻿bc👩‍💻　- \r\n-a  é   \na 　\r\n中文  \f😀W \f\r"},
+  {"char_width":5,"lines":["👩‍💻<👩‍💻W中文𝄞﻿𝄞bc　　","é﻿W𝄞　"],"max_width":237,"text":"👩‍💻<👩‍💻W中文𝄞﻿𝄞bc　　\né﻿W𝄞　    "},
+  {"char_width":1,"lines":["\u000B","a\f","W","\fé中文\f<\f  \u000B 👩‍💻👩‍💻   "," 中文a\u000B　<👩‍💻a 👩‍💻👩‍💻 a𝄞😀﻿\u000B  　","中文é","éW"],"max_width":111,"text":"\u000B\na\f\nW\r\fé中文\f<\f  \u000B 👩‍💻👩‍💻   \r\n 中文a\u000B　<👩‍💻a 👩‍💻👩‍💻  a𝄞😀﻿\u000B \t　 \r\n中文é\r\téW"},
+  {"char_width":1,"lines":["","中文","W","𝄞W﻿","bcb","c","bc-","bc","aW","bc　"," 𝄞","👩‍💻","<W","👩‍💻","👩‍💻"," \f-","bc",""],"max_width":3,"text":" 中文\r\nW \r𝄞W﻿bcbc    bc-bc\taW\tbc　 𝄞\r👩‍💻<W 👩‍💻👩‍💻 \f-\n  bc\n"},
+  {"char_width":12,"lines":["","\f bc \u000B"," bcW\u000B𝄞 中文 　𝄞","bc😀𝄞a𝄞a 　﻿","\u000B👩‍💻bc","中文","-a W-﻿W","-"],"max_width":146,"text":" \r\n\f bc \u000B\n bcW\u000B𝄞 中文\t　𝄞\rbc😀𝄞a𝄞a 　﻿ \u000B👩‍💻bc\r中文  \r  -a W-﻿W  \n-  "},
+  {"char_width":1,"lines":[" 　","a bc𝄞 👩‍💻 𝄞𝄞-\u000B﻿😀a  \f\u000B","\u000B-中文"," "],"max_width":165,"text":"    　  \r\na  bc𝄞 👩‍💻 𝄞𝄞-\u000B﻿😀a  \f\u000B \t\r\n\u000B-中文\r "},
+  {"char_width":12,"lines":["","　",""],"max_width":162,"text":"\n　 \t\r "},
+  {"char_width":1,"lines":["𝄞"," 𝄞  中文中文﻿"],"max_width":14,"text":"  𝄞\r 𝄞  中文中文﻿"},
+  {"char_width":12,"lines":["\f \u000B","😀","a- 👩‍💻👩‍💻a "," 中文< ﻿　中文W"],"max_width":136,"text":"\f \u000B\r😀 a- 👩‍💻👩‍💻a  中文<   ﻿　中文W"},
+  {"char_width":5,"lines":["  ﻿ é 　","😀"],"max_width":187,"text":"  ﻿\té  　\r\n😀 "},
+  {"char_width":5,"lines":["<"],"max_width":270,"text":"<"},
+  {"char_width":12,"lines":["-","\f","-","-","\f","a","-"],"max_width":-13,"text":"- \f--\fa-"},
+  {"char_width":1,"lines":["\u000Bbcbc","-é","👩‍💻é"],"max_width":332,"text":"\u000Bbcbc\r-é\r👩‍💻é"},
+  {"char_width":5,"lines":["- ﻿   bcbc 中文","😀","bc","👩‍💻  ","😀 😀"],"max_width":258,"text":"- \t﻿   bcbc 中文\r\n 😀\rbc\n👩‍💻   \r😀 😀"},
+  {"char_width":12,"lines":[" ","<","W","中","文","é","𝄞","👩","‍","💻",""," ","\u000B","W","é","","﻿","😀","b","c","😀","﻿"," ","😀","a"," ","a","","👩","‍","💻","中","文","<"," ","👩","‍","💻","","\u000B","-","𝄞","b","c"," ","😀","","\f"," ","﻿","<"," ","b","c"," ","<","　"],"max_width":-11,"text":"\t \r<W中文é𝄞👩‍💻 \u000B   \nWé ﻿😀  bc😀﻿ 😀a  \ra👩‍💻中文  < 👩‍💻\u000B-𝄞bc 😀\r\n\r\f ﻿< \nbc <　"},
+  {"char_width":12,"lines":["é ","é\f"," \f","é-","<𝄞","<","😀 "," ","👩‍","💻",""],"max_width":33,"text":"é \r\né\f\r \f é-<𝄞 < \t😀  \r\n👩‍💻\r"},
+  {"char_width":5,"lines":["< W𝄞","😀","﻿  W﻿a𝄞👩‍💻<bc-","-a","-bc","bc bc﻿","中文<a\f"],"max_width":397,"text":"< W𝄞\r\n😀\r﻿  W﻿a𝄞👩‍💻<bc-\n  -a\r\n-bc\t\r\nbc bc﻿\n中文<a\f"},
+  {"char_width":12,"lines":["< 𝄞𝄞<﻿","﻿","﻿ \f"," 　\f  ","\u000B𝄞中文","W","- bc\f<　é﻿",""," "],"max_width":240,"text":"<\t𝄞𝄞<﻿ \r\n﻿\r\n﻿    \f\r\n 　\f    \r\n\u000B𝄞中文\nW\r- bc\f<　é﻿  \r\r\n "},
+  {"char_width":5,"lines":["bc﻿𝄞","-bcéW a\u000B中文<😀<"],"max_width":393,"text":"bc﻿𝄞\r\n-bcéW a\u000B中文<😀<"},
+  {"char_width":5,"lines":["  ","a","","𝄞\u000B<bc \u000Baéa W  　","😀-","W😀   \u000B"," é","",""],"max_width":227,"text":"  \ra\n\n𝄞\u000B<bc \u000Baéa W \t　\r\n😀- \rW😀   \u000B\r é\n\r"},
+  {"char_width":1,"lines":[" é \u000B -é ﻿ \u000B bcbcbc𝄞 　é 　𝄞<W -﻿  ","𝄞","bc"," 👩‍💻W  ﻿aa-bc",""],"max_width":357,"text":" é \u000B -é ﻿ \u000B  bcbcbc𝄞\t\t　é 　𝄞<W -﻿  \r\n𝄞 \rbc\r\n 👩‍💻W  ﻿aa-bc  \r\n  "},
+  {"char_width":1,"lines":["< W\f﻿\u000B中文 　-","","","bc\u000B a","\u000B  - W𝄞","a\fW","　","<　 \f👩‍💻\fbc"],"max_width":226,"text":"< W\f﻿\u000B中文 　-\n\r\n\r  bc\u000B  \t  a\r\n\u000B  - W𝄞\r\na\fW\n 　\r\n<　 \f👩‍💻\fbc"},
+  {"char_width":1,"lines":["","中","文"],"max_width":-22,"text":"\n中文"},
+  {"char_width":1,"lines":["bc a< 👩‍💻ébc é\f a","<- ﻿ 　﻿","é","﻿﻿ bc a中文","　  - 𝄞W𝄞﻿\u000Bbc"],"max_width":346,"text":"bc a< 👩‍💻ébc é\f a\n\t<- ﻿\t　﻿\r\né  \r﻿﻿\t bc a中文\r\n　  - 𝄞W𝄞﻿\u000Bbc"},
+  {"char_width":5,"lines":[""],"max_width":352,"text":""},
+  {"char_width":12,"lines":["W  👩‍💻 😀𝄞W \u000B中文","é  W-𝄞𝄞👩‍💻﻿\u000Ba　  ","\u000B","👩‍💻< W"," 😀","bca"],"max_width":277,"text":"W   👩‍💻 😀𝄞W \u000B中文\r\né  W-𝄞𝄞👩‍💻﻿\u000Ba　  \n\u000B\n  👩‍💻< W\r\n 😀\n  bca"},
+  {"char_width":5,"lines":["a","é𝄞","\u000B\u000B éW  -","","W　","W👩‍💻中文","","𝄞\u000Bé 　","a","","","﻿a","\f-中文\u000B -a𝄞"],"max_width":59,"text":"a\t\r\n é𝄞 \r\u000B\u000B éW   -\r\n\r\nW　 \rW👩‍💻中文\r\n\n 𝄞\u000Bé 　\ra\n\r\n\r\n﻿a\n  \f-中文\u000B\t-a𝄞"},
+  {"char_width":5,"lines":["👩‍","💻-","😀","﻿👩","‍💻","","😀 ","﻿<","　\f"," "],"max_width":13,"text":"👩‍💻-😀\n  ﻿👩‍💻 😀 ﻿<　\f "},
+  {"char_width":5,"lines":["﻿-\u000B 😀中文𝄞　﻿","𝄞"],"max_width":144,"text":"﻿-\u000B  😀中文𝄞　﻿\r𝄞"},
+  {"char_width":1,"lines":["<","-\f-a👩‍💻 ﻿","\f<　😀"],"max_width":125,"text":"<\r-\f-a👩‍💻 ﻿\n\t\t\t \f<　😀"},
+  {"char_width":1,"lines":["","","\u000B👩‍💻 é--- -  - "],"max_width":59,"text":"\r\n\r\n\u000B👩‍💻\té---  -  - "},
+  {"char_width":5,"lines":[""],"max_width":115,"text":"\t"},
+  {"char_width":5,"lines":[""],"max_width":-28,"text":""},
+  {"char_width":5,"lines":["<👩","‍💻","中文","W ","","𝄞👩","‍💻","中文","中文","\u000B😀","\f"," 𝄞","é ","\f\f"," ",""],"max_width":12,"text":"<👩‍💻中文W  \r\n \r\n𝄞👩‍💻中文中文\u000B😀\f 𝄞é \f\f    \n"},
+  {"char_width":12,"lines":[" ","é","😀","\u000B"],"max_width":7,"text":" é😀\r\u000B"},
+  {"char_width":5,"lines":["bc\u000B"," ﻿"," \f","𝄞W\f"," é","　 ","a👩‍","💻 "," \u000B","😀😀W","é ","　é<","-<","-﻿","W\f","中文中","文 \f","﻿ 　","\u000B","\u000B ",""],"max_width":15,"text":"bc\u000B ﻿  \f\r\n𝄞W\f é　  a👩‍💻 \t \u000B\n😀😀Wé 　é<-<\r-﻿\tW\f 中文中文 \f  ﻿ 　\n\u000B \u000B \r"},
+  {"char_width":1,"lines":["é  a 👩‍💻 bc 👩‍💻-𝄞 W-﻿\u000B😀a  👩‍💻aW 中文\f﻿𝄞中文 ﻿ ","﻿ ","-  😀  abc"],"max_width":259,"text":"é  a   👩‍💻 bc 👩‍💻-𝄞 W-﻿\u000B😀a  👩‍💻aW 中文\f﻿𝄞中文  ﻿ \n﻿ \r-  😀   abc"},
+  {"char_width":5,"lines":["","  "],"max_width":206,"text":"\r   "},
+  {"char_width":12,"lines":["  -é    ﻿﻿"],"max_width":245,"text":" \t-é    ﻿﻿  "},
+  {"char_width":12,"lines":[" \u000Bé","\fé﻿<- W𝄞中文👩‍💻","","𝄞𝄞　<    👩‍💻","中文😀 bcbc-👩‍💻𝄞a-　","  𝄞",""],"max_width":296,"text":" \u000Bé\r\n\fé﻿<-     W𝄞中文👩‍💻\r\n\n𝄞𝄞　< \t   👩‍💻  \r中文😀  bcbc-👩‍💻𝄞a-　\n \t𝄞 \r"},
+  {"char_width":1,"lines":["é<a"," bc\fa \u000B<𝄞\u000B\u000B👩‍💻中文\u000B ","é","-<","bc","  bc中文中文\u000B　a","　😀"],"max_width":257,"text":"é<a\r\t bc\fa \u000B<𝄞\u000B\u000B👩‍💻中文\u000B \r\n é\r\n-<\r\n bc\r  bc中文中文\u000B　a\r　😀 "},
+  {"char_width":1,"lines":[" \u000B 👩‍💻　   👩‍💻W"," ","𝄞 a"," W ","\f","\u000Ba bc    "],"max_width":64,"text":" \u000B \t👩‍💻　    👩‍💻W\n \r𝄞  a\r\n W \n\t\f \r \u000Ba bc \t  "},
+  {"char_width":1,"lines":["　 W é bc","é"," - 𝄞bc","\u000B👩‍💻\u000Bbc","﻿<😀W 𝄞中文 😀　bc ﻿\u000B﻿","é"],"max_width":129,"text":"　 W é bc   \n  é\r\t-\t𝄞bc\r\n\u000B👩‍💻\u000Bbc\n﻿<😀W 𝄞中文  😀　bc ﻿\u000B﻿\né"},
+  {"char_width":5,"lines":["👩‍💻中文","𝄞aé𝄞  ","W\f\f👩‍💻𝄞𝄞","　é - bc",""],"max_width":398,"text":"👩‍💻中文\n𝄞aé𝄞   \t \nW\f\f👩‍💻𝄞𝄞\r　é  - bc\r\n"},
+  {"char_width":1,"lines":["👩‍💻😀","　\f中文👩‍💻W  ","W👩‍💻W"," 　W﻿","中文👩‍💻bcé"," 😀W bc \u000Ba　é"],"max_width":165,"text":" 👩‍💻😀  \n　\f中文👩‍💻W  \rW👩‍💻W\r\n  　W﻿  \n中文👩‍💻bcé\r\n 😀W\tbc \u000Ba　é "},
+  {"char_width":12,"lines":["\f<　","  👩‍💻","\f﻿","a　","中文中文-𝄞　","a 😀"," ﻿é\u000B\f<","é "],"max_width":90,"text":"\f<　\t  👩‍💻 \f﻿  \na　\t\r中文中文-𝄞　  a\t😀   ﻿é\u000B\f<\r\né "},
+  {"char_width":12,"lines":["","😀 <👩‍💻"," 中文 😀 é ","","😀中文中文","👩‍💻 中文😀　😀　 -　 　 ","﻿﻿ ","　\f-𝄞\u000B中文-中文😀","𝄞 　aé"],"max_width":343,"text":"\r\n😀 <👩‍💻\n 中文 😀  é \r\r\n😀中文中文\n  👩‍💻 中文😀　😀　 -　  　 \t\r﻿﻿ \r　\f-𝄞\u000B中文-中文😀\r𝄞 　aé "},
+  {"char_width":12,"lines":["😀\f","<","﻿ \f\fbc"," bc","﻿\u000B","\fbca  😀","𝄞","  <"],"max_width":105,"text":"😀\f\n\t<\r﻿ \f\fbc\r\n bc\r﻿\u000B  \fbca  😀\t𝄞\r\n\t   <"},
+  {"char_width":5,"lines":["　 \f中文","\f𝄞  W","　𝄞a bc"],"max_width":205,"text":"　\t\f中文   \r\n\f𝄞  W\n　𝄞a bc"},
+  {"char_width":5,"lines":[" "],"max_width":365,"text":" "},
+  {"char_width":1,"lines":["  👩‍💻 a","😀👩‍💻","a\u000B😀\u000B中文 👩‍💻"," ﻿","𝄞"," é-   ﻿\u000B"],"max_width":40,"text":" \t👩‍💻\ta\n😀👩‍💻\na\u000B😀\u000B中文 👩‍💻\n ﻿\n𝄞\r\n\t é-    ﻿\u000B"},
+  {"char_width":12,"lines":[" ","\u000B","<","W","b","c","b","c","　"," ","👩","‍","💻","𝄞","<",""],"max_width":14,"text":" \u000B<Wbc  bc　\t  👩‍💻\t𝄞<\r"},
+  {"char_width":1,"lines":["\fW bc😀 é<中文   bc\f﻿W中文",""],"max_width":261,"text":"  \fW bc😀 é<中文 \t   bc\f﻿W中文\r"},
+  {"char_width":12,"lines":["\f< 　","　  a\u000B < a\u000Bé\f 😀W\u000Bé-  ","","a 中文 ","a","𝄞 中文","<😀 é👩‍💻a"],"max_width":394,"text":"\f< 　\n　  a\u000B  <\t  a\u000Bé\f  😀W\u000Bé-  \r\n\ra\t中文 \r\na  \r\n𝄞 中文\r\n<😀  \té👩‍💻a"},
+  {"char_width":12,"lines":["éWW👩‍💻","W<😀😀bc　-","  abc- "],"max_width":178,"text":"éWW👩‍💻  \r\nW<😀😀bc　-\r\n  abc- "},
+  {"char_width":1,"lines":["\f< 中文","é😀 \u000B ","é"],"max_width":278,"text":"\f<  中文\r\né😀 \u000B \n\té"},
+  {"char_width":1,"lines":["\u000B　   \f \f<\fW-bcé 中文\f  <","WW\f<\f- a\u000B\faaé  \fW👩‍💻\f","   a","<bc éa"],"max_width":164,"text":"\u000B　   \f\t\f<\fW-bcé  中文\f  <\rWW\f<\f- a\u000B\faaé   \fW👩‍💻\f\r\n   a\r<bc  éa"},
+  {"char_width":5,"lines":["a","<𝄞\f-﻿\u000B﻿　bc<","a\f","","W👩‍💻"," 　W👩‍💻中文-",""],"max_width":196,"text":"a \n<𝄞\f-﻿\u000B﻿　bc<\na\f\r\r\nW👩‍💻\r 　W👩‍💻中文-\r\n"},
+  {"char_width":1,"lines":["中文  a　👩‍💻\f  a"," < W W"," <  <a- ﻿<\u000BW","","𝄞\u000B\u000B"],"max_width":284,"text":" 中文  a　👩‍💻\f    a\n <\tW W\r\n <  <a-\t ﻿<\u000BW\r\n \r\n 𝄞\u000B\u000B"},
+  {"char_width":5,"lines":["😀\u000B","﻿中文 ","bc👩‍💻 中文é","","bc aW","﻿\f 　<","bc"," é-é 😀","𝄞bc\u000B<"," 👩‍💻"," < 𝄞 ",""],"max_width":282,"text":"😀\u000B\r﻿中文 \r\nbc👩‍💻 中文é\n\nbc aW\r\n﻿\f 　<\r\n  bc\r  é-é 😀\r\n𝄞bc\u000B<\t\r 👩‍💻  \r\n < 𝄞 \n"},
+  {"char_width":12,"lines":["﻿ 😀﻿👩‍💻 \u000B﻿　中文﻿"],"max_width":246,"text":"﻿ 😀﻿👩‍💻 \u000B﻿　中文﻿"},
+  {"char_width":5,"lines":["﻿ é😀","😀 😀 ﻿<a","\u000B-","　","　😀bc<","\u000Bé","é　  😀é -中文 中文","<👩‍💻é　"],"max_width":75,"text":"﻿ é😀\r\n😀 😀  ﻿<a\r\t\u000B-\n 　\r\n　😀bc<\r\n\u000Bé\ré　  😀é -中文 中文\r<👩‍💻é　"},
+  {"char_width":1,"lines":["","bc","﻿-","bc"," 　","👩‍","💻","𝄞 ","-W","<<","-𝄞","  ","　"," 𝄞","a","<<","bc"],"max_width":2,"text":"\nbc﻿-bc  　\t  👩‍💻\t\t𝄞 \t-W<<-𝄞  \n　 \r\n 𝄞a <<bc"},
+  {"char_width":12,"lines":["bc中文"," ﻿﻿👩‍💻﻿ ","é 中文 ","é","　a<  <","𝄞 --a","W<　😀 \u000B😀a"," ","W","👩‍💻﻿\f中文","bc"],"max_width":96,"text":"bc中文  ﻿﻿👩‍💻﻿ é    中文 \né\r\n　a< \t<\n𝄞 --a\n W<　😀  \u000B😀a\r\n    \r\nW\n👩‍💻﻿\f中文  bc"},
+  {"char_width":12,"lines":["\f  W😀bcé　","  <bc"," ﻿- é -","😀-W -","﻿  "],"max_width":110,"text":"\f  W😀bcé　\r  <bc\t  ﻿- é -  \t😀-W -\n﻿  "},
+  {"char_width":1,"lines":["𝄞　  　 😀 中文  \f👩‍💻 "," 𝄞 bca𝄞Wabca\u000B","-é  ","bc  bc","   bc中文中文"],"max_width":121,"text":"𝄞　   　 😀  中文  \f👩‍💻 \r\n\t 𝄞 bca𝄞Wabca\u000B\n -é\t \rbc    bc\n \t bc中文中文"},
+  {"char_width":5,"lines":["\f","a","\u000B","👩","‍","💻","　","　","<","","👩","‍","💻","\f"],"max_width":-13,"text":"\f\ra\u000B👩‍💻\t　　< 👩‍💻\f\t"},
+  {"char_width":12,"lines":["","<a","","","","bc ","- 　",""," 😀𝄞bc😀 😀 ",""],"max_width":168,"text":"\t\r\n<a\n\n\r\rbc \r-  \t　\r\n  \n 😀𝄞bc😀\t😀 \r"},
+  {"char_width":5,"lines":["","< 中文 𝄞　-","","-< 中文\f  　","<😀","中文﻿ \fbc\u000B﻿　","中文\fa𝄞 　Wé",""],"max_width":51,"text":"\r <   中文 𝄞　-\n\r\t-< 中文\f  　\t<😀\r\n中文﻿ \fbc\u000B﻿　中文\fa𝄞 　Wé\r\n"},
+  {"char_width":12,"lines":["bc <é- 𝄞","< ","𝄞","𝄞"],"max_width":371,"text":" bc <é-\t𝄞\n<   \n𝄞\r𝄞"},
+  {"char_width":12,"lines":["\u000B -\f "," 😀\u000B-𝄞😀 ","𝄞<😀 a","　﻿𝄞"," 中文"],"max_width":326,"text":"\u000B -\f  \n   😀\u000B-𝄞😀  \t\n𝄞<😀\ta\r　﻿𝄞\r\n \t\t中文"},
+  {"char_width":12,"lines":[" bc","中文\f","  <W中文 　﻿W \f","\f 中文","",""],"max_width":291,"text":" bc\n中文\f\n   \t<W中文 　﻿W  \f\r\n\f   中文\t\n  \r  "},
+  {"char_width":12,"lines":["W-é　","😀-\u000B<\u000B","👩‍💻","","中文W \u000B< 👩‍💻é😀 👩‍💻\u000B","😀 \u000B中文  bcW- 　<aé  \f 中文"],"max_width":349,"text":" W-é　\r 😀-\u000B<\u000B\n 👩‍💻\r\n\t\n中文W \u000B< 👩‍💻é😀 👩‍💻\u000B\r\n😀\t\u000B中文 \tbcW- 　<aé\t \f 中文"},
+  {"char_width":12,"lines":["","W","a bcW","中文😀","\f ﻿ ","﻿","😀 bc","-bc  ","","bcé<-","WW𝄞 \f","-\u000B　👩‍","💻😀bca","中文-","﻿👩‍💻﻿"],"max_width":68,"text":"\r\nW a bcW中文😀 \f ﻿  ﻿\n😀\tbc -bc  \n\rbcé<-WW𝄞 \f-\u000B　👩‍💻😀bca中文- ﻿👩‍💻﻿"},
+  {"char_width":5,"lines":["\u000B😀aa","👩‍💻﻿é","","- 中文é-","<😀","bc ","Wa bca\u000B\u000B éW\u000B　"],"max_width":328,"text":"\u000B😀aa\r👩‍💻﻿é   \n\r-  中文é-\r\n\t <😀\n bc   \rWa bca\u000B\u000B éW\u000B　"},
+  {"char_width":1,"lines":["","中文bc","𝄞","a"," \fa","😀a","\fé﻿-",""],"max_width":228,"text":"\r\n中文bc\r𝄞\na\r \fa\n😀a\r\n\fé﻿-\r"},
+  {"char_width":12,"lines":["<𝄞< "," W𝄞a<﻿a"," ","a😀","",""],"max_width":94,"text":"<𝄞< \t W𝄞a<﻿a \r\n a😀 \r\r"},
+  {"char_width":12,"lines":["中文","\u000B"],"max_width":245,"text":"中文\r\u000B"},
+  {"char_width":12,"lines":["﻿👩‍💻 　 ﻿"],"max_width":352,"text":"﻿👩‍💻 　\t\t﻿"},
+  {"char_width":12,"lines":["👩","‍","💻","😀"," ","﻿"," ","﻿","b","c"," ","👩","‍","💻","<","","","é","👩","‍","💻","😀"," "," ","😀","👩","‍","💻","﻿","\f","　","b","c","b","c","é","𝄞","<","\f","b","c","　","a","👩","‍","💻","　"," ","b","c","-","","　","👩","‍","💻","﻿","𝄞","W",""],"max_width":-5,"text":"👩‍💻😀 ﻿\r\t ﻿ bc \t👩‍💻\r<\r\n\r\n\r\né\r👩‍💻 😀  \n😀👩‍💻﻿\f　bc \tbcé𝄞<  \r  \fbc\n　a👩‍💻　 bc-　👩‍💻﻿𝄞W\r"},
+  {"char_width":5,"lines":["😀﻿\f ﻿W中文    ","𝄞﻿　　W","𝄞a　﻿　👩‍💻\fW😀a a","\u000B \f ﻿a\f <\f","中文"],"max_width":78,"text":"😀﻿\f  ﻿W中文    \n  𝄞﻿　　W\t𝄞a　﻿　👩‍💻\fW😀a a\u000B  \f ﻿a\f\t\t<\f\r\n中文"},
+  {"char_width":12,"lines":["﻿","中","文","　","\u000B"," ","é","W","😀","-","b","c"],"max_width":-26,"text":" ﻿中文　\u000B\n é\r\nW😀-\r\nbc  "},
+  {"char_width":5,"lines":["😀 中文 -\f bc <\f 𝄞 <😀\u000B é中文é-é  <<é< ","<<"],"max_width":172,"text":"😀 中文 -\f  bc <\f 𝄞 <😀\u000B é中文é-é   <<é< \n<<"},
+  {"char_width":5,"lines":["\u000Bé","<　",""," 中文😀a 👩‍💻","﻿ 　\u000B﻿","　 😀  😀bc","\u000Bé-中文　 \u000B𝄞﻿中文\f","👩‍💻"],"max_width":300,"text":"\u000Bé\r<　\r\n\r 中文😀a 👩‍💻\r\n﻿ 　\u000B﻿\r\n　 😀 \t 😀bc\n\u000Bé-中文　 \u000B𝄞﻿中文\f\r\n👩‍💻  "},
+  {"char_width":5,"lines":["","\f","bcW　W﻿","𝄞é𝄞😀","-\u000B"," ","  😀﻿aa 😀","<aé\f 👩‍💻","😀　😀é\u000B","😀"," é　"],"max_width":144,"text":"\r\n\f\rbcW　W﻿\r𝄞é𝄞😀\n-\u000B\n \n         😀﻿aa\t😀\n<aé\f 👩‍💻\r😀　😀é\u000B\n😀\n é　"},
+  {"char_width":5,"lines":["","é﻿👩‍💻W ","W","-﻿﻿bc<-\f<﻿ <\f","","　W  😀a \u000B é😀 \f","😀 ﻿  <<"],"max_width":246,"text":"\ré﻿👩‍💻W \rW\n-﻿﻿bc<-\f<﻿\t<\f\r\n\r\n  　W   😀a \t\u000B  é😀\t\f\r😀 ﻿  <<"},
+  {"char_width":1,"lines":["\fWW\f😀<W 中文","😀 < 𝄞 中文W😀 < ﻿😀bc   bc﻿bc中文👩‍💻  𝄞W\u000Béé 𝄞﻿éé","-"],"max_width":125,"text":"\fWW\f😀<W  中文\r\n😀  < 𝄞  中文W😀 < ﻿😀bc  \t  bc﻿bc中文👩‍💻\t 𝄞W\u000Béé  𝄞﻿éé \r\n-"},
+  {"char_width":5,"lines":["a 中文-","𝄞",""," \u000Ba ","\f 　 bc\f👩‍💻﻿bc","😀","a --\f"],"max_width":246,"text":"a  中文-\r\n 𝄞\r\r\n    \u000Ba  \r\f 　 bc\f👩‍💻﻿bc\r\n😀\na \t--\f"},
+  {"char_width":5,"lines":["😀<","a𝄞 é👩‍💻<W","𝄞","-\u000B𝄞　","<<𝄞","𝄞👩‍💻","𝄞< a 　😀"," ","W"],"max_width":165,"text":"😀<\na𝄞 é👩‍💻<W \r\n𝄞\n-\u000B𝄞　\n<<𝄞\r\n𝄞👩‍💻\n𝄞< a 　😀  \r\n \nW"},
+  {"char_width":1,"lines":["中文𝄞　","< a-\u000B  <","","-\fW \f𝄞　　😀a 😀"," bc","𝄞bc \f𝄞",""],"max_width":16,"text":"中文𝄞　\r\n< a-\u000B \t<\r\n\n -\fW \f𝄞　　😀a\t😀\t bc\n𝄞bc\t\f𝄞\r\n"},
+  {"char_width":1,"lines":["👩‍💻中文 😀 \fé   😀<\u000B-"," ","< ﻿ bc 𝄞👩‍💻 ","W\f\f👩‍💻 \u000Bé𝄞W ","\u000B中文","😀W"],"max_width":62,"text":"👩‍💻中文  😀  \fé \t 😀<\u000B-\r\n \n< ﻿ bc 𝄞👩‍💻  \rW\f\f👩‍💻 \u000Bé𝄞W \n \u000B中文\r\n😀W"},
+  {"char_width":12,"lines":["-\u000B","a"," b","c\u000B","\f😀","　","👩‍","💻 ","﻿a","W\u000B","WW","　a","😀W"," 　","bc"," 𝄞"," 中","文b","c-","bc","é ","　𝄞","𝄞","  ","👩‍","💻"],"max_width":27,"text":" \t\t-\u000Ba   bc\u000B\r\t\f😀　\r\n👩‍💻 ﻿aW\u000B \tWW　a😀W 　  bc   𝄞 中文bc-bcé 　𝄞𝄞\r  👩‍💻"},
+  {"char_width":5,"lines":["-","","中","文","😀","-","é",""," "," "," ","👩","‍","💻","<","é","a","﻿","é","b","c","中","文","😀","中","文"," ","é","👩","‍","💻","","-","W","😀","","W","<","👩","‍","💻","-",""],"max_width":-11,"text":" - \r\n\n中文😀 -é\n     👩‍💻<éa﻿é\r\n \tbc中文\r😀 \t 中文    é👩‍💻\t-W😀\n\nW <\r\n👩‍💻-\n"},
+  {"char_width":12,"lines":["<\u000B👩‍💻"],"max_width":368,"text":"  <\u000B👩‍💻"},
+  {"char_width":1,"lines":["﻿","﻿","𝄞"," ","b","c"," ","😀"," ","a","中","文","<"," ","b","c","","中","文","<","<"],"max_width":-24,"text":"﻿﻿𝄞 bc 😀 a中文\n< \tbc中文<\r<\t"},
+  {"char_width":1,"lines":["﻿W 中文 W﻿","　 𝄞  👩‍💻","﻿ \u000Bé< "],"max_width":319,"text":"﻿W 中文  W﻿\r　 𝄞   👩‍💻\n﻿ \u000Bé< "},
+  {"char_width":5,"lines":["","\u000B\u000Bbc𝄞é -𝄞","bc \f \f","- 𝄞  \u000Bé\f𝄞﻿　𝄞 𝄞　  a","<é👩‍💻\u000BW "],"max_width":237,"text":"\r \u000B\u000Bbc𝄞é -𝄞\rbc\t\f \f\r- 𝄞   \u000Bé\f𝄞﻿　𝄞  𝄞　 \ta\r<é👩‍💻\u000BW "},
+  {"char_width":5,"lines":["\f\f","W ","bcbc<\f","👩‍💻bc\u000B中文"],"max_width":263,"text":"\f\f\r\nW  \nbcbc<\f\n👩‍💻bc\u000B中文"},
+  {"char_width":12,"lines":[" 中文- \f a< 　 "],"max_width":383,"text":" 中文- \f a< 　   "},
+  {"char_width":1,"lines":["👩‍💻 中文 "," ","中文éW 中文 \u000B\f\u000B　\f ﻿中文　𝄞 ","  ","","a  ﻿  👩‍💻","\u000B","😀  ébc","é𝄞","Waa"],"max_width":197,"text":"👩‍💻 中文 \r\n \r中文éW  中文 \u000B\f\u000B　\f\t﻿中文　𝄞 \r  \n\na  ﻿  👩‍💻\n \u000B\r😀\t  ébc\ré𝄞\r\nWaa"},
+  {"char_width":12,"lines":["é","W","b","c","a",""," ","\f"],"max_width":4,"text":"éWbca  \f"},
+  {"char_width":1,"lines":["Wé﻿","bc","﻿\f","𝄞  ","a\u000B\f","bcbc\u000B 😀\f　ébc﻿<-","é<　﻿中文\f😀  <","  <😀中文","<"],"max_width":66,"text":"Wé﻿ \r\nbc\n﻿\f\n 𝄞\t \na\u000B\f \nbcbc\u000B  😀\f　ébc﻿<- \ré<　﻿中文\f😀  <\n\t\t <😀中文\r\n\t <"},
+  {"char_width":12,"lines":["　\f","﻿bc","-","😀𝄞👩‍💻\u000B<","👩‍💻<","😀  𝄞 bc"," <WbcW😀👩‍","💻"],"max_width":117,"text":"　\f\n﻿bc  \r- 😀𝄞👩‍💻\u000B< \r\n\t👩‍💻<\r😀\t 𝄞 bc\r\n <WbcW😀👩‍💻"},
+  {"char_width":12,"lines":["😀é- 𝄞 👩‍💻　﻿𝄞","","👩‍💻 bc    😀"],"max_width":148,"text":"😀é-\t \t𝄞 👩‍💻　﻿𝄞\r\r👩‍💻 bc    😀"},
+  {"char_width":1,"lines":["\f bc<👩‍💻é",""," a<﻿\f"],"max_width":205,"text":"\f \tbc<👩‍💻é\r\n\r a<﻿\f"},
+  {"char_width":12,"lines":["","<  a 　😀﻿- a  😀 \u000B","中文 \f","👩‍💻中文﻿-😀\f\u000B ","\u000B < -　a 　","\u000B bc"],"max_width":319,"text":"\n<   a\t 　😀﻿-  a  😀 \u000B\r中文 \f  \n👩‍💻中文﻿-😀\f\u000B \t \r \u000B < -　a 　\r\n\u000B bc"},
+  {"char_width":12,"lines":["","","\f< ","\f\f<😀<bc\u000B\u000B W"],"max_width":311,"text":"\r  \r\n\f< \r\n \f\f<😀<bc\u000B\u000B W"},
+  {"char_width":12,"lines":["é","　 <𝄞","  bc","","","W𝄞 "," -é","W"," <😀"],"max_width":56,"text":"é\r 　 <𝄞   bc\r\r\n  \r\n W𝄞  -é  W\r\n <😀"},
+  {"char_width":1,"lines":["𝄞- \f é😀\f a é   ﻿\f﻿","bc中文 "],"max_width":390,"text":" 𝄞- \f é😀\f\ta   é\t \t﻿\f﻿\r\nbc中文 "},
+  {"char_width":12,"lines":["　👩‍💻😀","﻿\u000B","👩‍💻aa﻿ 中文","👩‍💻bc ","  a👩‍💻﻿é b","c 😀<","\f- 　👩‍💻","W😀中文-bc ","éW😀","👩‍💻 中文"],"max_width":124,"text":"\t　👩‍💻😀\n﻿\u000B 👩‍💻aa﻿ 中文👩‍💻bc      a👩‍💻﻿é bc  😀<\r\f- 　👩‍💻\r\nW😀中文-bc \réW😀\n👩‍💻 中文"},
+  {"char_width":1,"lines":["","𝄞\u000B\f \féé","","中文é ","　 bcW  < 👩‍💻a< 😀 　👩‍💻　W<𝄞<\f👩‍💻  é\u000B"],"max_width":90,"text":"\n 𝄞\u000B\f  \féé\n\r\n中文é  \r  　 bcW  < 👩‍💻a< 😀 　👩‍💻　W<𝄞<\f👩‍💻   é\u000B"},
+  {"char_width":5,"lines":[" 　﻿","👩‍💻  aa﻿中文bc\u000B","𝄞",""," 　 bc 中文","","","","👩‍💻　😀  \u000B"],"max_width":200,"text":"\t 　﻿\r  \t 👩‍💻  aa﻿中文bc\u000B\n𝄞 \n\n  　  bc 中文\r\r \r\n\r👩‍💻　😀  \u000B"},
+  {"char_width":5,"lines":["𝄞","-👩‍💻"," Wa","",""],"max_width":155,"text":"𝄞\n\t -👩‍💻\r\n Wa\n\r"},
+  {"char_width":5,"lines":["","𝄞👩‍💻","　　　👩‍💻W"],"max_width":164,"text":"\n𝄞👩‍💻\n　　　👩‍💻W"},
+  {"char_width":5,"lines":["中文Wa中文\f <😀","　a　W ","","ébc\u000B-中文  bc-",""],"max_width":250,"text":"中文Wa中文\f <😀\n　a　W \r\n\r\nébc\u000B-中文  bc-\r "},
+  {"char_width":5,"lines":["é","b","c"],"max_width":9,"text":"é \rbc"},
+  {"char_width":1,"lines":[" ","-\u000B"],"max_width":205,"text":" \n-\u000B"},
+  {"char_width":1,"lines":["﻿  ","bc W  　 -😀bc \f<👩‍💻😀 𝄞","\fbcbc﻿ é  😀 𝄞👩‍💻","　😀😀  \fé😀-👩‍💻"],"max_width":308,"text":"﻿  \rbc\tW\t 　 -😀bc  \f<👩‍💻😀 𝄞\r\fbcbc﻿ \té  😀 𝄞👩‍💻 \t\r　😀😀  \fé😀-👩‍💻"},
+  {"char_width":1,"lines":["　𝄞👩‍💻a中文-<"],"max_width":235,"text":" 　𝄞👩‍💻a中文-<"},
+  {"char_width":12,"lines":["\f中文😀𝄞 <\f"],"max_width":224,"text":"\f中文😀𝄞 <\f"},
+  {"char_width":12,"lines":[" ","","b","c","a","　","\u000B","\f","b","c","","","﻿","é"],"max_width":16,"text":" bca\r\n　\r\u000B \f\rbc﻿é"},
+  {"char_width":1,"lines":[" ","é  \f WW","","👩‍💻< \f-","<   W- ","bc","","","","﻿ a 𝄞","a  é-é"],"max_width":114,"text":"   \t\r\né \t\f WW\r\n\r\n👩‍💻< \f-\r <   W- \nbc\r\n\r\r\r\n﻿ a 𝄞 \ra  é-é"},
+  {"char_width":5,"lines":["bc -﻿bc  中文W","　bc﻿\u000B   　é\f﻿<a<W \u000Ba中文"],"max_width":248,"text":"bc -﻿bc  中文W\r　bc﻿\u000B  \t　é\f﻿<a<W \u000Ba中文"},
+  {"char_width":5,"lines":[" <　 ﻿ é中文\f😀中文𝄞😀 😀﻿<﻿😀"],"max_width":316,"text":" <　  ﻿\té中文\f😀中文𝄞😀 😀﻿<﻿😀\t"},
+  {"char_width":1,"lines":["-bc 👩‍💻𝄞bc👩‍💻"],"max_width":178,"text":"-bc 👩‍💻𝄞bc👩‍💻"},
+  {"char_width":12,"lines":["W \f \u000B"," ","W﻿é😀  é👩‍💻","\u000B   "],"max_width":177,"text":"W  \f  \u000B \r\n \rW﻿é😀  é👩‍💻\r\u000B   "},
+  {"char_width":5,"lines":["bc﻿","","","","W<a😀﻿Wé<﻿\f< W <👩‍💻a👩‍💻𝄞- a \f a  😀W"],"max_width":220,"text":"bc﻿\n\r\n\n\nW<a😀﻿Wé<﻿\f<\tW <👩‍💻a👩‍💻𝄞-  a \t\f  a  😀W"},
+  {"char_width":1,"lines":["","\f \f","😀bc ﻿中文 W𝄞","a - 中文 👩‍💻","-𝄞 ","-bc中文","   bc","","a éa 𝄞 𝄞"],"max_width":310,"text":"\r\f\t\f\r\n😀bc ﻿中文\t\tW𝄞\r\na - 中文\t👩‍💻\r-𝄞 \r\n-bc中文\n     bc\r\n\ra  éa 𝄞  𝄞 "},
+  {"char_width":12,"lines":["W中文<中文😀 é﻿","　 𝄞","😀a😀 　  -","-👩‍💻 ","","","-﻿é﻿"],"max_width":154,"text":"W中文<中文😀 é﻿\t　 𝄞\n😀a😀 　\t - -👩‍💻\t\n\r\r\n-﻿é﻿"},
+  {"char_width":1,"lines":["👩‍💻a  bc\u000B\f 👩‍💻","   \u000B𝄞W\fbc﻿👩‍💻\f👩‍💻 　\f"],"max_width":56,"text":"👩‍💻a  bc\u000B\f 👩‍💻\r\t   \u000B𝄞W\fbc﻿👩‍💻\f👩‍💻 　\f "},
+  {"char_width":5,"lines":["\f﻿<","","é中文--  aé W\u000B👩‍💻bcW 中文😀  a"],"max_width":322,"text":"\f﻿<\r\r\né中文--  aé W\u000B👩‍💻bcW 中文😀  a"},
+  {"char_width":5,"lines":["𝄞\f\u000B𝄞 W","　　","W bc😀𝄞","W 👩‍💻é","😀 bcé ﻿"],"max_width":384,"text":"  𝄞\f\u000B𝄞 W\n 　　\rW  \t\tbc😀𝄞\r\nW 👩‍💻é\n😀  bcé ﻿"},
+  {"char_width":1,"lines":["a𝄞😀😀　　WW\u000B","　W　< ","　😀W WW 𝄞 　","  𝄞bc\f< \u000B😀 👩‍💻  ﻿"],"max_width":179,"text":" a𝄞😀😀　　WW\u000B\r\n　W　< \r 　😀W WW  𝄞 　  \r\n  𝄞bc\f< \u000B😀 👩‍💻   ﻿"},
+  {"char_width":12,"lines":["\f","　中文\u000B","\f"],"max_width":385,"text":"\t    \f    \t\n　中文\u000B\r\n\f"},
+  {"char_width":12,"lines":["𝄞","𝄞WW𝄞 "," "],"max_width":100,"text":"𝄞\n𝄞WW𝄞 \r  "}
+]
