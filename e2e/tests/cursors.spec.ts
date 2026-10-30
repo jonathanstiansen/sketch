@@ -113,9 +113,10 @@ test("B sees A's labelled cursor at A's canvas spot, also after either side scro
 })
 
 test("A leaving the canvas removes A's cursor on B, and coming back shows it again", async ({ browser }) => {
-  const session = await newViewer(browser)
+  const session = await openSharedBoard(browser, "cursors-leave", (page) => page.clock.install())
   const { pageA, pageB } = session
   try {
+    await pageB.clock.pauseAt(Date.now() + 1000)
     const nameA = await viewerName(pageA)
     await moveTo(pageA, 300, 200)
     await expect(pageB.locator(remoteCursor)).toHaveCount(1)
@@ -131,9 +132,10 @@ test("A leaving the canvas removes A's cursor on B, and coming back shows it aga
 })
 
 test("A's tab becoming hidden removes A's cursor on B", async ({ browser }) => {
-  const session = await newViewer(browser)
+  const session = await openSharedBoard(browser, "cursors-leave", (page) => page.clock.install())
   const { pageA, pageB } = session
   try {
+    await pageB.clock.pauseAt(Date.now() + 1000)
     await moveTo(pageA, 300, 200)
     await expect(pageB.locator(remoteCursor)).toHaveCount(1)
 
@@ -192,15 +194,19 @@ test("a viewer on another board sees nothing and is seen by nobody", async ({ br
     const pageC = await contextC.newPage()
     await createBoard(pageC)
 
+    const [nameA, nameB, nameC] = await Promise.all([viewerName(pageA), viewerName(pageB), viewerName(pageC)])
+
     await moveTo(pageC, 400, 400)
     await moveTo(pageA, 300, 200)
-    await expect(pageB.locator(remoteCursor)).toHaveCount(1)
+    await expect(pageB.locator(`${remoteCursor}[data-name="${nameA}"]`)).toHaveCount(1)
     await moveTo(pageB, 100, 100)
-    await expect(pageA.locator(remoteCursor)).toHaveCount(1)
+    await expect(pageA.locator(`${remoteCursor}[data-name="${nameB}"]`)).toHaveCount(1)
 
-    await expect(pageC.locator(remoteCursor)).toHaveCount(0)
-    await expect(pageA.locator(`${remoteCursor}[data-name="${await viewerName(pageC)}"]`)).toHaveCount(0)
-    await expect(pageB.locator(`${remoteCursor}[data-name="${await viewerName(pageC)}"]`)).toHaveCount(0)
+    expect(await pageA.locator(remoteCursor).count()).toBe(1)
+    expect(await pageB.locator(remoteCursor).count()).toBe(1)
+    expect(await pageC.locator(remoteCursor).count()).toBe(0)
+    expect(await pageA.locator(`${remoteCursor}[data-name="${nameC}"]`).count()).toBe(0)
+    expect(await pageB.locator(`${remoteCursor}[data-name="${nameC}"]`).count()).toBe(0)
   } finally {
     await contextC.close()
     await closeSession(session)
