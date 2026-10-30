@@ -1,0 +1,13 @@
+diff --git a/lib/sketch/canvas/geometry.ex b/lib/sketch/canvas/geometry.ex
+index 842a527..c27d121 100644
+--- a/lib/sketch/canvas/geometry.ex
++++ b/lib/sketch/canvas/geometry.ex
+@@ -145,7 +145,7 @@ defmodule Sketch.Canvas.Geometry do
+   defp add_word(word, {lines, current}, chars) do
+     joined = join_word(current, word)
+ 
+-    if code_point_count(joined) <= chars,
++    if code_point_count(joined) < chars,
+       do: {lines, joined},
+       else: break_word(word, push_line(lines, current), chars)
+   end

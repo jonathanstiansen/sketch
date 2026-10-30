@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas_logic.ts b/assets/js/hooks/canvas_logic.ts
+index 87cad9e..ed5cba8 100644
+--- a/assets/js/hooks/canvas_logic.ts
++++ b/assets/js/hooks/canvas_logic.ts
+@@ -277,7 +277,7 @@ function words(paragraph: string): string[] {
+   const found: string[] = []
+   let word = ""
+   for (const character of paragraph) {
+-    if (!WORD_BREAKS.has(character)) {
++    if (!/\s/.test(character)) {
+       word += character
+       continue
+     }
