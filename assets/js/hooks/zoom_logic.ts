@@ -1,5 +1,6 @@
-import { ZOOM_ACTIONS, type ZoomActionId, type ZoomChord } from "../generated/manifest.ts"
+import { ZOOM_ACTIONS, type ZoomActionId } from "../generated/manifest.ts"
 import type { Box, Point, Size } from "./canvas_logic.ts"
+import { focusContext, shortcutFor, type ShortcutInput } from "./shortcuts.ts"
 
 export const MIN_ZOOM = 0.1
 export const MAX_ZOOM = 4
@@ -18,14 +19,8 @@ export interface View {
   scroll: Point
 }
 
-export interface ZoomKeyInput {
-  key: string
-  code: string
-  ctrlKey: boolean
-  metaKey: boolean
-  shiftKey: boolean
-  altKey: boolean
-  editable: boolean
+export interface ZoomKeyInput extends ShortcutInput {
+  readonly editable: boolean
 }
 
 export function clampZoom(zoom: number): number {
@@ -99,14 +94,9 @@ export function fitView(boxes: readonly Box[], canvas: Size, viewport: Size, pad
   return { zoom, scroll: clampScroll(centered, canvas, zoom, viewport) }
 }
 
-function matchesChord(chord: ZoomChord, input: ZoomKeyInput): boolean {
-  const hasModifier = input.ctrlKey || input.metaKey
-  const identity = chord.code === null ? chord.key.includes(input.key.toLowerCase()) : chord.code === input.code
-  return identity && hasModifier === chord.mod && !input.altKey && (chord.shift === null || chord.shift === input.shiftKey)
-}
-
 export function zoomActionFor(input: ZoomKeyInput): ZoomActionId | undefined {
-  return ZOOM_ACTIONS.find(({ chords }) => chords.some((chord) => matchesChord(chord, input) && (chord.mod || !input.editable)))?.id
+  const shortcut = shortcutFor(input, focusContext(input.editable))
+  return shortcut?.group === "zoom" ? shortcut.action : undefined
 }
 
 export function isZoomAction(value: unknown): value is ZoomActionId {

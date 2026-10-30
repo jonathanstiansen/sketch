@@ -11,13 +11,13 @@ import {
   inlinedProperties,
   keepsWrapperAttribute,
   markerReferences,
-  matchesChord,
   paintFromRgba,
   pngSize,
   unionBounds,
   type Candidate,
 } from "../js/export/export_logic.ts"
 import type { Box } from "../js/hooks/canvas_logic.ts"
+import { press } from "./key_press.ts"
 
 const settings = { seed: 1, numRuns: 500 }
 
@@ -171,20 +171,13 @@ void test("marker references are read from url() values", () => {
   assert.deepEqual(markerReferences("none"), [])
 })
 
-void test("shortcut chords match only their exact modifiers", () => {
-  const open = { code: "KeyE", mod: true, shift: true, alt: false }
-  const press = { code: "KeyE", ctrlKey: true, metaKey: false, shiftKey: true, altKey: false }
-  assert.ok(matchesChord(open, press))
-  assert.ok(matchesChord(open, { ...press, ctrlKey: false, metaKey: true }))
-  assert.ok(!matchesChord(open, { ...press, shiftKey: false }))
-  assert.ok(!matchesChord(open, { ...press, altKey: true }))
-  assert.ok(!matchesChord(open, { ...press, ctrlKey: false }))
-  assert.ok(!matchesChord(open, { ...press, code: "KeyC" }))
-})
-
 void test("the registry's chords resolve to their actions", () => {
-  assert.equal(exportActionFor({ code: "KeyE", ctrlKey: true, metaKey: false, shiftKey: true, altKey: false }), "open_menu")
-  assert.equal(exportActionFor({ code: "KeyC", ctrlKey: false, metaKey: false, shiftKey: true, altKey: true }), "copy_png")
-  assert.equal(exportActionFor({ code: "KeyC", ctrlKey: true, metaKey: false, shiftKey: false, altKey: false }), undefined)
+  assert.equal(exportActionFor(press("KeyE", { ctrlKey: true, shiftKey: true }), "canvas"), "open_menu")
+  assert.equal(exportActionFor(press("KeyE", { metaKey: true, shiftKey: true }), "canvas"), "open_menu")
+  assert.equal(exportActionFor(press("KeyE", { ctrlKey: true }), "canvas"), undefined)
+  assert.equal(exportActionFor(press("KeyE", { ctrlKey: true, shiftKey: true, altKey: true }), "canvas"), undefined)
+  assert.equal(exportActionFor(press("KeyC", { shiftKey: true, altKey: true }), "canvas"), "copy_png")
+  assert.equal(exportActionFor(press("KeyC", { ctrlKey: true }), "canvas"), undefined)
+  assert.equal(exportActionFor(press("KeyC", { shiftKey: true, altKey: true }), "editor"), undefined)
   assert.equal(EXPORT_ACTIONS.length, 4)
 })

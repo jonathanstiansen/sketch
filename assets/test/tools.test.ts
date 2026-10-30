@@ -17,84 +17,66 @@ import {
   type KeyInput,
   type ToolId,
 } from "../js/hooks/tools.ts"
+import { anyPress, press, type Modifiers } from "./key_press.ts"
 
 const settings = { seed: 1, numRuns: 500 }
 
-const expectedBindings: Record<string, ToolId> = {
+const letterBindings: Record<string, ToolId> = {
   h: "hand",
   v: "selection",
-  "1": "selection",
   r: "rectangle",
-  "2": "rectangle",
   d: "diamond",
-  "3": "diamond",
   o: "ellipse",
-  "4": "ellipse",
   a: "arrow",
-  "5": "arrow",
   l: "line",
-  "6": "line",
   p: "draw",
-  "7": "draw",
   t: "text",
-  "8": "text",
   n: "note",
-  "9": "note",
   e: "eraser",
-  "0": "eraser",
-  Escape: "selection",
+}
+
+const digitBindings: Record<string, ToolId> = {
+  Digit1: "selection",
+  Digit2: "rectangle",
+  Digit3: "diamond",
+  Digit4: "ellipse",
+  Digit5: "arrow",
+  Digit6: "line",
+  Digit7: "draw",
+  Digit8: "text",
+  Digit9: "note",
+  Digit0: "eraser",
 }
 
 function modelTool(current: ToolId, input: KeyInput): ToolId {
   if (input.editable || input.ctrlKey || input.metaKey || input.altKey) return current
-  return expectedBindings[input.key] ?? expectedBindings[input.key.toLowerCase()] ?? current
+  if (input.key === "Escape") return DEFAULT_TOOL
+  const byDigit = input.shiftKey ? undefined : digitBindings[input.code]
+  return byDigit ?? letterBindings[(input.key ?? "").toLowerCase()] ?? current
 }
 
-function plainKey(key: string): KeyInput {
-  return { key, ctrlKey: false, metaKey: false, altKey: false, editable: false }
+function plainKey(code: string, modifiers: Partial<Modifiers> = {}): KeyInput {
+  return { ...press(code, modifiers), editable: false }
 }
 
 const enabledTools = TOOLS.filter((tool) => tool.enabled)
 const anyTool = fc.constantFrom(...TOOLS.map((tool) => tool.id))
 const startTool = fc.constantFrom(...enabledTools.map((tool) => tool.id))
-const toolKeys = TOOLS.flatMap((tool) => [tool.letter, tool.letter.toUpperCase(), ...(tool.digit === null ? [] : [tool.digit])])
-const anyKey = fc.oneof(
-  fc.constantFrom(...toolKeys, "Escape", "?", " ", "Enter", "Shift", "Tab", "ArrowLeft", "Delete", "Backspace"),
-  fc.string({ maxLength: 3 }),
-)
-const anyKeyInput = fc.record({
-  key: anyKey,
-  ctrlKey: fc.boolean(),
-  metaKey: fc.boolean(),
-  altKey: fc.boolean(),
-  editable: fc.boolean(),
-})
+const anyKeyInput = fc.tuple(anyPress, fc.boolean()).map(([input, editable]) => ({ ...input, editable }))
 const ignoredKeyInput = anyKeyInput.filter(
   (input) => input.ctrlKey || input.metaKey || input.altKey || input.editable,
 )
 
-void test("every enabled tool is reachable by its letter, in either case, and by its number", () => {
-  fc.assert(
-    fc.property(startTool, fc.constantFrom(...enabledTools), fc.boolean(), (start, tool, upper) => {
-      const letter = upper ? tool.letter.toUpperCase() : tool.letter
-      assert.equal(nextTool(start, plainKey(letter)), tool.id)
-      if (tool.digit !== null) assert.equal(nextTool(start, plainKey(tool.digit)), tool.id)
-    }),
-    settings,
-  )
-})
-
-void test("no two tools share a key, and no tool key is reserved for Esc, ? or Space", () => {
-  fc.assert(
-    fc.property(fc.constantFrom(...TOOLS), fc.constantFrom(...TOOLS), (a, b) => {
-      const keysOf = (tool: (typeof TOOLS)[number]) => [tool.letter, ...(tool.digit === null ? [] : [tool.digit])]
-      for (const key of keysOf(a)) {
-        assert.ok(!["escape", "?", " "].includes(key), `${a.id} uses reserved key ${key}`)
-        if (a.id !== b.id) assert.ok(!keysOf(b).includes(key), `${a.id} and ${b.id} share ${key}`)
-      }
-    }),
-    settings,
-  )
+void test("every tool is reachable by its letter, with or without Shift, and by its number-row digit without Shift", () => {
+  for (const [letter, tool] of Object.entries(letterBindings)) {
+    const code = `Key${letter.toUpperCase()}`
+    assert.equal(nextTool("hand", plainKey(code)), tool)
+    assert.equal(nextTool("hand", plainKey(code, { shiftKey: true })), tool)
+  }
+  for (const [code, tool] of Object.entries(digitBindings)) {
+    assert.equal(nextTool("hand", plainKey(code)), tool)
+    assert.equal(nextTool("hand", plainKey(code, { shiftKey: true })), "hand")
+  }
 })
 
 void test("any key sequence selects the same tool as the simple binding model", () => {
@@ -155,9 +137,9 @@ void test("Delete and Backspace erase the selection only as plain keys outside a
   fc.assert(
     fc.property(anyKeyInput, (input) => {
       const plain = !input.editable && !input.ctrlKey && !input.metaKey && !input.altKey
-      assert.equal(deletesSelection(input), plain && ["Delete", "Backspace"].includes(input.key))
-      assert.equal(deletesSelection({ ...input, key: "Delete" }), plain)
-      assert.equal(deletesSelection({ ...input, key: "Backspace" }), plain)
+      assert.equal(deletesSelection(input), plain && ["Delete", "Backspace"].includes(input.key ?? ""))
+      assert.equal(deletesSelection({ ...input, code: "Delete", key: "Delete" }), plain)
+      assert.equal(deletesSelection({ ...input, code: "Backspace", key: "Backspace" }), plain)
     }),
     settings,
   )

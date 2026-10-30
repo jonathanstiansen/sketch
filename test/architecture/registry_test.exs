@@ -3,13 +3,13 @@ defmodule Sketch.Architecture.RegistryTest do
 
   alias Sketch.ArchitectureCheck
 
-  @rule_ids for n <- 1..22, do: "A" <> String.pad_leading(Integer.to_string(n), 2, "0")
+  @rule_ids for n <- 1..23, do: "A" <> String.pad_leading(Integer.to_string(n), 2, "0")
 
   setup_all do
     %{rules: ArchitectureCheck.registry()[:rules]}
   end
 
-  test "every rule A01-A22 is registered exactly once (A19)", %{rules: rules} do
+  test "every rule A01-A23 is registered exactly once (A19)", %{rules: rules} do
     assert Enum.map(rules, & &1.id) == @rule_ids
   end
 
@@ -28,6 +28,14 @@ defmodule Sketch.Architecture.RegistryTest do
 
     for rule <- rules, path <- rule.verified_by do
       assert File.exists?(path), "#{rule.id} verified_by #{path} does not exist"
+    end
+  end
+
+  test "every CI requirement that names verification files names files that exist" do
+    for requirement <- ArchitectureCheck.registry()[:ci_requirements],
+        path <- Map.get(requirement, :verified_by, []) do
+      assert File.exists?(path),
+             "CI requirement #{requirement.item} verified_by #{path} does not exist"
     end
   end
 

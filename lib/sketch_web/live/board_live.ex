@@ -281,16 +281,19 @@ defmodule SketchWeb.BoardLive do
     ~H"""
     <Layouts.app flash={@flash}>
       <div class="flex h-screen flex-col">
-        <div class="relative flex flex-wrap items-center justify-center gap-4 px-4 py-2 md:grid md:grid-cols-[1fr_auto_1fr]">
+        <header
+          id="board-header"
+          class="relative flex flex-wrap items-center justify-center gap-4 px-4 py-2 min-[960px]:grid min-[960px]:grid-cols-[1fr_auto_1fr]"
+        >
           <button
             id="add-rectangle"
-            class="btn btn-primary md:justify-self-start"
+            class="btn btn-primary min-[960px]:justify-self-start"
             phx-click="add-rectangle"
           >
             Add rectangle
           </button>
           <SketchWeb.Toolbar.toolbar />
-          <p class="min-w-0 text-sm md:justify-self-end md:text-right">
+          <p class="min-w-0 max-w-full text-sm min-[960px]:justify-self-end min-[960px]:text-right">
             <span id="viewer-name" class="mr-2 whitespace-nowrap">
               You are
               <span class="font-semibold">
@@ -305,7 +308,7 @@ defmodule SketchWeb.BoardLive do
           </p>
           <SketchWeb.Toolbar.shortcuts_help />
           <SketchWeb.ExportMenu.export_menu board_id={@board_id} />
-        </div>
+        </header>
         <div class="relative flex min-h-0 flex-1 flex-col">
           <SketchWeb.StylePanel.style_panel />
           <div

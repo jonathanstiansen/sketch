@@ -6,7 +6,7 @@ Sketch is a small collaborative canvas built with Ash, Phoenix LiveView and Post
 
 - [docs/SPEC.md](docs/SPEC.md) is the specification.
 - [docs/SPEC-ADDENDUM.md](docs/SPEC-ADDENDUM.md) overrides the spec where they conflict.
-- [ARCHITECTURE.md](ARCHITECTURE.md) explains the architecture rules A01-A22; [architecture/rules.exs](architecture/rules.exs) is the machine-readable registry.
+- [ARCHITECTURE.md](ARCHITECTURE.md) explains the architecture rules A01-A23; [architecture/rules.exs](architecture/rules.exs) is the machine-readable registry.
 - Architecture decisions are recorded in [docs/adr/](docs/adr/) using the format of [ADR 0001](docs/adr/0001-ash-atomic-lww-consistency.md): YAML front matter (`type`, `id`, `title`, `status`, `date`) followed by Context, Decision, Alternatives considered and Consequences.
 
 ## Project guidelines
@@ -17,6 +17,12 @@ Sketch is a small collaborative canvas built with Ash, Phoenix LiveView and Post
 - Start PostgreSQL with `docker compose -f compose.dev.yaml up -d`.
 - Default to no code comments; extract well-named functions instead.
 - After changing usage rules config or deps, run `mix usage_rules.sync`. Everything between the `usage-rules` markers below is generated.
+- Keyboard shortcuts: declare every chord in a registry aggregated by `SketchWeb.Shortcuts` (A23, see ARCHITECTURE.md "Keyboard shortcuts"); never compare `event.key` or `event.code` in a hook.
+- Layout: `e2e/tests/layout.spec.ts` must pass at 860, 1024, 1280 and 1600 px; fix an overlap in the layout, never in the test.
+
+### Processes
+
+- Stop only processes you started, by PID: keep the PID (`server=$!`) and `kill "$server"`. Never `pkill`, `killall` or `kill` by name, port or pattern; the human's servers run on this machine too. A source-policy test enforces this for scripts and DEMO.md exec blocks.
 
 ### Phoenix v1.8 guidelines
 

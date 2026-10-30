@@ -41,7 +41,10 @@ defmodule SketchWeb.StylePanel do
         class="shrink-0"
       >
         <div class="flex items-center gap-1">
-          <span id={"style-#{property}-label"} class="mr-1 font-medium text-base-content/70">
+          <span
+            id={"style-#{property}-label"}
+            class="mr-1 font-medium text-base-content/70 max-lg:sr-only"
+          >
             {Sketch.Canvas.style_label(property)}
           </span>
           <button

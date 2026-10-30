@@ -7,7 +7,7 @@ import { DEFAULT_STYLE } from "../js/elements/style.ts"
 const settings = { seed: 1, numRuns: 500 }
 
 function press(key: string, modifiers: Partial<HistoryKeyInput> = {}): HistoryKeyInput {
-  return { key, ctrlKey: false, metaKey: false, shiftKey: false, altKey: false, editable: false, ...modifiers }
+  return { key, code: `Key${key.toUpperCase()}`, ctrlKey: false, metaKey: false, shiftKey: false, altKey: false, editable: false, ...modifiers }
 }
 
 void test("Ctrl or Command with Z undoes; with Shift, or Ctrl with Y, it redoes", () => {
@@ -26,7 +26,7 @@ void test("no chord fires while an editor or input has focus, so its own text un
     fc.property(
       fc.record({ key: fc.constantFrom("z", "Z", "y", "Y", "a"), ctrlKey: fc.boolean(), metaKey: fc.boolean(), shiftKey: fc.boolean(), altKey: fc.boolean() }),
       (input) => {
-        assert.equal(historyActionFor({ ...input, editable: true }), undefined)
+        assert.equal(historyActionFor({ ...input, code: `Key${input.key.toUpperCase()}`, editable: true }), undefined)
       },
     ),
     settings,

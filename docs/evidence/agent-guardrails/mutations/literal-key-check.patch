@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index 99969be..9bd9d54 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -930,7 +930,7 @@ export class Canvas extends ViewHook {
+   }
+ 
+   private onKeyUp = (event: KeyboardEvent): void => {
+-    if (!isShortcutKey("pan", event)) return
++    if (event.key !== " ") return
+     if (this.pannedWithSpace) event.preventDefault()
+     this.releaseSpace()
+   }

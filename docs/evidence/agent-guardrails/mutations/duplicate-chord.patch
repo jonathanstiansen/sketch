@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/export_actions.ex b/lib/sketch_web/export_actions.ex
+index 5dc0b6d..791f9b3 100644
+--- a/lib/sketch_web/export_actions.ex
++++ b/lib/sketch_web/export_actions.ex
+@@ -31,7 +31,7 @@ defmodule SketchWeb.ExportActions do
+       label: "Copy as PNG",
+       menu: true,
+       chords: [
+-        %{key: [], code: "KeyC", mod: :none, shift: true, alt: true, keys: ["Shift", "Alt", "C"]}
++        %{key: ["z"], code: nil, mod: :command, shift: false, alt: false, keys: ["Ctrl/⌘", "Z"]}
+       ]
+     }
+   ]

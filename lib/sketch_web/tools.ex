@@ -2,7 +2,8 @@ defmodule SketchWeb.Tools do
   @moduledoc """
   The toolbar tools, in toolbar order (ADR 0004): each tool's id, label, shortcut keys (a letter,
   then a digit if it has one), icon paths and the element kind it creates, if any. The toolbar
-  renders from this list and `mix sketch.gen.manifest` copies it to the client.
+  renders from this list and `mix sketch.gen.manifest` copies it to the client; the shortcuts reach
+  the client through `SketchWeb.Shortcuts` (A23).
   """
 
   @type t :: %{
@@ -121,6 +122,31 @@ defmodule SketchWeb.Tools do
 
   @spec all() :: [t()]
   def all, do: @tools
+
+  @doc """
+  The tools' keyboard shortcuts for `SketchWeb.Shortcuts` (A23). The letter matches the typed
+  character in either case; the digit matches the physical number-row key without Shift, so
+  Shift+1 stays free for zoom to fit on every layout.
+  """
+  @spec shortcuts() :: [map()]
+  def shortcuts do
+    for %{keys: [letter | digits]} = tool <- @tools do
+      %{
+        group: :tool,
+        action: tool.id,
+        label: tool.label,
+        contexts: [:canvas],
+        enabled: tool.enabled,
+        chords: [letter_chord(letter) | Enum.map(digits, &digit_chord/1)]
+      }
+    end
+  end
+
+  defp letter_chord(letter),
+    do: %{key: [letter], code: nil, mod: :none, shift: :any, alt: false, keys: [letter]}
+
+  defp digit_chord(digit),
+    do: %{key: [], code: "Digit" <> digit, mod: :none, shift: false, alt: false, keys: [digit]}
 
   @doc "The tool selected when a board opens and after Esc."
   @spec default_id() :: String.t()

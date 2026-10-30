@@ -1,0 +1,21 @@
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index 5d74560..0a0494f 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -283,7 +283,7 @@ defmodule SketchWeb.BoardLive do
+       <div class="flex h-screen flex-col">
+         <header
+           id="board-header"
+-          class="relative flex flex-wrap items-center justify-center gap-4 px-4 py-2 min-[960px]:grid min-[960px]:grid-cols-[1fr_auto_1fr]"
++          class="relative flex flex-nowrap items-center justify-center gap-4 px-4 py-2 min-[960px]:grid min-[960px]:grid-cols-[1fr_auto_1fr]"
+         >
+           <button
+             id="add-rectangle"
+@@ -306,6 +306,7 @@ defmodule SketchWeb.BoardLive do
+               {url(~p"/b/#{@board_id}")}
+             </a>
+           </p>
++          <button id="present" class="btn btn-ghost shrink-0">Present</button>
+           <SketchWeb.Toolbar.shortcuts_help />
+           <SketchWeb.ExportMenu.export_menu board_id={@board_id} />
+         </header>

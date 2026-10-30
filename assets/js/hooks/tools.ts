@@ -12,26 +12,18 @@ import {
   type RequiredTextKind,
   type TextKind,
   type ToolId,
-  type ToolSpec,
   type TypedKind,
 } from "../generated/manifest.ts"
+import { focusContext, shortcutFor, type Shortcut, type ShortcutInput } from "./shortcuts.ts"
 
 export { DEFAULT_TOOL, type ToolId }
 
 export interface Tool {
   id: ToolId
-  letter: string
-  digit: string | null
   enabled: boolean
 }
 
-function shortcutKeys({ id, keys }: ToolSpec): Pick<Tool, "letter" | "digit"> {
-  const [letter, digit] = keys
-  if (letter === undefined) throw new Error(`tool ${id} has no shortcut key`)
-  return { letter: letter.toLowerCase(), digit: digit ?? null }
-}
-
-export const TOOLS: readonly Tool[] = TOOL_SPECS.map((tool) => ({ id: tool.id, enabled: tool.enabled, ...shortcutKeys(tool) }))
+export const TOOLS: readonly Tool[] = TOOL_SPECS.map(({ id, enabled }) => ({ id, enabled }))
 
 export type PreviewKind = NonNullable<(typeof TOOL_SPECS)[number]["creates"]>
 
@@ -99,12 +91,8 @@ export function selectionHandles(kind: string | undefined): SelectionHandles {
   return isTypedKind(kind) ? "none" : "corners"
 }
 
-export interface KeyInput {
-  key: string
-  ctrlKey: boolean
-  metaKey: boolean
-  altKey: boolean
-  editable: boolean
+export interface KeyInput extends ShortcutInput {
+  readonly editable: boolean
 }
 
 export type PointerAction = "pan" | "draw" | "text" | "erase" | "move" | "resize" | "deselect" | "none"
@@ -120,13 +108,8 @@ export interface PointerInput {
 const PRIMARY_BUTTON = 0
 const MIDDLE_BUTTON = 1
 
-function isShortcutInput(input: KeyInput): boolean {
-  return !input.editable && !input.ctrlKey && !input.metaKey && !input.altKey
-}
-
-function toolForKey(key: string): Tool | undefined {
-  const pressed = key.toLowerCase()
-  return TOOLS.find((tool) => tool.letter === pressed || tool.digit === pressed)
+function keyShortcut(input: KeyInput): Shortcut | undefined {
+  return shortcutFor(input, focusContext(input.editable))
 }
 
 export function selectTool(current: ToolId, requested: string): ToolId {
@@ -135,21 +118,25 @@ export function selectTool(current: ToolId, requested: string): ToolId {
 }
 
 export function nextTool(current: ToolId, input: KeyInput): ToolId {
-  if (!isShortcutInput(input)) return current
-  if (input.key === "Escape") return DEFAULT_TOOL
-  return selectTool(current, toolForKey(input.key)?.id ?? current)
+  const shortcut = keyShortcut(input)
+  if (shortcut?.group === "tool") return selectTool(current, shortcut.action)
+  return shortcut?.action === "escape" ? DEFAULT_TOOL : current
 }
 
 export function togglesHelp(input: KeyInput): boolean {
-  return isShortcutInput(input) && input.key === "?"
+  return keyShortcut(input)?.action === "help"
 }
 
 export function deletesSelection(input: KeyInput): boolean {
-  return isShortcutInput(input) && (input.key === "Delete" || input.key === "Backspace")
+  return keyShortcut(input)?.action === "delete"
 }
 
 export function isPanKey(input: KeyInput): boolean {
-  return isShortcutInput(input) && input.key === " "
+  return keyShortcut(input)?.action === "pan"
+}
+
+export function escapes(input: KeyInput): boolean {
+  return keyShortcut(input)?.action === "escape"
 }
 
 function selectionAction(onElement: boolean, onHandle: boolean): PointerAction {
