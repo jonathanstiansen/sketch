@@ -1,10 +1,12 @@
 import { writeFileSync } from "node:fs"
 import { chromium } from "../../../e2e/node_modules/@playwright/test/index.mjs"
+import { newContext } from "../../../e2e/tests/support/contexts.ts"
 
 const [baseURL, htmlOutput, screenshot] = process.argv.slice(2)
 const browser = await chromium.launch()
 try {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 2 })
+  const context = await newContext(browser, { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 2 })
+  const page = await context.newPage()
   await page.goto(baseURL)
   await page.click("#new-board")
   await page.locator("#toolbar").waitFor()

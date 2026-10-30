@@ -37,9 +37,11 @@ defmodule Sketch.ArchitectureCheck do
 
   @pointer_events ~r/\b(?:on)?(?:pointer(?:down|move|up|cancel|over|out|enter|leave)|mouse(?:down|move|up|over|out|enter|leave|wheel)|touch(?:start|move|end|cancel)|(?:Pointer|Mouse|Touch)Event)\b/i
   @fixed_sleeps ~r/waitForTimeout|setTimeout|\bsleep\s*\(/
-  @transport_mocks ~r/\.route(?:FromHAR|WebSocket)?\s*\(|from\s+["'](?:msw|@mswjs\/[^"']+|nock|sinon|mock-socket|playwright-msw|jest-mock)["']|\b(?:jest|vi)\.mock\s*\(/
-  @mock_packages ~w(msw nock sinon mock-socket playwright-msw jest-mock)
-  @direct_contexts ~r/\.\s*newContext\s*\(|\b\w*[bB]rowser\s*\.\s*newPage\s*\(/
+  @transport_interception ~r/\.route(?:FromHAR|WebSocket)?\s*\(|\b(?:jest|vi)\.mock\s*\(/
+  @direct_contexts ~r/\.\s*newContext\s*\(|\.\s*launchPersistentContext\s*\(|\b\w*[bB]rowser\s*\.\s*newPage\s*\(/
+  @raw_client_push ~r/\bpushEvent(?:To)?\b/
+  @server_broadcast ~r/\b(?:Endpoint|PubSub)\s*\.\s*(?:local_)?broadcast(?:_from)?!?\b/
+  @selection_state ~r/select|marquee/i
   @suppressions [
     {~r/eslint-(?:disable|enable)/, "ESLint directive"},
     {~r/@ts-(?:ignore|expect-error|nocheck)/, "TypeScript suppression comment"},
@@ -49,8 +51,8 @@ defmodule Sketch.ArchitectureCheck do
   ]
 
   @literal_chord_checks ~r/\b\w*(?:[kK]ey|[cC]ode)\w*\b(?:\.\w+\(\))?\s*(?:===|!==|==|!=)\s*["'`]|["'`]\s*(?:===|!==|==|!=)\s*[\w.]*\b\w*(?:[kK]ey|[cC]ode)\b|\bswitch\s*\(\s*[\w.]*\b(?:key|code)\s*\)|\]\s*\.includes\(\s*[\w.]*\b(?:key|code)\b|phx-(?:window-)?key(?:down|up)?=|aria-keyshortcuts=["']/
-  @script_extensions ~w(.sh .bash .mjs .cjs .js .ts)
-  @script_directories ~w(docs/evidence e2e scripts)
+  @script_extensions ~w(.sh .bash .zsh .bat .mjs .cjs .js .ts .tsx .py .rb .pl .exs .yml .yaml)
+  @unscanned_tracked ~r{(?:^|/)(?:deps|_build|node_modules)/|^priv/static/}
   @kill_command ~r/(?<![\w.$\/-])kill(?=$|[\s;|&)'"`])((?:\s+-[\w-]+)*)((?:\s+"[^"]*"|\s+[^\s;|&)'"`]+)*)/
   @pid_reference ~r/^["']?(?:\$\{?[A-Za-z_]\w*\}?|\$!|%\d+)["']?;?$/
 
@@ -282,26 +284,79 @@ defmodule Sketch.ArchitectureCheck do
   end
 
   @doc """
-  Scripts under `docs/evidence/`, `e2e/` and `scripts/` and the exec blocks of every `DEMO.md`
-  under `docs/` that stop processes they did not start: any `pkill` or `killall`, and any `kill`
-  whose target is not a PID variable (`kill "$pid"`, `kill -9 $server`, `kill $!`, `kill %1`).
+  Every tracked script (`git ls-files`, plus files not yet added that `.gitignore` does not exclude)
+  and the exec blocks of every tracked `DEMO.md` that stop processes they did not start: any `pkill`
+  or `killall`, and any `kill` whose target is not a PID variable (`kill "$pid"`, `kill -9 $server`,
+  `kill $!`, `kill %1`). A script is a file with a script extension or a `#!` first line. Files equal
+  to or under an `exempt` entry, and `deps`, `_build` and `node_modules`, are skipped.
   """
-  @spec process_kill_violations(Path.t()) :: [violation()]
-  def process_kill_violations(root) do
+  @spec process_kill_violations(Path.t(), [String.t()]) :: [violation()]
+  def process_kill_violations(root, exempt \\ []) do
+    files = root |> tracked_files() |> Enum.reject(&allowed_path?(&1, exempt))
+
     scripts =
-      root
-      |> source_files(@script_directories, @script_extensions)
+      files
+      |> Enum.filter(&script?(root, &1))
       |> Enum.flat_map(&numbered_lines(root, &1))
 
     demos =
-      root
-      |> source_files(~w(docs), :any)
+      files
       |> Enum.filter(&(Path.basename(&1) == "DEMO.md"))
       |> Enum.flat_map(&exec_block_lines(root, &1))
 
     for {subject, line} <- scripts ++ demos, problem <- kill_problems(line) do
       violation("processes", subject, "#{problem}: #{String.trim(line)}")
     end
+  end
+
+  @doc """
+  Lines of every tracked script, anywhere in the repo, that create a browser context or page without
+  the shared helper (CI requirement 11): `.newContext(`, `.launchPersistentContext(` and
+  `browser.newPage(`. Files equal to or under an entry of `helpers` or `exempt` are skipped.
+  """
+  @spec browser_context_violations(Path.t(), [String.t()], [String.t()]) :: [violation()]
+  def browser_context_violations(root, helpers, exempt \\ []) do
+    root
+    |> tracked_files()
+    |> Enum.reject(&allowed_path?(&1, helpers ++ exempt))
+    |> Enum.filter(&script?(root, &1))
+    |> Enum.flat_map(
+      &matching_lines(
+        root,
+        &1,
+        @direct_contexts,
+        "e2e_contexts",
+        "browser context created outside the shared helper"
+      )
+    )
+  end
+
+  defp tracked_files(root) do
+    root = Path.expand(root)
+
+    {output, 0} =
+      System.cmd("git", ~w(ls-files --cached --others --exclude-standard -z),
+        cd: root,
+        stderr_to_stdout: true
+      )
+
+    output
+    |> String.split(<<0>>, trim: true)
+    |> Enum.reject(&Regex.match?(@unscanned_tracked, &1))
+    |> Enum.filter(&File.regular?(Path.join(root, &1)))
+    |> Enum.sort()
+  end
+
+  defp script?(root, relative_path) do
+    Path.extname(relative_path) in @script_extensions or shebang?(root, relative_path)
+  end
+
+  defp shebang?(root, relative_path) do
+    root
+    |> Path.expand()
+    |> Path.join(relative_path)
+    |> File.open!([:read, :binary], &IO.binread(&1, 2))
+    |> Kernel.==("#!")
   end
 
   defp kill_problems(line) do
@@ -347,37 +402,427 @@ defmodule Sketch.ArchitectureCheck do
     |> Enum.reject(&is_nil/1)
   end
 
-  @spec e2e_violations(Path.t(), [String.t()]) :: [violation()]
-  def e2e_violations(root, context_helpers) do
+  @doc """
+  E2E sources with a fixed sleep (A20), request interception or an import of a denied mock library
+  (A18), and `e2e/package.json` dependencies that are denied or not exactly `allowed_deps` (A18). A
+  denied name ending in `/` is a whole npm scope.
+  """
+  @spec e2e_violations(Path.t(), [String.t()], [String.t()]) :: [violation()]
+  def e2e_violations(root, denied_packages, allowed_deps) do
     sources = source_files(root, ~w(e2e), ~w(.ts .tsx .js .mjs .cjs))
+    mock_imports = mock_import_pattern(denied_packages)
 
     sleeps =
       Enum.flat_map(sources, &matching_lines(root, &1, @fixed_sleeps, "A20", "fixed sleep"))
 
-    mocks =
-      Enum.flat_map(sources, &matching_lines(root, &1, @transport_mocks, "A18", "transport mock"))
-
-    contexts =
-      sources
-      |> Enum.reject(&(&1 in context_helpers))
-      |> Enum.flat_map(
-        &matching_lines(
-          root,
-          &1,
-          @direct_contexts,
-          "e2e_contexts",
-          "browser context created outside the shared helper"
-        )
+    interception =
+      Enum.flat_map(
+        sources,
+        &matching_lines(root, &1, @transport_interception, "A18", "transport mock")
       )
 
-    sleeps ++ mocks ++ contexts ++ mock_package_violations(root)
+    imports =
+      Enum.flat_map(sources, &matching_lines(root, &1, mock_imports, "A18", "transport mock"))
+
+    sleeps ++
+      interception ++ imports ++ e2e_dependency_violations(root, denied_packages, allowed_deps)
   end
 
-  defp mock_package_violations(root) do
-    for {name, _version} <- package_dependencies(root, "e2e/package.json", :all),
-        name in @mock_packages or String.starts_with?(name, "@mswjs/") do
-      violation("A18", "e2e/package.json", "depends on mock library #{name}")
+  defp mock_import_pattern(denied_packages) do
+    names =
+      Enum.map_join(denied_packages, "|", fn package ->
+        if String.ends_with?(package, "/"),
+          do: Regex.escape(package) <> ~S|[^"']+|,
+          else: Regex.escape(package)
+      end)
+
+    Regex.compile!(~s/(?:from\\s+|require\\(\\s*|import\\(\\s*|import\\s+)["'](?:#{names})["']/)
+  end
+
+  defp e2e_dependency_violations(root, denied_packages, allowed_deps) do
+    if File.exists?(Path.join(root, "e2e/package.json")) do
+      actual = root |> package_dependencies("e2e/package.json", :all) |> Enum.map(&elem(&1, 0))
+
+      denied =
+        for name <- actual, denied_package?(name, denied_packages) do
+          violation("A18", "e2e/package.json", "depends on mock library #{name}")
+        end
+
+      unlisted =
+        for name <- actual,
+            name not in allowed_deps,
+            not denied_package?(name, denied_packages) do
+          violation("A18", "e2e/package.json", "dependency #{name} is not in e2e_npm_deps")
+        end
+
+      stale =
+        for name <- allowed_deps, name not in actual do
+          violation(
+            "A18",
+            "e2e/package.json",
+            "e2e_npm_deps lists #{name}, which is not a dependency"
+          )
+        end
+
+      denied ++ unlisted ++ stale
+    else
+      []
     end
+  end
+
+  defp denied_package?(name, denied_packages) do
+    Enum.any?(denied_packages, fn package ->
+      name == package or (String.ends_with?(package, "/") and String.starts_with?(name, package))
+    end)
+  end
+
+  @typedoc """
+  The contract `board_event_violations/3` checks a LiveView against, from `SketchWeb.BoardEvents`.
+  """
+  @type board_events :: %{
+          transient: [map()],
+          durable: [map()],
+          durable_broadcasts: [String.t()]
+        }
+
+  @doc """
+  Checks a LiveView's source against the event contract (A10, CI requirement 12). Every event it
+  handles must be declared; an undeclared one that reaches a broadcast is an A10 violation, because
+  it would relay without an A10 example. A literal event it relays or forwards must be declared. A
+  durable event must reach the `Sketch.Canvas` action it names, so a relay cannot hide on that list.
+  Only `broadcast_preview` may call the endpoint. The string keys a handler requires must equal the
+  payload's required fields, so the client's type and the handler cannot drift.
+  """
+  @spec board_event_violations(Path.t(), String.t(), board_events()) :: [violation()]
+  def board_event_violations(root, relative_path, events) do
+    functions = root |> Path.expand() |> Path.join(relative_path) |> File.read!() |> functions()
+
+    handlers =
+      for %{name: :handle_event, args: [event | _rest]} = clause <- functions, is_binary(event) do
+        Map.put(clause, :event, event)
+      end
+
+    undeclared_handler_violations(handlers, functions, events, relative_path) ++
+      undeclared_relay_violations(functions, events, relative_path) ++
+      forwarded_event_violations(functions, events, relative_path) ++
+      durable_write_violations(handlers, functions, events, relative_path) ++
+      direct_broadcast_violations(functions, relative_path) ++
+      payload_drift_violations(handlers, events, relative_path)
+  end
+
+  @doc """
+  Selection-state names (`select`, `marquee`) in the LiveView's event code, outside `render` (addendum
+  D8): selection is local UI state, so no handler, payload or broadcast mentions it.
+  """
+  @spec selection_broadcast_violations(Path.t(), String.t()) :: [violation()]
+  def selection_broadcast_violations(root, relative_path) do
+    functions = root |> Path.expand() |> Path.join(relative_path) |> File.read!() |> functions()
+
+    for %{name: name, ast: ast} <- functions,
+        name != :render,
+        term <- selection_terms(ast) do
+      violation("D8", relative_path, "#{name} mentions selection state: #{term}")
+    end
+    |> Enum.uniq()
+  end
+
+  @doc """
+  Lines in `lib/` and `assets/js/` that push to the server without the typed `pushClientEvent`
+  (CI requirement 12), and lines in `lib/` outside `broadcast_paths` that broadcast on a topic
+  (A10). Files equal to or under an `allowed_paths` entry are skipped.
+  """
+  @spec client_push_violations(Path.t(), [String.t()], [String.t()]) :: [violation()]
+  def client_push_violations(root, allowed_paths, broadcast_paths) do
+    raw_pushes =
+      root
+      |> source_files(~w(lib assets/js), ~w(.ex .exs .heex .ts .tsx .js .mjs))
+      |> Enum.reject(&allowed_path?(&1, allowed_paths))
+      |> Enum.flat_map(
+        &matching_lines(root, &1, @raw_client_push, "client_events", "raw pushEvent")
+      )
+
+    broadcasts =
+      root
+      |> source_files(~w(lib), ~w(.ex .exs .heex))
+      |> Enum.reject(&allowed_path?(&1, broadcast_paths))
+      |> Enum.flat_map(&matching_lines(root, &1, @server_broadcast, "A10", "broadcast"))
+
+    raw_pushes ++ broadcasts
+  end
+
+  defp functions(source) do
+    {_ast, clauses} =
+      source
+      |> Code.string_to_quoted!()
+      |> Macro.prewalk([], fn
+        {kind, _meta, [head, body]} = node, clauses when kind in [:def, :defp] ->
+          {node, [function_clause(head, body) | clauses]}
+
+        node, clauses ->
+          {node, clauses}
+      end)
+
+    Enum.reverse(clauses)
+  end
+
+  defp function_clause({:when, _meta, [{name, _head_meta, args}, _guard]}, body),
+    do: %{name: name, args: args, ast: body}
+
+  defp function_clause({name, _meta, args}, body),
+    do: %{name: name, args: args || [], ast: body}
+
+  defp local_calls(ast) do
+    {_ast, calls} =
+      Macro.prewalk(ast, [], fn
+        {:/, _meta, [{name, _name_meta, context}, arity]} = node, calls
+        when is_atom(name) and is_atom(context) and is_integer(arity) ->
+          {node, [name | calls]}
+
+        {name, _meta, args} = node, calls when is_atom(name) and is_list(args) ->
+          {node, [name | calls]}
+
+        node, calls ->
+          {node, calls}
+      end)
+
+    calls
+  end
+
+  defp reachable(clause, functions), do: reachable([clause], functions, [], [])
+
+  defp reachable([], _functions, _seen, found), do: found
+
+  defp reachable([clause | rest], functions, seen, found) do
+    called = local_calls(clause.ast)
+    next = Enum.filter(functions, &(&1.name in called and &1.name not in seen))
+    seen = Enum.map(next, & &1.name) ++ seen
+    reachable(rest ++ next, functions, seen, [clause | found])
+  end
+
+  defp remote_call?(clauses, module_parts, function) do
+    Enum.any?(clauses, fn clause ->
+      {_ast, found} =
+        Macro.prewalk(clause.ast, false, fn
+          {{:., _, [{:__aliases__, _, ^module_parts}, ^function]}, _, _args} = node, _found ->
+            {node, true}
+
+          node, found ->
+            {node, found}
+        end)
+
+      found
+    end)
+  end
+
+  defp reaches_broadcast?(clauses) do
+    Enum.any?(clauses, &(&1.name == :broadcast_preview)) or Enum.any?(clauses, &broadcasts?/1)
+  end
+
+  defp broadcasts?(clause) do
+    {_ast, found} =
+      Macro.prewalk(clause.ast, false, fn
+        {{:., _, [{:__aliases__, _, parts}, function]}, _, _args} = node, found ->
+          {node, found or broadcast_call?(parts, function)}
+
+        node, found ->
+          {node, found}
+      end)
+
+    found
+  end
+
+  defp broadcast_call?(module_parts, function) do
+    List.last(module_parts) in [:Endpoint, :PubSub] and
+      Regex.match?(~r/^(?:local_)?broadcast(?:_from)?!?$/, Atom.to_string(function))
+  end
+
+  defp undeclared_handler_violations(handlers, functions, events, subject) do
+    declared = Enum.map(events.transient ++ events.durable, & &1.event)
+
+    for %{event: event} = handler <- handlers, event not in declared do
+      if handler |> reachable(functions) |> reaches_broadcast?() do
+        violation(
+          "A10",
+          subject,
+          "relays #{inspect(event)}, which SketchWeb.BoardEvents does not declare with an example"
+        )
+      else
+        violation(
+          "client_events",
+          subject,
+          "handles #{inspect(event)}, which SketchWeb.BoardEvents does not declare"
+        )
+      end
+    end
+  end
+
+  defp undeclared_relay_violations(functions, events, subject) do
+    relayed = Enum.map(events.transient, & &1.relays_as)
+
+    for literal <- relay_literals(functions), literal not in relayed do
+      violation(
+        "A10",
+        subject,
+        "relays #{inspect(literal)}, which SketchWeb.BoardEvents does not declare"
+      )
+    end
+    |> Enum.uniq()
+  end
+
+  defp relay_literals(functions) do
+    Enum.flat_map(functions, fn clause ->
+      {_ast, literals} =
+        Macro.prewalk(clause.ast, [], fn
+          {name, _meta, args} = node, literals
+          when name in [:broadcast_preview, :relay_shape] and is_list(args) ->
+            {node, Enum.filter(args, &is_binary/1) ++ literals}
+
+          node, literals ->
+            {node, literals}
+        end)
+
+      literals
+    end)
+  end
+
+  defp forwarded_event_violations(functions, events, subject) do
+    known = Enum.map(events.transient, & &1.relays_as) ++ events.durable_broadcasts
+
+    for %{name: :handle_info, args: [{:%, _, [_struct, {:%{}, _, fields}]} | _rest]} <- functions,
+        {:event, event} <- fields,
+        is_binary(event),
+        event not in known do
+      violation(
+        "A10",
+        subject,
+        "forwards #{inspect(event)}, which SketchWeb.BoardEvents does not declare"
+      )
+    end
+  end
+
+  defp durable_write_violations(handlers, functions, events, subject) do
+    for %{event: event, writes: writes} <- events.durable,
+        clauses = Enum.filter(handlers, &(&1.event == event)),
+        clauses != [],
+        reached = Enum.flat_map(clauses, &reachable(&1, functions)),
+        not remote_call?(reached, [:Sketch, :Canvas], writes) do
+      violation(
+        "A10",
+        subject,
+        "#{inspect(event)} is declared durable but never reaches Sketch.Canvas.#{writes}"
+      )
+    end
+  end
+
+  defp direct_broadcast_violations(functions, subject) do
+    for clause <- functions, clause.name != :broadcast_preview, broadcasts?(clause) do
+      violation("A10", subject, "#{clause.name} broadcasts directly; only broadcast_preview may")
+    end
+  end
+
+  defp payload_drift_violations(handlers, events, subject) do
+    declared = Map.new(events.transient ++ events.durable, &{&1.event, &1.payload})
+
+    for %{event: event, args: [_event, params | _rest]} <- handlers,
+        payload = declared[event],
+        payload != nil,
+        required_keys = required_param_keys(params),
+        required_keys != nil,
+        fields = required_fields(payload),
+        required_keys != fields do
+      violation(
+        "client_events",
+        subject,
+        "#{inspect(event)} requires #{inspect(required_keys)} but declares #{inspect(fields)}"
+      )
+    end
+    |> Enum.uniq()
+  end
+
+  defp required_param_keys({:=, _meta, [left, right]}),
+    do: required_param_keys(left) || required_param_keys(right)
+
+  defp required_param_keys({:%{}, _meta, fields}) do
+    fields |> Enum.map(&elem(&1, 0)) |> Enum.filter(&is_binary/1) |> Enum.sort()
+  end
+
+  defp required_param_keys(_other), do: nil
+
+  defp required_fields(payload) do
+    for({field, type} <- payload, not match?({:optional, _}, type), do: Atom.to_string(field))
+    |> Enum.sort()
+  end
+
+  defp selection_terms(ast) do
+    {_ast, terms} =
+      Macro.prewalk(ast, [], fn
+        {name, _meta, _args} = node, terms when is_atom(name) ->
+          {node, selection_term(name, terms)}
+
+        term, terms when is_atom(term) or is_binary(term) ->
+          {term, selection_term(term, terms)}
+
+        node, terms ->
+          {node, terms}
+      end)
+
+    terms
+  end
+
+  defp selection_term(term, terms) do
+    if Regex.match?(@selection_state, to_string(term)), do: [to_string(term) | terms], else: terms
+  end
+
+  @doc """
+  Bullets of `ARCHITECTURE.md` "How the rules are enforced" that list rule IDs for a check category,
+  compared with the `check:` field of each rule in `architecture/rules.exs`. A bullet with the wrong
+  IDs and a category without a bullet both fail, so the list cannot go stale.
+  """
+  @spec rule_category_violations(Path.t()) :: [violation()]
+  def rule_category_violations(root) do
+    root = Path.expand(root)
+    registry = registry(Path.join(root, @registry_path))
+    categories = Keyword.fetch!(registry, :check_categories)
+
+    declared =
+      registry
+      |> Keyword.fetch!(:rules)
+      |> Enum.filter(&is_map_key(&1, :check))
+      |> Enum.group_by(& &1.check, & &1.id)
+
+    documented =
+      root
+      |> Path.join("ARCHITECTURE.md")
+      |> File.read!()
+      |> then(&Regex.scan(~r/^- \*\*([^(*]+) \(((?:A\d\d(?:, )?)+)\)\*\*/m, &1))
+      |> Map.new(fn [_line, label, ids] -> {label, ids |> String.split(", ") |> Enum.sort()} end)
+
+    expected =
+      Map.new(categories, fn {category, label} ->
+        {label, declared |> Map.get(category, []) |> Enum.sort()}
+      end)
+
+    unknown_checks =
+      for category <- Map.keys(declared), not Keyword.has_key?(categories, category) do
+        violation(
+          "rule_categories",
+          @registry_path,
+          "unknown check category #{inspect(category)}"
+        )
+      end
+
+    labels = Enum.uniq(Map.keys(expected) ++ Map.keys(documented))
+
+    drift =
+      for label <- labels, Map.get(expected, label) != Map.get(documented, label) do
+        violation(
+          "rule_categories",
+          "ARCHITECTURE.md",
+          "#{label} lists #{inspect(Map.get(documented, label))}; architecture/rules.exs says #{inspect(Map.get(expected, label))}"
+        )
+      end
+
+    unknown_checks ++ drift
   end
 
   @typedoc """
@@ -507,7 +952,12 @@ defmodule Sketch.ArchitectureCheck do
 
     if File.exists?(path) do
       package = path |> File.read!() |> JSON.decode!()
-      sections = if scope == :all, do: ~w(dependencies devDependencies), else: ~w(dependencies)
+
+      sections =
+        if scope == :all,
+          do: ~w(dependencies devDependencies optionalDependencies peerDependencies),
+          else: ~w(dependencies)
+
       Enum.flat_map(sections, &Map.to_list(Map.get(package, &1, %{})))
     else
       []

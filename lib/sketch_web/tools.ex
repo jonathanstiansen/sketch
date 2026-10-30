@@ -168,6 +168,32 @@ defmodule SketchWeb.Tools do
       keys: [digit]
     }
 
+  @press %{button: :primary, target: :any, space: false, shift: :any, alt: :any, mod: :any}
+
+  @doc "What a press does with a tool that does not select: pan, draw, type or erase (A23)."
+  @spec pointer_gestures() :: [SketchWeb.Shortcuts.Aggregate.gesture()]
+  def pointer_gestures do
+    {typed, drawn} =
+      @tools
+      |> Enum.filter(& &1.creates)
+      |> Enum.split_with(&click_to_type?/1)
+
+    Enum.map(
+      [
+        %{action: "pan", motion: :drag, tools: ["hand"]},
+        %{action: "draw", motion: :drag, tools: Enum.map(drawn, & &1.id)},
+        %{action: "text", motion: :click, tools: Enum.map(typed, & &1.id)},
+        %{action: "erase", motion: :drag, tools: ["eraser"]}
+      ],
+      &Map.merge(@press, &1)
+    )
+  end
+
+  defp click_to_type?(%{creates: kind}) do
+    spec = Enum.find(Sketch.Canvas.kind_specs(), &(&1.id == kind))
+    spec.draw_gesture == :click_to_type
+  end
+
   @doc "The tool selected when a board opens and after Esc."
   @spec default_id() :: String.t()
   def default_id, do: @default_tool

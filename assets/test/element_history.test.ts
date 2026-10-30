@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import fc from "fast-check"
-import { changePayload, createPayload, historyActionFor, recordedElement, type HistoryKeyInput } from "../js/hooks/element_history.ts"
+import { createPayload, positionPayload, shapePayload, stylePayload, historyActionFor, recordedElement, type HistoryKeyInput } from "../js/hooks/element_history.ts"
 import { DEFAULT_STYLE } from "../js/elements/style.ts"
 
 const settings = { seed: 1, numRuns: 500 }
@@ -68,11 +68,11 @@ void test("a malformed element event is not recorded", () => {
 })
 
 void test("each change becomes the payload of its commit event", () => {
-  assert.deepEqual(changePayload("e1", { event: "commit", x: 1, y: 2 }, "d"), { element_id: "e1", drag_id: "d", x: 1, y: 2 })
-  assert.deepEqual(changePayload("e1", { event: "commit_style", property: "fill_color", value: "red" }, "d"), { element_id: "e1", fill_color: "red" })
+  assert.deepEqual(positionPayload("e1", { event: "commit", x: 1, y: 2 }, "d"), { element_id: "e1", drag_id: "d", x: 1, y: 2 })
+  assert.deepEqual(stylePayload("e1", { event: "commit_style", property: "fill_color", value: "red" }), { element_id: "e1", fill_color: "red" })
   const box = { x: 1, y: 2, width: 3, height: 4 }
-  assert.deepEqual(changePayload("e1", { event: "commit_shape", box, points: [] }, "d"), { element_id: "e1", drag_id: "d", ...box, points: [] })
-  assert.deepEqual(changePayload("e1", { event: "commit_shape", box, points: [], text: "hi" }, "d"), {
+  assert.deepEqual(shapePayload("e1", { event: "commit_shape", box, points: [] }, "d"), { element_id: "e1", drag_id: "d", ...box, points: [] })
+  assert.deepEqual(shapePayload("e1", { event: "commit_shape", box, points: [], text: "hi" }, "d"), {
     element_id: "e1",
     drag_id: "d",
     ...box,

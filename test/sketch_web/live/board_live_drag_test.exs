@@ -43,6 +43,22 @@ defmodule SketchWeb.BoardLiveDragTest do
   end
 
   describe "transient previews never trigger persistence (A10)" do
+    for %{event: event, relays_as: relays_as, example: example} <-
+          SketchWeb.BoardEvents.transient() do
+      test "the declared example of #{event} reaches the other view as #{relays_as} without any database query",
+           %{dragger: dragger, watcher: watcher} do
+        record_queries([dragger, watcher])
+
+        render_hook(dragger, unquote(event), unquote(Macro.escape(example)))
+
+        assert_push_event(watcher, unquote(relays_as), _payload)
+        render(dragger)
+        render(watcher)
+        refute_received {:repo_query, _pid, _query}
+        refute_push_event(dragger, unquote(relays_as), _payload)
+      end
+    end
+
     test "previews and cancels reach other views without any database query", ctx do
       %{rectangle: rectangle, dragger: dragger, watcher: watcher} = ctx
       record_queries([dragger, watcher])

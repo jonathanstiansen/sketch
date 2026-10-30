@@ -1,4 +1,5 @@
 import { chromium } from "../../../e2e/node_modules/@playwright/test/index.mjs"
+import { newContext } from "../../../e2e/tests/support/contexts.ts"
 
 const [baseURL, screenshot] = process.argv.slice(2)
 const element = "[data-element][data-kind='rectangle']"
@@ -35,7 +36,7 @@ async function move(page, x, y) {
 
 const browser = await chromium.launch()
 try {
-  const [pageA, pageB] = await Promise.all([1, 2].map(() => browser.newPage({ viewport })))
+  const [pageA, pageB] = await Promise.all([1, 2].map(async () => (await newContext(browser, { viewport })).newPage()))
   await pageA.goto(baseURL)
   await pageA.click("#new-board")
   await pageA.waitForURL(/\/b\//)

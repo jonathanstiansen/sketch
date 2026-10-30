@@ -1,7 +1,14 @@
 [
+  check_categories: [
+    compiled_code: "Compiled code",
+    source_scan: "Source files",
+    dependencies: "Dependencies",
+    typescript: "TypeScript"
+  ],
   rules: [
     %{
       id: "A01",
+      check: :compiled_code,
       rule: "Domain operations are exposed through Ash code interfaces on Sketch.Canvas",
       status: :enforced,
       enforcement:
@@ -10,6 +17,7 @@
     },
     %{
       id: "A02",
+      check: :compiled_code,
       rule: "No Repo, Ecto SQL or Postgrex access from web modules",
       status: :enforced,
       enforcement:
@@ -18,6 +26,7 @@
     },
     %{
       id: "A03",
+      check: :compiled_code,
       rule: "No direct resource mutation outside declared Ash actions",
       status: :enforced,
       enforcement:
@@ -88,11 +97,17 @@
     },
     %{
       id: "A10",
+      check: :source_scan,
       rule: "Transient previews never trigger persistence",
       status: :enforced,
       enforcement:
-        "A telemetry handler on [:sketch, :repo, :query] records queries from the LiveView processes while previews, cancels and live cursor moves and leaves are relayed; the test asserts none, and that a commit issues exactly one UPDATE",
-      verified_by: ["test/sketch_web/live/board_live_drag_test.exs", "test/sketch_web/live/board_live_cursor_test.exs", "e2e/tests/dragging.spec.ts"]
+        "SketchWeb.BoardEvents declares every relay-only event with a valid example and BoardLive forwards only what it declares. A telemetry handler on [:sketch, :repo, :query] records queries from the LiveView processes while the test sends every declared example; it asserts that the event reaches the other view and that there were no queries, and that a commit issues exactly one UPDATE. A source check fails if BoardLive relays, forwards or handles an event the registry does not declare, if a durable event never reaches its Sketch.Canvas action, or if anything but broadcast_preview broadcasts",
+      verified_by: [
+        "test/architecture/board_events_test.exs",
+        "test/sketch_web/live/board_live_drag_test.exs",
+        "test/sketch_web/live/board_live_cursor_test.exs",
+        "e2e/tests/dragging.spec.ts"
+      ]
     },
     %{
       id: "A11",
@@ -109,6 +124,7 @@
     },
     %{
       id: "A12",
+      check: :compiled_code,
       rule: "No custom GenServer, event broker or repository layer",
       status: :enforced,
       enforcement:
@@ -117,6 +133,7 @@
     },
     %{
       id: "A13",
+      check: :source_scan,
       rule: "Client pointer behaviour lives in the designated hook",
       status: :enforced,
       enforcement:
@@ -125,6 +142,7 @@
     },
     %{
       id: "A14",
+      check: :typescript,
       rule: "TypeScript strict mode; no any or TS suppression directives",
       status: :enforced,
       enforcement:
@@ -133,6 +151,7 @@
     },
     %{
       id: "A15",
+      check: :dependencies,
       rule: "No production runtime dependency added without approval",
       status: :enforced,
       enforcement:
@@ -156,10 +175,11 @@
     },
     %{
       id: "A18",
+      check: :source_scan,
       rule: "No mocked database or collaboration transport in E2E tests",
       status: :enforced,
       enforcement:
-        "E2E sources may not use request routing/HAR interception or import mock libraries; e2e/package.json may not depend on them",
+        "E2E sources may not use request routing/HAR interception or import a library in e2e_mock_packages; e2e/package.json may not depend on one, and its dependencies must equal e2e_npm_deps, so a mock library under a new name also fails",
       verified_by: ["test/architecture/source_policy_test.exs"]
     },
     %{
@@ -172,6 +192,7 @@
     },
     %{
       id: "A20",
+      check: :source_scan,
       rule: "No arbitrary fixed sleeps in E2E tests",
       status: :enforced,
       enforcement: "E2E sources may not contain waitForTimeout, setTimeout or sleep calls",
@@ -179,6 +200,7 @@
     },
     %{
       id: "A21",
+      check: :source_scan,
       rule: "No lint, type-check, Credo or Dialyzer suppressions",
       status: :enforced,
       enforcement:
@@ -187,6 +209,7 @@
     },
     %{
       id: "A22",
+      check: :source_scan,
       rule: "Kind-specific branching lives only in kind modules, element renderers and generated files",
       status: :enforced,
       enforcement:
@@ -202,15 +225,17 @@
     },
     %{
       id: "A23",
+      check: :source_scan,
       rule: "Every keyboard shortcut is declared in a registry aggregated by SketchWeb.Shortcuts; chords are unique across focus contexts that can be active at once",
       status: :enforced,
       enforcement:
-        "SketchWeb.Shortcuts aggregates every registry in SketchWeb.Shortcuts.registries/0 at compile time through SketchWeb.Shortcuts.Aggregate. Each registry declares the shortcut groups it owns and may declare focus contexts with the contexts each can be active with, and every chord declares a modifier policy (ADR 0010). The aggregate raises a CompileError when two actions share a chord in the same or overlapping contexts (comparing the characters a press can produce: key case ignored, KeyE equals e, Digit1 equals 1 and with Shift !; Ctrl/⌘ overlaps Ctrl, Shift any overlaps either, a chord that ignores Alt or every modifier overlaps both states), when an action id, group or context repeats, when an entry names a group its registry does not declare or a context no registry declares, or when an entry, chord or modifier policy is malformed. mix sketch.gen.render_fixtures writes the conflict model's verdict for every pair of a fixed chord set (checked in mix ci and CI) and assets/test/shortcut_parity.test.ts requires the client matcher to match a press with both chords exactly when the server says they collide. The shortcuts help renders from the aggregate only, buttons take aria-keyshortcuts and titles from it, mix sketch.gen.manifest emits it as SHORTCUTS (checked in mix ci and CI) and assets/js/hooks/shortcuts.ts is the one client matcher. lib and assets/js may not compare a key or code with a string literal, switch on key or code, call a literal array's includes with a key, bind phx-key/phx-keydown/phx-window-keydown or write a literal aria-keyshortcuts outside literal_chord_paths",
+        "SketchWeb.Shortcuts aggregates every registry in SketchWeb.Shortcuts.registries/0 at compile time through SketchWeb.Shortcuts.Aggregate. Each registry declares the shortcut groups it owns and may declare focus contexts with the contexts each can be active with, and every chord declares a modifier policy (ADR 0010). The aggregate raises a CompileError when two actions share a chord in the same or overlapping contexts (comparing the characters a press can produce: key case ignored, KeyE equals e, Digit1 equals 1 and with Shift !; Ctrl/⌘ overlaps Ctrl, Shift any overlaps either, a chord that ignores Alt or every modifier overlaps both states), when an action id, group or context repeats, when an entry names a group its registry does not declare or a context no registry declares, or when an entry, chord or modifier policy is malformed. mix sketch.gen.render_fixtures writes the conflict model's verdict for every pair of a fixed chord set (checked in mix ci and CI) and assets/test/shortcut_parity.test.ts requires the client matcher to match a press with both chords exactly when the server says they collide. The shortcuts help renders from the aggregate only, buttons take aria-keyshortcuts and titles from it, mix sketch.gen.manifest emits it as SHORTCUTS (checked in mix ci and CI) and assets/js/hooks/shortcuts.ts is the one client matcher. lib and assets/js may not compare a key or code with a string literal, switch on key or code, call a literal array's includes with a key, bind phx-key/phx-keydown/phx-window-keydown or write a literal aria-keyshortcuts outside literal_chord_paths. Pointer gestures are data too: registries declare pointer_gestures/0, the aggregate raises a CompileError when two can match one input or a chordless help row is written by hand, the help text is derived from the gesture's fields, mix sketch.gen.manifest emits them as POINTER_GESTURES and pointerAction reads only that table; assets/test/tools.test.ts checks with fast-check that every gesture maps to its action and exhaustively that no input matches two",
       verified_by: [
         "test/architecture/source_policy_test.exs",
         "test/sketch_web/shortcuts_test.exs",
         "assets/test/shortcuts.test.ts",
-        "assets/test/shortcut_parity.test.ts"
+        "assets/test/shortcut_parity.test.ts",
+        "assets/test/tools.test.ts"
       ]
     }
   ],
@@ -240,7 +265,7 @@
       check: "Evidence, E2E and helper scripts stop only processes they started, by PID: no pkill, killall or kill without a PID variable",
       status: :enforced,
       verified_by: ["test/architecture/source_policy_test.exs"],
-      note: "Scans docs/evidence, e2e and scripts (.sh, .bash, .mjs, .cjs, .js, .ts) and the exec blocks of every DEMO.md under docs"
+      note: "Scans every tracked script (git ls-files, by extension or a shebang line) and the exec blocks of every tracked DEMO.md, except deps, _build, node_modules and script_scan_exempt_paths"
     },
     %{
       item: 10,
@@ -251,10 +276,17 @@
     },
     %{
       item: 11,
-      check: "Every E2E browser context is created by the shared helper, so every context gets the shared options",
+      check: "Every Playwright browser context, in E2E tests and evidence scripts alike, is created by the shared helper, so every context gets the shared options",
       status: :enforced,
       verified_by: ["test/architecture/source_policy_test.exs", "e2e/tests/support/contexts.ts"],
-      note: "Rejects .newContext( and browser.newPage( in e2e/ outside e2e_context_paths"
+      note: "Rejects .newContext(, .launchPersistentContext( and browser.newPage( in every tracked script outside e2e_context_paths and script_scan_exempt_paths"
+    },
+    %{
+      item: 12,
+      check: "Every event a board client pushes is declared in SketchWeb.BoardEvents and pushed through the typed pushClientEvent, and selection state appears in no event, payload or broadcast (addendum D8)",
+      status: :enforced,
+      verified_by: ["test/architecture/board_events_test.exs", "test/architecture/typescript_policy_test.exs", "assets/js/hooks/client_events.ts"],
+      note: "tsc rejects an undeclared event or field, the contract rejects a field naming selection state at compile time, and a source scan rejects a raw pushEvent outside client_push_paths and selection names in BoardLive's event code"
     }
   ],
   allowlists: %{
@@ -284,6 +316,33 @@
     e2e_context_paths: [
       {"e2e/tests/support/contexts.ts",
        "The one helper that creates browser contexts with the shared options, which playwright.config.ts also uses (CI requirement 11)"}
+    ],
+    script_scan_exempt_paths: [
+      {"test/architecture/fixtures/", "Negative fixtures that violate the script policies on purpose"},
+      {"test/architecture/source_policy_test.exs", "Names the forbidden commands in its test names"},
+      {"architecture/rules.exs", "Names the forbidden commands in the rule text"}
+    ],
+    client_push_paths: [
+      {"assets/js/hooks/client_events.ts", "The one typed wrapper around pushEvent (CI requirement 12)"}
+    ],
+    broadcast_paths: [
+      {"lib/sketch_web/live/board_live.ex", "Checked by board_event_violations: only broadcast_preview broadcasts (A10)"}
+    ],
+    e2e_mock_packages: [
+      {"msw", "HTTP and WebSocket mocking (A18)"},
+      {"@mswjs/", "The msw package scope (A18)"},
+      {"nock", "HTTP mocking (A18)"},
+      {"sinon", "Stubs and fake servers (A18)"},
+      {"mock-socket", "WebSocket mocking (A18)"},
+      {"playwright-msw", "msw for Playwright (A18)"},
+      {"jest-mock", "Module mocking (A18)"}
+    ],
+    e2e_npm_deps: [
+      {"@playwright/test", "The two-browser test runner (SPEC section 8)"},
+      {"@types/node", "Node types for the specs and config"},
+      {"eslint", "Lints the specs (A14)"},
+      {"fast-check", "Property-based E2E tests"},
+      {"typescript", "Type-checks the specs (A14)"}
     ],
     production_mix_deps: [
       {:ash, "Core framework (SPEC section 3)"},

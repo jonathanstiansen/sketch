@@ -4,7 +4,7 @@ import { isElementKind } from "./tools.ts"
 import { focusContext, shortcutFor, type ShortcutInput } from "./shortcuts.ts"
 import { isSeed } from "../elements/dom.ts"
 import { isStyleToken, styleFrom, type ElementStyle } from "../elements/style.ts"
-import { HISTORY_ACTIONS, STYLE_PROPERTIES, type ElementKind, type HistoryActionId, type StyleProperty } from "../generated/manifest.ts"
+import { HISTORY_ACTIONS, STYLE_PROPERTIES, type ClientEventPayloads, type ElementKind, type HistoryActionId, type StyleProperty } from "../generated/manifest.ts"
 
 export interface ElementSnapshot extends Box {
   readonly kind: ElementKind
@@ -67,16 +67,21 @@ export function recordedElements(value: unknown): Recorded<ElementSnapshot>[] {
   return value.flatMap((element) => recordedElement(element) ?? [])
 }
 
-export function createPayload({ kind, x, y, width, height, points, text, seed, style }: ElementSnapshot, dragId: string): Record<string, unknown> {
+export function createPayload({ kind, x, y, width, height, points, text, seed, style }: ElementSnapshot, dragId: string): ClientEventPayloads["create_element"] {
   return { kind, drag_id: dragId, x, y, width, height, points, text, seed, ...style }
 }
 
-export function changePayload(elementId: string, change: ElementChange, dragId: string): Record<string, unknown> {
-  if (change.event === "commit_style") return { element_id: elementId, [change.property]: change.value }
-  const ref = { element_id: elementId, drag_id: dragId }
-  if (change.event === "commit") return { ...ref, x: change.x, y: change.y }
-  const shape = { ...ref, ...change.box, points: change.points }
-  return change.text === undefined ? shape : { ...shape, text: change.text }
+export function positionPayload(elementId: string, { x, y }: Extract<ElementChange, { event: "commit" }>, dragId: string): ClientEventPayloads["commit"] {
+  return { element_id: elementId, drag_id: dragId, x, y }
+}
+
+export function shapePayload(elementId: string, { box, points, text }: Extract<ElementChange, { event: "commit_shape" }>, dragId: string): ClientEventPayloads["commit_shape"] {
+  const shape = { element_id: elementId, drag_id: dragId, ...box, points }
+  return text === undefined ? shape : { ...shape, text }
+}
+
+export function stylePayload(elementId: string, { property, value }: Extract<ElementChange, { event: "commit_style" }>): ClientEventPayloads["commit_style"] {
+  return { element_id: elementId, [property]: value }
 }
 
 export function historyActionFor(input: HistoryKeyInput): HistoryActionId | undefined {

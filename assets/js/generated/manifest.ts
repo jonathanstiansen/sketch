@@ -191,6 +191,51 @@ export type Shortcut = (typeof SHORTCUTS)[number]
 
 export type ShortcutAction = Shortcut["action"]
 
+export interface PointerGestureSpec {
+  readonly action: string
+  readonly button: "primary" | "middle" | "wheel"
+  readonly tools: readonly ToolId[]
+  readonly target: "element" | "empty" | "handle" | null
+  readonly space: boolean | null
+  readonly shift: boolean | null
+  readonly alt: boolean | null
+  readonly mod: "command" | null
+}
+
+export const POINTER_GESTURES = [
+  { action: "pan", button: "primary", tools: ["hand"], target: null, space: false, shift: null, alt: null, mod: null },
+  { action: "draw", button: "primary", tools: ["rectangle", "diamond", "ellipse", "arrow", "line", "draw", "note"], target: null, space: false, shift: null, alt: null, mod: null },
+  { action: "text", button: "primary", tools: ["text"], target: null, space: false, shift: null, alt: null, mod: null },
+  { action: "erase", button: "primary", tools: ["eraser"], target: null, space: false, shift: null, alt: null, mod: null },
+  { action: "resize", button: "primary", tools: ["selection"], target: "handle", space: false, shift: null, alt: null, mod: null },
+  { action: "marquee", button: "primary", tools: ["selection"], target: "empty", space: false, shift: null, alt: null, mod: null },
+  { action: "copy", button: "primary", tools: ["selection"], target: "element", space: false, shift: null, alt: true, mod: null },
+  { action: "toggle", button: "primary", tools: ["selection"], target: "element", space: false, shift: true, alt: false, mod: null },
+  { action: "move", button: "primary", tools: ["selection"], target: "element", space: false, shift: false, alt: false, mod: null },
+  { action: "pan", button: "middle", tools: ["hand", "selection", "rectangle", "diamond", "ellipse", "arrow", "line", "draw", "text", "note", "eraser"], target: null, space: null, shift: null, alt: null, mod: null },
+  { action: "pan", button: "primary", tools: ["hand", "selection", "rectangle", "diamond", "ellipse", "arrow", "line", "draw", "text", "note", "eraser"], target: null, space: true, shift: null, alt: null, mod: null },
+  { action: "zoom", button: "wheel", tools: ["hand", "selection", "rectangle", "diamond", "ellipse", "arrow", "line", "draw", "text", "note", "eraser"], target: null, space: null, shift: null, alt: null, mod: "command" },
+] as const satisfies readonly PointerGestureSpec[]
+
+export interface ClientEventPayloads {
+  readonly "preview": { readonly base_version: number; readonly drag_id: string; readonly element_id: string; readonly height: number; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seq: number; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
+  readonly "drag_cancel": { readonly drag_id: string; readonly element_id: string }
+  readonly "group_preview": { readonly drag_id: string; readonly elements: readonly { readonly base_version: number; readonly element_id: string; readonly height: number; readonly points: readonly { readonly x: number; readonly y: number }[]; readonly width: number; readonly x: number; readonly y: number }[]; readonly seq: number }
+  readonly "group_cancel": { readonly drag_id: string; readonly element_ids: readonly string[] }
+  readonly "draw_preview": { readonly drag_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly seq: number; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
+  readonly "draw_cancel": { readonly drag_id: string }
+  readonly "cursor": { readonly seq: number; readonly x: number; readonly y: number }
+  readonly "cursor_leave": { readonly seq: number }
+  readonly "add-rectangle": Record<string, never>
+  readonly "create_element": { readonly drag_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
+  readonly "erase": { readonly element_ids: readonly string[] }
+  readonly "commit": { readonly drag_id: string; readonly element_id: string; readonly x: number; readonly y: number }
+  readonly "commit_shape": { readonly drag_id: string; readonly element_id: string; readonly height: number; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
+  readonly "commit_style": { readonly element_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width"> }
+}
+
+export type ClientEventName = keyof ClientEventPayloads
+
 export const GEOMETRY = {
   canvasHeight: 4000,
   canvasWidth: 4000,

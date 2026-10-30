@@ -10,6 +10,9 @@ defmodule SketchWeb.BoardLive do
   @max_text_bytes Sketch.Canvas.geometry().max_text_length * 4
   @max_seed Sketch.Canvas.geometry().max_seed
   @max_group_elements 1000
+  @relayed_events SketchWeb.BoardEvents.relayed_events()
+  @ignored_when_malformed Enum.map(SketchWeb.BoardEvents.all(), & &1.event) --
+                            ~w(add-rectangle erase)
   @style_properties Sketch.Canvas.style_properties()
   @style_params Enum.map(@style_properties, &{Atom.to_string(&1), &1})
   @stroke_colors Enum.map(Sketch.Canvas.style_tokens(:stroke_color), &Atom.to_string/1)
@@ -280,7 +283,7 @@ defmodule SketchWeb.BoardLive do
   end
 
   def handle_event(event, _params, socket)
-      when event in ~w(create_element draw_preview draw_cancel preview group_preview group_cancel drag_cancel cursor cursor_leave commit commit_shape commit_style) do
+      when event in @ignored_when_malformed do
     {:noreply, socket}
   end
 
@@ -304,7 +307,7 @@ defmodule SketchWeb.BoardLive do
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket)
-      when event in ~w(preview group_preview group_cancel drag_cancel draw_preview draw_end cursor cursor_leave) do
+      when event in @relayed_events do
     {:noreply, push_event(socket, event, payload)}
   end
 

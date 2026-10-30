@@ -6,7 +6,9 @@ defmodule SketchWeb.Shortcuts do
   groups (`groups/0`) and focus contexts (`contexts/0`). The shortcuts help renders from this list, the buttons take their
   `aria-keyshortcuts` and titles from it, and `mod: :command` means Ctrl on Windows and Linux and
   Command on macOS. `mix sketch.gen.manifest` writes it to the client as `SHORTCUTS`, which
-  `assets/js/hooks/shortcuts.ts` matches key presses against.
+  `assets/js/hooks/shortcuts.ts` matches key presses against. The registries also declare the
+  pointer gestures (`pointer_gestures/0`), which the manifest emits as `POINTER_GESTURES` for
+  `pointerAction` in `assets/js/hooks/tools.ts`; their help rows are derived from the same rows.
 
   A new shortcut goes in its feature's registry (or `SketchWeb.FixedShortcuts`), and a new registry
   goes in `@registries`.
@@ -38,7 +40,11 @@ defmodule SketchWeb.Shortcuts do
   @spec contexts() :: [Aggregate.context()]
   def contexts, do: @aggregate.contexts
 
-  @doc "Every entry, in help order, including help-only gestures without chords."
+  @doc "What a press or wheel on the canvas does, in registry order; no two overlap."
+  @spec pointer_gestures() :: [Aggregate.gesture()]
+  def pointer_gestures, do: @aggregate.gestures
+
+  @doc "Every entry, in help order, including the help rows of gestures, which have no chords."
   @spec all() :: [map()]
   def all, do: @shortcuts
 
@@ -49,7 +55,7 @@ defmodule SketchWeb.Shortcuts do
   @spec get(String.t()) :: map() | nil
   def get(action), do: Enum.find(@shortcuts, &(&1.action == action))
 
-  @doc "The keys the help shows for an entry: one list per chord, or its `help_keys`."
+  @doc "The keys the help shows for an entry: one list per chord, or its gesture's keys."
   @spec help_keys(map()) :: [[String.t()]]
   def help_keys(%{chords: [], help_keys: keys}) when is_list(keys), do: [keys]
   def help_keys(%{chords: chords}), do: Enum.map(chords, & &1.keys)
