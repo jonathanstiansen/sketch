@@ -1,0 +1,13 @@
+diff --git a/assets/js/export/export_logic.ts b/assets/js/export/export_logic.ts
+index 9bc4723..4803e31 100644
+--- a/assets/js/export/export_logic.ts
++++ b/assets/js/export/export_logic.ts
+@@ -2,7 +2,7 @@ import type { Box } from "../hooks/canvas_logic.ts"
+ import type { ExportActionId } from "../generated/manifest.ts"
+ import { EXPORT_ACTIONS } from "../generated/manifest.ts"
+ 
+-export const EXPORT_PADDING = 16
++export const EXPORT_PADDING = 0
+ export const MAX_PNG_PIXELS = 16_000_000
+ 
+ export type ExportFormat = "png" | "svg"

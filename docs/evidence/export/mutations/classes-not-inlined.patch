@@ -1,0 +1,21 @@
+diff --git a/assets/js/export/export_dom.ts b/assets/js/export/export_dom.ts
+index 6ea16e0..68b875f 100644
+--- a/assets/js/export/export_dom.ts
++++ b/assets/js/export/export_dom.ts
+@@ -76,14 +76,14 @@ function setPaint(clone: Element, property: string, css: string, colors: ColorRe
+ 
+ function stripAttributes(clone: Element, isWrapper: boolean): void {
+   for (const name of clone.getAttributeNames()) {
+-    const drop = isWrapper ? !keepsWrapperAttribute(name) : name === "class" || name === "id" || name.startsWith("data-phx-")
++    const drop = isWrapper ? !keepsWrapperAttribute(name) : name === "id" || name.startsWith("data-phx-")
+     if (drop) clone.removeAttribute(name)
+   }
+ }
+ 
+ function inlineStyles(source: Element, clone: Element, colors: ColorResolver, isWrapper: boolean): void {
+   const computed = getComputedStyle(source)
+-  for (const property of inlinedProperties(source.localName)) {
++  for (const property of [] as readonly string[]) {
+     const value = computed.getPropertyValue(property)
+     if (isPaintProperty(property)) {
+       setPaint(clone, property, value, colors)

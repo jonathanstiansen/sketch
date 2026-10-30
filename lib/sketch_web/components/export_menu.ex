@@ -50,7 +50,13 @@ defmodule SketchWeb.ExportMenu do
     assigns = assign(assigns, :actions, ExportActions.menu())
 
     ~H"""
-    <div id="export-root" phx-hook="ExportMenu" phx-update="ignore" data-board-id={@board_id}>
+    <div
+      id="export-root"
+      phx-hook="ExportMenu"
+      phx-update="ignore"
+      data-board-id={@board_id}
+      class="contents"
+    >
       <section
         id={menu_id()}
         aria-label="Export"
