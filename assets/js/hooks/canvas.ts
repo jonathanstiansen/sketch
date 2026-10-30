@@ -458,6 +458,7 @@ export class Canvas extends ViewHook {
         this.revert(payload.element_id)
       }
     })
+    this.syncZoom()
   }
 
   override disconnected(): void {
