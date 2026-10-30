@@ -20,6 +20,15 @@ All architecture checks are ExUnit tests in `test/architecture/`, run by `mix te
   OTP `:xref` gives remote call edges; the BEAM atom table catches references that are not calls
   (for example passing `Sketch.Repo` around as a value); module attributes give declared behaviours.
 - **Source files (A13, A18, A20, A21, A22, A23)**: line-based scans of the relevant source trees.
+- **Docs (CI requirement 10)**: no line of a living doc (every Markdown file at the root and directly
+  in `docs/`, and `architecture/rules.exs`; the specification is exempt) names two or more shortcut
+  registries, both focus contexts, or three or more element kinds, tools, style tokens or shortcut
+  groups in code form. A doc refers to the registry instead, so adding a registry, kind or token
+  never leaves a stale list behind.
+- **E2E browser contexts (CI requirement 11)**: every browser context comes from
+  `e2e/tests/support/contexts.ts`, which adds the shared options (the clipboard permissions) that
+  `playwright.config.ts` also uses; a scan of `e2e/` rejects `.newContext(` and `browser.newPage(`
+  anywhere else.
 - **Processes (CI requirement 9)**: a line-based scan of scripts under `docs/evidence/`, `e2e/` and
   `scripts/` and of the exec blocks of every `DEMO.md`: no `pkill`, no `killall` and no `kill` whose
   target is not a PID variable (`kill "$pid"`, `kill -9 $server`, `kill $!`). A script stops only
@@ -60,23 +69,31 @@ the only path excluded from the A21 scan.
 | A20 | E2E tests contain no fixed sleeps (`waitForTimeout`, `setTimeout`, `sleep(`). | Enforced |
 | A21 | No suppression directives for ESLint, TypeScript, Credo or Dialyzer and no Dialyzer ignore file (addendum D5). | Enforced |
 | A22 | Kind-specific branching lives only in kind modules (`lib/sketch/canvas/kinds/`), element renderers (`lib/sketch_web/elements/`, `assets/js/elements/`) and generated files (`assets/js/generated/`) (ADR 0004). The scan of `lib` and `assets/js` rejects `kind == :x` and `kind === "x"` (either order, negated), `kind in [`, `kind: :x`, `data-kind="x"` and `dataset.kind` comparisons for any element kind. There is no per-file exception: a test requires the allowed paths to be exactly those four directories. The canvas hook reads per-kind behaviour (geometry, text, `draw_gesture`, default size, style properties) from the specs in the generated manifest, never from kind ids. Element kinds are declared once in `Sketch.Canvas.Kinds`, which fails to compile if a draw gesture cannot produce its kind's geometry or a spec's `style` names an unknown property (ADR 0006); `SketchWeb.Tools` fails to compile if a tool creates an unknown kind, and `mix sketch.gen.manifest --check` fails `mix ci` and CI if `assets/js/generated/manifest.ts` is stale. Renderers are forced equal: `SketchWeb.Elements` fails to compile unless its renderers cover exactly the registered kinds, the client `RENDERERS` table `satisfies Record<ElementKind, Renderer>` (so `tsc` fails if either side lacks one), `mix sketch.gen.render_fixtures --check` fails `mix ci` and CI if `assets/test/fixtures/render_parity.json`, `wrap_parity.json` or `random_parity.json` is stale, and `assets/test/render_parity.test.ts`, `wrap_parity.test.ts` and `random_parity.test.ts` fail if a client renderer draws a different node tree from the server for any fixture shape, seed and sampled style, the client wraps a fixture text into different lines, or the hand-drawn random source or number formatting differs (ADR 0005). | Enforced |
-| A23 | Every keyboard shortcut is declared in a registry aggregated by `SketchWeb.Shortcuts`; chords are unique per focus context (ADR 0009). The registries are `SketchWeb.Tools`, `HistoryActions`, `ZoomActions`, `ExportActions` and `FixedShortcuts` (Delete, Space, Esc, `?`, Esc in the text editor). `SketchWeb.Shortcuts.Aggregate` fails compilation when two actions share a chord in one focus context (`canvas`: nothing editable has focus; `editor`: text entry has focus), comparing keys without case, `KeyE` as `e` and `Digit1` as `1`, Ctrl/⌘ as overlapping Ctrl and Shift "any" as overlapping either; it also rejects a repeated action id and a malformed entry. The shortcuts help renders from the aggregate only, buttons take `aria-keyshortcuts` and titles from it, `mix sketch.gen.manifest` emits it as `SHORTCUTS` and `assets/js/hooks/shortcuts.ts` is the one client matcher. The scan of `lib` and `assets/js` rejects a `key`/`code` compared with a string literal, a `switch` on them, a literal array's `.includes(key)`, `phx-key`/`phx-keydown`/`phx-window-keydown` bindings and literal `aria-keyshortcuts` outside `literal_chord_paths`. | Enforced |
+| A23 | Every keyboard shortcut is declared in a registry aggregated by `SketchWeb.Shortcuts` (the registries are `SketchWeb.Shortcuts.registries/0`); chords are unique across focus contexts that can be active at once (ADR 0009, ADR 0010). Each registry declares the shortcut groups it owns and may declare focus contexts, each naming the contexts it can be active with; every chord declares a modifier policy. `SketchWeb.Shortcuts.Aggregate` fails compilation when two actions share a chord in the same or overlapping contexts, comparing the characters a key press can produce (keys without case, `KeyE` as `e`, `Digit1` as `1` and, with Shift, as `!`), Ctrl/⌘ as overlapping Ctrl, Shift "any" as overlapping either and a chord that ignores Alt (or every modifier) as overlapping both states; it also rejects a repeated action id, group or context, an entry whose group its registry does not declare, a context no registry declares, a malformed entry and a modifier policy that contradicts its chord. `mix sketch.gen.render_fixtures` writes the conflict model's verdict for every pair of a fixed chord set, and `assets/test/shortcut_parity.test.ts` requires the client matcher to match some key press with both chords of a pair exactly when the server says they collide. The shortcuts help renders from the aggregate only, buttons take `aria-keyshortcuts` and titles from it, `mix sketch.gen.manifest` emits it as `SHORTCUTS` and `assets/js/hooks/shortcuts.ts` is the one client matcher. The scan of `lib` and `assets/js` rejects a `key`/`code` compared with a string literal, a `switch` on them, a literal array's `.includes(key)`, `phx-key`/`phx-keydown`/`phx-window-keydown` bindings and literal `aria-keyshortcuts` outside `literal_chord_paths`. | Enforced |
 
 ## Keyboard shortcuts
 
 A23 keeps every chord in one place. Adding a shortcut takes:
 
-1. A chord in its feature's registry (`SketchWeb.Tools`, `HistoryActions`, `ClipboardActions`, `ZoomActions`,
-   `ExportActions`), or in `SketchWeb.FixedShortcuts` if it belongs to none. A new registry is a
-   module with `shortcuts/0` added to `@registries` in `SketchWeb.Shortcuts`. The entry format is in
-   the `SketchWeb.Shortcuts.Aggregate` moduledoc.
-2. `mix sketch.gen.manifest`, so `SHORTCUTS` in `assets/js/generated/manifest.ts` has it.
-3. Client code that asks `shortcutFor(input, context)` (or a wrapper such as `zoomActionFor`) for
-   the action and acts on `shortcut.action`; it never compares `event.key` or `event.code` itself.
+1. A chord in its feature's registry (one of `SketchWeb.Shortcuts.registries/0`), or in
+   `SketchWeb.FixedShortcuts` if it belongs to none. A new registry is a module with `shortcuts/0`
+   and `shortcut_groups/0` (the groups it owns) added to `@registries` in `SketchWeb.Shortcuts`.
+   The entry, chord and context formats are in the `SketchWeb.Shortcuts.Aggregate` moduledoc.
+   Every chord names its modifier policy: `:exact` for most, `:any` for a cancel such as Esc, so it
+   still works while a gesture holds Alt or Shift.
+2. A focus context only if the shortcut must be active where the existing ones are not: declare it
+   in the registry's `shortcut_contexts/0` with the contexts it can be active at the same time as
+   (`overlaps`), and pass it to `shortcutFor` while it is active. A chord in a context that overlaps
+   another must not collide with that context's chords.
+3. `mix sketch.gen.manifest`, so `SHORTCUTS` in `assets/js/generated/manifest.ts` has it.
+4. Client code that asks `shortcutFor(input, context)` (or a wrapper such as `zoomActionFor`) for
+   the action, checks that `shortcut.group` is its own and acts on `shortcut.action`; it never
+   compares `event.key` or `event.code` itself.
 
-A chord already used in the same focus context fails compilation with both actions named; pick
-another chord or a different context. The help panel, `aria-keyshortcuts` and titles follow
-without further work.
+A chord already used in the same or an overlapping focus context fails compilation with both
+actions and their contexts named; pick another chord or a context that cannot be active at the
+same time. The help panel, `aria-keyshortcuts` and titles follow without further work. Docs refer
+to `SketchWeb.Shortcuts.registries/0` instead of listing the registries (CI requirement 10).
 
 ## Element kinds
 
@@ -101,9 +118,16 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
 
 - A23's scan is line-based, like A22's. A key compared through a variable whose name holds neither
   `key` nor `code`, a key name split across lines or a lookup table keyed by key names is not seen;
-  the negative fixture covers each direct form. The conflict check compares chords as declared: two
-  chords that only collide on some layouts (for example `Digit1` with Shift and a `!` key chord) are
-  not seen.
+  the negative fixture covers each direct form. The conflict check assumes a physical key types its
+  US character, or its unshifted character with Shift held (as on AZERTY digits), and that any
+  character may come from some other key with or without Shift; a physical key that types
+  something else on another layout is compared as the US key. The parity fixture covers a fixed set
+  of keys and codes, not every key.
+- The docs check (CI requirement 10) matches registry module names as words and kinds, tools,
+  tokens, contexts and groups only in code form (`` `x` ``, `:x`, `"x"`), one line at a time. A list
+  written in plain words ("text and note elements") or spread over several lines is not seen.
+- The E2E context scan (CI requirement 11) is line-based: a browser held under a name without
+  `browser` that calls `newPage(` is not seen; `.newContext(` is rejected on any receiver.
 - The layout spec (CI requirement 8) checks a fresh board and the style bar with a drawing tool
   selected, at 860, 1024, 1280 and 1600 px wide and 800 px high, in Chromium. Open menus, the help
   panel and widths outside that set are not checked.
@@ -111,8 +135,9 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
   `case` on the kind or a kind name split across lines is not seen; code review covers those, and
   the negative fixture covers each direct form.
 - The `elements` CHECK constraints list point kinds in the order the existing migration was
-  generated with (`line`, `arrow`, `freedraw`), not registry order. `Element` keeps that order so the
-  SQL text, and therefore `ash.codegen --check`, does not change; a new point kind is appended.
+  generated with (`@migrated_point_kind_order` in `Sketch.Canvas.Element`), not registry order.
+  `Element` keeps that order so the SQL text, and therefore `ash.codegen --check`, does not change;
+  a new point kind is appended.
 - Render parity is checked on a fixed set of shapes per kind (sizes 0, 1, 2, 119, 120, 3999 and
   4000 in both directions, plus point sets and texts derived from the kind's spec; text kinds use
   widths around the note's wrapping boundaries instead), each with fixture seeds including 0 and
@@ -168,8 +193,8 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
   shown in the status line, not retried. The clipboard is a list so multi-select can extend it, but
   selection is single for now. A duplicate or paste is one undo entry; undo erases the created
   elements (so redo creates them under new ids, D12). Alt+drag shows the copy as a draw preview and
-  sends nothing for the original; Esc with Alt still held does not cancel it, because the Esc chord
-  requires Alt up.
+  sends nothing for the original; Esc cancels it with Alt still held, because the Esc chord ignores
+  held modifiers (ADR 0010).
 - Exports clone `#elements > [data-element]` only, which is how the selection, draw-preview and
   remote-cursor layers stay out of them; there is no exclusion list to extend.
 

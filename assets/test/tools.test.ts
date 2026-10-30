@@ -17,7 +17,7 @@ import {
   type KeyInput,
   type ToolId,
 } from "../js/hooks/tools.ts"
-import { anyPress, press, type Modifiers } from "./key_press.ts"
+import { anyModifiers, anyPress, press, type Modifiers } from "./key_press.ts"
 
 const settings = { seed: 1, numRuns: 500 }
 
@@ -49,8 +49,9 @@ const digitBindings: Record<string, ToolId> = {
 }
 
 function modelTool(current: ToolId, input: KeyInput): ToolId {
-  if (input.editable || input.ctrlKey || input.metaKey || input.altKey) return current
+  if (input.editable) return current
   if (input.key === "Escape") return DEFAULT_TOOL
+  if (input.ctrlKey || input.metaKey || input.altKey) return current
   const byDigit = input.shiftKey ? undefined : digitBindings[input.code]
   return byDigit ?? letterBindings[(input.key ?? "").toLowerCase()] ?? current
 }
@@ -64,7 +65,7 @@ const anyTool = fc.constantFrom(...TOOLS.map((tool) => tool.id))
 const startTool = fc.constantFrom(...enabledTools.map((tool) => tool.id))
 const anyKeyInput = fc.tuple(anyPress, fc.boolean()).map(([input, editable]) => ({ ...input, editable }))
 const ignoredKeyInput = anyKeyInput.filter(
-  (input) => input.ctrlKey || input.metaKey || input.altKey || input.editable,
+  (input) => input.key !== "Escape" && (input.ctrlKey || input.metaKey || input.altKey || input.editable),
 )
 
 void test("every tool is reachable by its letter, with or without Shift, and by its number-row digit without Shift", () => {
@@ -94,7 +95,7 @@ void test("any key sequence selects the same tool as the simple binding model", 
   )
 })
 
-void test("a key with Ctrl, Meta or Alt, or typed into an editable target, never changes the tool", () => {
+void test("a key other than Esc with Ctrl, Meta or Alt, or typed into an editable target, never changes the tool", () => {
   fc.assert(
     fc.property(anyTool, ignoredKeyInput, (start, input) => {
       assert.equal(nextTool(start, input), start)
@@ -103,10 +104,10 @@ void test("a key with Ctrl, Meta or Alt, or typed into an editable target, never
   )
 })
 
-void test("Esc always returns to Selection", () => {
+void test("Esc returns to Selection whatever modifiers are held", () => {
   fc.assert(
-    fc.property(anyTool, (start) => {
-      assert.equal(nextTool(start, plainKey("Escape")), DEFAULT_TOOL)
+    fc.property(anyTool, anyModifiers, (start, modifiers) => {
+      assert.equal(nextTool(start, plainKey("Escape", modifiers)), DEFAULT_TOOL)
     }),
     settings,
   )

@@ -1,0 +1,11 @@
+--- a/e2e/tests/smoke.spec.ts
++++ b/e2e/tests/smoke.spec.ts
+@@ -3,7 +3,7 @@
+ 
+ test("two browser contexts open the home page", async ({ browser }) => {
+   const first = await newContext(browser)
+-  const second = await newContext(browser)
++  const second = await browser.newContext()
+ 
+   try {
+     const [firstPage, secondPage] = await Promise.all([first.newPage(), second.newPage()])

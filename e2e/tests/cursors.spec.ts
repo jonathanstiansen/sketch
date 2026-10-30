@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
 import { closeSession, moveTo, openSharedBoard, type Session } from "./support/canvas"
 import { createBoard } from "./support/board"
+import { newContext } from "./support/contexts"
 
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
 const remoteCursor = "#remote-cursors [data-cursor]"
@@ -189,7 +190,7 @@ test("each message from A restarts B's two second timer", async ({ browser }) =>
 test("a viewer on another board sees nothing and is seen by nobody", async ({ browser }) => {
   const session = await newViewer(browser)
   const { pageA, pageB } = session
-  const contextC = await browser.newContext()
+  const contextC = await newContext(browser)
   try {
     const pageC = await contextC.newPage()
     await createBoard(pageC)
@@ -238,7 +239,7 @@ test("an export made while cursors are shown contains no cursors", async ({ brow
 })
 
 test("a dark theme shows cursors with readable labels", async ({ browser }) => {
-  const contexts = await Promise.all([browser.newContext({ colorScheme: "dark" }), browser.newContext({ colorScheme: "dark" })])
+  const contexts = await Promise.all([newContext(browser, { colorScheme: "dark" }), newContext(browser, { colorScheme: "dark" })])
   try {
     const [pageA, pageB] = await Promise.all(contexts.map((context) => context.newPage()))
     if (pageA === undefined || pageB === undefined) throw new Error("pages did not open")

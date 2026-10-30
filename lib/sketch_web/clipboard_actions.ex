@@ -17,31 +17,67 @@ defmodule SketchWeb.ClipboardActions do
       id: "duplicate",
       label: "Duplicate selected",
       chords: [
-        %{key: ["d"], code: nil, mod: :command, shift: false, alt: false, keys: ["Ctrl/⌘", "D"]}
+        %{
+          key: ["d"],
+          code: nil,
+          mod: :command,
+          shift: false,
+          alt: false,
+          modifiers: :exact,
+          keys: ["Ctrl/⌘", "D"]
+        }
       ]
     },
     %{
       id: "copy",
       label: "Copy selected",
       chords: [
-        %{key: ["c"], code: nil, mod: :command, shift: false, alt: false, keys: ["Ctrl/⌘", "C"]}
+        %{
+          key: ["c"],
+          code: nil,
+          mod: :command,
+          shift: false,
+          alt: false,
+          modifiers: :exact,
+          keys: ["Ctrl/⌘", "C"]
+        }
       ]
     },
     %{
       id: "cut",
       label: "Cut selected",
       chords: [
-        %{key: ["x"], code: nil, mod: :command, shift: false, alt: false, keys: ["Ctrl/⌘", "X"]}
+        %{
+          key: ["x"],
+          code: nil,
+          mod: :command,
+          shift: false,
+          alt: false,
+          modifiers: :exact,
+          keys: ["Ctrl/⌘", "X"]
+        }
       ]
     },
     %{
       id: "paste",
       label: "Paste",
       chords: [
-        %{key: ["v"], code: nil, mod: :command, shift: false, alt: false, keys: ["Ctrl/⌘", "V"]}
+        %{
+          key: ["v"],
+          code: nil,
+          mod: :command,
+          shift: false,
+          alt: false,
+          modifiers: :exact,
+          keys: ["Ctrl/⌘", "V"]
+        }
       ]
     }
   ]
+
+  @doc "The shortcut groups this registry owns (A23)."
+  @spec shortcut_groups() :: [atom()]
+  def shortcut_groups, do: [:clipboard]
 
   @spec all() :: [t()]
   def all, do: @actions
@@ -51,7 +87,7 @@ defmodule SketchWeb.ClipboardActions do
   def shortcuts do
     for action <- @actions do
       %{
-        group: :canvas,
+        group: :clipboard,
         action: action.id,
         label: action.label,
         contexts: [:canvas],

@@ -32,6 +32,7 @@ defmodule SketchWeb.ZoomActions do
           mod: :command,
           shift: :any,
           alt: false,
+          modifiers: :exact,
           keys: ["Ctrl/⌘", "-"]
         }
       ]
@@ -48,6 +49,7 @@ defmodule SketchWeb.ZoomActions do
           mod: :command,
           shift: :any,
           alt: false,
+          modifiers: :exact,
           keys: ["Ctrl/⌘", "+"]
         }
       ]
@@ -58,7 +60,15 @@ defmodule SketchWeb.ZoomActions do
       icon: [],
       contexts: [:canvas, :editor],
       chords: [
-        %{key: ["0"], code: nil, mod: :command, shift: :any, alt: false, keys: ["Ctrl/⌘", "0"]}
+        %{
+          key: ["0"],
+          code: nil,
+          mod: :command,
+          shift: :any,
+          alt: false,
+          modifiers: :exact,
+          keys: ["Ctrl/⌘", "0"]
+        }
       ]
     },
     %{
@@ -67,10 +77,22 @@ defmodule SketchWeb.ZoomActions do
       icon: [],
       contexts: [:canvas],
       chords: [
-        %{key: [], code: "Digit1", mod: :none, shift: true, alt: false, keys: ["Shift", "1"]}
+        %{
+          key: [],
+          code: "Digit1",
+          mod: :none,
+          shift: true,
+          alt: false,
+          modifiers: :exact,
+          keys: ["Shift", "1"]
+        }
       ]
     }
   ]
+
+  @doc "The shortcut groups this registry owns (A23)."
+  @spec shortcut_groups() :: [atom()]
+  def shortcut_groups, do: [:zoom]
 
   @spec all() :: [t()]
   def all, do: @actions

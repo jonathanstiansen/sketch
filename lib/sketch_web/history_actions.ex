@@ -16,7 +16,15 @@ defmodule SketchWeb.HistoryActions do
       label: "Undo",
       icon: ["M9 14L4 9l5-5", "M4 9h10.5a5.5 5.5 0 0 1 0 11H11"],
       chords: [
-        %{key: ["z"], code: nil, mod: :command, shift: false, alt: false, keys: ["Ctrl/⌘", "Z"]}
+        %{
+          key: ["z"],
+          code: nil,
+          mod: :command,
+          shift: false,
+          alt: false,
+          modifiers: :exact,
+          keys: ["Ctrl/⌘", "Z"]
+        }
       ]
     },
     %{
@@ -30,12 +38,25 @@ defmodule SketchWeb.HistoryActions do
           mod: :command,
           shift: true,
           alt: false,
+          modifiers: :exact,
           keys: ["Ctrl/⌘", "Shift", "Z"]
         },
-        %{key: ["y"], code: nil, mod: :ctrl, shift: false, alt: false, keys: ["Ctrl", "Y"]}
+        %{
+          key: ["y"],
+          code: nil,
+          mod: :ctrl,
+          shift: false,
+          alt: false,
+          modifiers: :exact,
+          keys: ["Ctrl", "Y"]
+        }
       ]
     }
   ]
+
+  @doc "The shortcut groups this registry owns (A23)."
+  @spec shortcut_groups() :: [atom()]
+  def shortcut_groups, do: [:history]
 
   @spec all() :: [t()]
   def all, do: @actions

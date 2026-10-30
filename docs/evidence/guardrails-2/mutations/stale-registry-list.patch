@@ -1,0 +1,12 @@
+--- a/ARCHITECTURE.md
++++ b/ARCHITECTURE.md
+@@ -73,7 +73,8 @@
+ 
+ ## Keyboard shortcuts
+ 
+-A23 keeps every chord in one place. Adding a shortcut takes:
++A23 keeps every chord in one place. The registries are `SketchWeb.Tools`, `HistoryActions`,
++`ZoomActions`, `ExportActions` and `FixedShortcuts`. Adding a shortcut takes:
+ 
+ 1. A chord in its feature's registry (one of `SketchWeb.Shortcuts.registries/0`), or in
+    `SketchWeb.FixedShortcuts` if it belongs to none. A new registry is a module with `shortcuts/0`

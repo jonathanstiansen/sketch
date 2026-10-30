@@ -260,7 +260,7 @@ test("Alt+drag duplicates: the original stays for everyone, B sees the copy at t
   }
 })
 
-test("Alt+click without moving makes no copy, and Esc cancels an Alt+drag", async ({ browser }) => {
+test("Alt+click without moving makes no copy, and Esc cancels an Alt+drag while Alt is still held", async ({ browser }) => {
   const session = await openSharedBoard(browser, "alt-cancel")
   const { pageA, pageB } = session
   try {
@@ -275,11 +275,13 @@ test("Alt+click without moving makes no copy, and Esc cancels an Alt+drag", asyn
     await pressAt(pageA, 160, 140)
     await moveTo(pageA, 400, 300)
     await expect(pageB.locator('[data-draw][data-kind="rectangle"]')).toHaveCount(1)
-    await pageA.keyboard.up("Alt")
     await pageA.keyboard.press("Escape")
+    await expect(pageB.locator("[data-draw]")).toHaveCount(0)
     await pageA.mouse.up()
+    await pageA.keyboard.up("Alt")
     await expect(pageB.locator("[data-draw]")).toHaveCount(0)
     await expectCount([pageA, pageB], rectangle, 1)
+    await expect(pageB.locator(rectangle)).toHaveAttribute("x", "100")
   } finally {
     await closeSession(session)
   }

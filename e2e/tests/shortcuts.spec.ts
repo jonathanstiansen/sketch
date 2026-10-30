@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs"
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test"
 import { createBoard, openBoard } from "./support/board"
+import { newContext } from "./support/contexts"
 
 const recordingDir = process.env.E2E_RECORD_DIR
 const recordingSize = { width: 960, height: 600 }
@@ -22,8 +23,8 @@ function recordingOptions(name: string) {
 
 async function openSharedBoard(browser: Browser, name: string): Promise<Session> {
   const contexts = await Promise.all([
-    browser.newContext(recordingOptions(`${name}-a`)),
-    browser.newContext(recordingOptions(`${name}-b`)),
+    newContext(browser, recordingOptions(`${name}-a`)),
+    newContext(browser, recordingOptions(`${name}-b`)),
   ])
   const [pageA, pageB] = await Promise.all(contexts.map((context) => context.newPage()))
   if (pageA === undefined || pageB === undefined) throw new Error("pages did not open")

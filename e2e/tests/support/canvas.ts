@@ -1,11 +1,10 @@
 import { mkdirSync } from "node:fs"
 import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test"
 import { createBoard, openBoard } from "./board"
+import { newContext } from "./contexts"
 
 const recordingDir = process.env.E2E_RECORD_DIR
 const recordingSize = { width: 960, height: 600 }
-
-export const CLIPBOARD_PERMISSIONS = ["clipboard-read", "clipboard-write"]
 
 export interface Session {
   pageA: Page
@@ -33,8 +32,8 @@ export async function openSharedBoard(
   preparePageB: (page: Page) => Promise<void> = () => Promise.resolve(),
 ): Promise<Session> {
   const contexts = await Promise.all([
-    browser.newContext({ permissions: CLIPBOARD_PERMISSIONS, ...recordingOptions(`${name}-a`) }),
-    browser.newContext({ permissions: CLIPBOARD_PERMISSIONS, ...recordingOptions(`${name}-b`) }),
+    newContext(browser, recordingOptions(`${name}-a`)),
+    newContext(browser, recordingOptions(`${name}-b`)),
   ])
   const [pageA, pageB] = await Promise.all(contexts.map((context) => context.newPage()))
   if (pageA === undefined || pageB === undefined) throw new Error("pages did not open")

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test"
+import { contextOptions } from "./tests/support/contexts"
 
 const externalBaseURL = process.env.E2E_BASE_URL
 const port = process.env.E2E_PORT ?? "4010"
@@ -13,8 +14,7 @@ export default defineConfig({
   retries: 0,
   reporter: process.env.CI === undefined ? "list" : [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL,
-    permissions: ["clipboard-read", "clipboard-write"],
+    ...contextOptions({ baseURL }),
     trace: "retain-on-failure",
   },
   ...(measure ? {} : { grepInvert: /@measure/ }),

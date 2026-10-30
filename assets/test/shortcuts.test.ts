@@ -1,12 +1,20 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import fc from "fast-check"
-import { FOCUS_CONTEXTS, SHORTCUTS, type ShortcutChord } from "../js/generated/manifest.ts"
+import { CONTEXT_OVERLAPS, FOCUS_CONTEXTS, SHORTCUTS, type FocusContext, type ShortcutChord } from "../js/generated/manifest.ts"
 import { isShortcutKey, matchesChord, shortcutFor, shortcutsFor, type ShortcutInput } from "../js/hooks/shortcuts.ts"
-import { anyPress, press, usKey } from "./key_press.ts"
+import { anyModifiers, anyPress, press, usKey } from "./key_press.ts"
 
 const settings = { seed: 1, numRuns: 2000 }
 const anyContext = fc.constantFrom(...FOCUS_CONTEXTS)
+
+function overlap(a: FocusContext, b: FocusContext): boolean {
+  return CONTEXT_OVERLAPS.some(([left, right]) => (left === a && right === b) || (left === b && right === a))
+}
+
+const anyActiveContexts = fc
+  .subarray([...FOCUS_CONTEXTS], { minLength: 1 })
+  .filter((contexts) => contexts.every((a) => contexts.every((b) => a === b || overlap(a, b))))
 
 function pressFor(chord: ShortcutChord, ctrlOrMeta: "ctrlKey" | "metaKey"): ShortcutInput {
   const shiftKey = chord.shift === true
@@ -19,14 +27,38 @@ function pressFor(chord: ShortcutChord, ctrlOrMeta: "ctrlKey" | "metaKey"): Shor
   return { ...modifiers, code: "", key }
 }
 
-void test("no key press matches two shortcuts in one focus context (A23)", () => {
+void test("no key press matches two shortcuts in focus contexts that can be active at once (A23)", () => {
   fc.assert(
-    fc.property(anyPress, anyContext, (input, context) => {
-      const matched = shortcutsFor(input, context).map(({ action }) => action)
-      assert.ok(matched.length <= 1, `${JSON.stringify(input)} in ${context} matches ${matched.join(", ")}`)
+    fc.property(anyPress, anyActiveContexts, (input, contexts) => {
+      const matched = shortcutsFor(input, contexts).map(({ action }) => action)
+      assert.ok(matched.length <= 1, `${JSON.stringify(input)} in ${contexts.join(" and ")} matches ${matched.join(", ")}`)
     }),
     settings,
   )
+})
+
+void test("Esc is a cancel: it matches whatever modifiers are held, in every context it is declared for", () => {
+  fc.assert(
+    fc.property(anyModifiers, anyContext, (modifiers, context) => {
+      const action = shortcutFor(press("Escape", modifiers), context)?.action
+      assert.equal(action, context === "editor" ? "finish_text" : "escape")
+    }),
+    settings,
+  )
+})
+
+void test("a modifier policy decides which held modifiers a chord ignores", () => {
+  const exact: ShortcutChord = { key: ["escape"], code: null, mod: "none", shift: null, alt: false, modifiers: "exact" }
+  const ignoreAlt: ShortcutChord = { ...exact, modifiers: "ignore_alt" }
+  const any: ShortcutChord = { ...exact, modifiers: "any" }
+  const altEscape = press("Escape", { altKey: true })
+  const ctrlEscape = press("Escape", { ctrlKey: true })
+  assert.ok(!matchesChord(exact, altEscape))
+  assert.ok(matchesChord(ignoreAlt, altEscape))
+  assert.ok(!matchesChord(ignoreAlt, ctrlEscape))
+  assert.ok(matchesChord(any, altEscape))
+  assert.ok(matchesChord(any, ctrlEscape))
+  assert.ok(!matchesChord(any, press("KeyE", { altKey: true })))
 })
 
 void test("every chord in the table reaches its own action in each of its contexts", () => {
@@ -43,9 +75,9 @@ void test("every chord in the table reaches its own action in each of its contex
 })
 
 void test("a chord needs its exact modifiers: Ctrl/⌘ for command, Ctrl alone for ctrl, neither for none", () => {
-  const command: ShortcutChord = { key: ["z"], code: null, mod: "command", shift: false, alt: false }
-  const ctrl: ShortcutChord = { key: ["y"], code: null, mod: "ctrl", shift: false, alt: false }
-  const plain: ShortcutChord = { key: [], code: "Digit1", mod: "none", shift: null, alt: false }
+  const command: ShortcutChord = { key: ["z"], code: null, mod: "command", shift: false, alt: false, modifiers: "exact" }
+  const ctrl: ShortcutChord = { key: ["y"], code: null, mod: "ctrl", shift: false, alt: false, modifiers: "exact" }
+  const plain: ShortcutChord = { key: [], code: "Digit1", mod: "none", shift: null, alt: false, modifiers: "exact" }
   assert.ok(matchesChord(command, press("KeyZ", { ctrlKey: true })))
   assert.ok(matchesChord(command, press("KeyZ", { metaKey: true })))
   assert.ok(!matchesChord(command, press("KeyZ", { ctrlKey: true, shiftKey: true })))

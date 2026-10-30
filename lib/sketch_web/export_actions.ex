@@ -20,6 +20,7 @@ defmodule SketchWeb.ExportActions do
           mod: :command,
           shift: true,
           alt: false,
+          modifiers: :exact,
           keys: ["Ctrl/⌘", "Shift", "E"]
         }
       ]
@@ -31,10 +32,22 @@ defmodule SketchWeb.ExportActions do
       label: "Copy as PNG",
       menu: true,
       chords: [
-        %{key: [], code: "KeyC", mod: :none, shift: true, alt: true, keys: ["Shift", "Alt", "C"]}
+        %{
+          key: [],
+          code: "KeyC",
+          mod: :none,
+          shift: true,
+          alt: true,
+          modifiers: :exact,
+          keys: ["Shift", "Alt", "C"]
+        }
       ]
     }
   ]
+
+  @doc "The shortcut groups this registry owns (A23)."
+  @spec shortcut_groups() :: [atom()]
+  def shortcut_groups, do: [:export]
 
   @spec all() :: [t()]
   def all, do: @actions

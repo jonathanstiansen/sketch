@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs"
 import { dirname } from "node:path"
 import { expect, test, type Page } from "@playwright/test"
 import { createBoard, grabRectangle, openBoard } from "./support/board"
+import { newContext } from "./support/contexts"
 
 const sampleCount = 200
 const warmupCount = 5
@@ -139,8 +140,8 @@ async function measureDragPreview(pageA: Page, pageB: Page): Promise<number[]> {
 }
 
 test("@measure collaboration latency between two browsers", async ({ browser }) => {
-  const contextA = await browser.newContext()
-  const contextB = await browser.newContext()
+  const contextA = await newContext(browser)
+  const contextB = await newContext(browser)
   try {
     const [pageA, pageB] = await Promise.all([contextA.newPage(), contextB.newPage()])
 

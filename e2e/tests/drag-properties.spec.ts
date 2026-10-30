@@ -1,6 +1,7 @@
 import fc from "fast-check"
 import { expect, test, type Page } from "@playwright/test"
 import { createBoard, grabRectangle, openBoard } from "./support/board"
+import { newContext } from "./support/contexts"
 
 const rectangle = "[data-element][data-kind='rectangle']"
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
@@ -54,8 +55,8 @@ async function dragAlong(page: Page, path: Offset[]): Promise<void> {
 test("any drag path converges in the other browser to its clamped end, one version per drag", async ({
   browser,
 }) => {
-  const contextA = await browser.newContext()
-  const contextB = await browser.newContext()
+  const contextA = await newContext(browser)
+  const contextB = await newContext(browser)
   try {
     const [pageA, pageB] = await Promise.all([contextA.newPage(), contextB.newPage()])
     const board = await createBoard(pageA)
