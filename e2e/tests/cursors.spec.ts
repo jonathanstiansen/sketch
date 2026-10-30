@@ -152,7 +152,7 @@ test("a cursor disappears after two seconds of silence", async ({ browser }) => 
   try {
     await pageB.clock.pauseAt(Date.now() + 1000)
     await moveTo(pageA, 300, 200)
-    await expect(pageB.locator(remoteCursor)).toHaveCount(1)
+    await expectCursorNear(pageB, await viewerName(pageA), { x: 300, y: 200 })
 
     await pageB.clock.runFor(1900)
     await expect(pageB.locator(remoteCursor)).toHaveCount(1)
@@ -172,7 +172,7 @@ test("each message from A restarts B's two second timer", async ({ browser }) =>
   try {
     await pageB.clock.pauseAt(Date.now() + 1000)
     await moveTo(pageA, 300, 200)
-    await expect(pageB.locator(remoteCursor)).toHaveCount(1)
+    await expectCursorNear(pageB, await viewerName(pageA), { x: 300, y: 200 })
 
     await pageB.clock.runFor(1500)
     await moveTo(pageA, 700, 400)
