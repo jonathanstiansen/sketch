@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/board_events.ex b/lib/sketch_web/board_events.ex
+index ab6f579..7533ee3 100644
+--- a/lib/sketch_web/board_events.ex
++++ b/lib/sketch_web/board_events.ex
+@@ -110,7 +110,7 @@ defmodule SketchWeb.BoardEvents do
+     %{
+       event: "cursor",
+       relays_as: "cursor",
+-      payload: %{x: :integer, y: :integer, seq: :integer},
++      payload: %{x: :integer, y: :integer, seq: :integer, selected_ids: {:optional, {:list, :string}}},
+       example: %{"x" => 10, "y" => 20, "seq" => 1}
+     },
+     %{

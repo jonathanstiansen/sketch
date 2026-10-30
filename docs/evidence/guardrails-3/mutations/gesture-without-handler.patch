@@ -1,0 +1,26 @@
+diff --git a/assets/js/generated/manifest.ts b/assets/js/generated/manifest.ts
+index 61fd213..a299878 100644
+--- a/assets/js/generated/manifest.ts
++++ b/assets/js/generated/manifest.ts
+@@ -209,7 +209,7 @@ export const POINTER_GESTURES = [
+   { action: "erase", button: "primary", tools: ["eraser"], target: null, space: false, shift: null, alt: null, mod: null },
+   { action: "resize", button: "primary", tools: ["selection"], target: "handle", space: false, shift: null, alt: null, mod: null },
+   { action: "marquee", button: "primary", tools: ["selection"], target: "empty", space: false, shift: null, alt: null, mod: null },
+-  { action: "copy", button: "primary", tools: ["selection"], target: "element", space: false, shift: null, alt: true, mod: null },
++  { action: "duplicate_drag", button: "primary", tools: ["selection"], target: "element", space: false, shift: null, alt: true, mod: null },
+   { action: "toggle", button: "primary", tools: ["selection"], target: "element", space: false, shift: true, alt: false, mod: null },
+   { action: "move", button: "primary", tools: ["selection"], target: "element", space: false, shift: false, alt: false, mod: null },
+   { action: "pan", button: "middle", tools: ["hand", "selection", "rectangle", "diamond", "ellipse", "arrow", "line", "draw", "text", "note", "eraser"], target: null, space: null, shift: null, alt: null, mod: null },
+diff --git a/lib/sketch_web/selection_actions.ex b/lib/sketch_web/selection_actions.ex
+index e26f64b..016fd76 100644
+--- a/lib/sketch_web/selection_actions.ex
++++ b/lib/sketch_web/selection_actions.ex
+@@ -52,7 +52,7 @@ defmodule SketchWeb.SelectionActions do
+       }
+     }),
+     Map.merge(@press, %{
+-      action: "copy",
++      action: "duplicate_drag",
+       motion: :drag,
+       target: :element,
+       shift: :any,

@@ -1,0 +1,12 @@
+diff --git a/assets/js/hooks/tools.ts b/assets/js/hooks/tools.ts
+index bac504d..832a0d9 100644
+--- a/assets/js/hooks/tools.ts
++++ b/assets/js/hooks/tools.ts
+@@ -180,6 +180,7 @@ function pressTarget(onElement: boolean, onHandle: boolean): GestureInput["targe
+ export function pointerAction({ button, tool, spaceHeld, onElement, onHandle, altKey = false, shiftKey = false }: PointerInput): PointerAction {
+   const pressed = PRESS_BUTTONS[button]
+   if (pressed === undefined) return "none"
++  if (altKey && onElement && tool === "selection") return "move"
+   return gestureAction({
+     button: pressed,
+     tool,

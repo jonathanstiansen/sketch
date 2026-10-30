@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index f7d33cb..bdc66d3 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -625,7 +625,7 @@ export class Canvas extends ViewHook {
+     this.cursorTimer = window.setTimeout(() => {
+       this.cursorTimer = undefined
+       const message = this.cursorSender.flush(performance.now())
+-      if (message !== undefined && this.online) void pushClientEvent(this, "cursor", message)
++      if (message !== undefined && this.online) void pushClientEvent(this, "cursor", { ...message, selected: this.selected })
+     }, delay)
+   }
+ 

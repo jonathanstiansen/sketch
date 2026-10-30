@@ -1,0 +1,15 @@
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index c2d9dd3..86123a1 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -222,6 +222,10 @@ defmodule SketchWeb.BoardLive do
+     broadcast_preview(socket, "cursor_leave", %{viewer_id: socket.assigns.viewer.id, seq: seq})
+   end
+ 
++  def handle_event("laser", %{"x" => x, "y" => y}, socket) do
++    broadcast_preview(socket, "laser", %{x: x, y: y})
++  end
++
+   def handle_event("erase", %{"element_ids" => element_ids}, socket) when is_list(element_ids) do
+     {erased, socket} =
+       if Enum.all?(element_ids, &is_uuid/1),
