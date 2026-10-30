@@ -109,3 +109,7 @@ Styling was approved on 2026-10-30 (addendum D10): every element now also
 stores a stroke colour, fill colour, stroke width and stroke style, as tokens
 from one registry, committed through `commit_style` in the same register
 (ADR 0006).
+
+Undo and redo of a viewer's own actions were approved on 2026-10-30 (addendum
+D12). The hard delete stays: an undone erase creates a new element with the
+erased one's kind, box, points, text, style and seed under a new id (ADR 0008).

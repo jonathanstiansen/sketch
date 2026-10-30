@@ -72,8 +72,9 @@ This lifts three SPEC §2 initial exclusions:
 - **Selection**: clicking an element selects it. Selection is local UI state
   and is never broadcast.
 
-Still excluded: undo, history, presence indicators (live cursors were approved
-later, D11), offline editing, CRDTs (and the other §2 exclusions: user accounts,
+Still excluded: undo, history (undo and redo of a viewer's own actions were
+approved later, D12), presence indicators (live cursors were approved later,
+D11), offline editing, CRDTs (and the other §2 exclusions: user accounts,
 external brokers, multi-node deployment). Styling was excluded here until D10
 approved colours and stroke styles.
 
@@ -125,8 +126,9 @@ Consequences for the earlier decisions:
   pointer and a drag erases every element whose bounding box the pointer path
   touches. The touched elements fade during the drag and are erased on
   release; Esc or a cancelled pointer keeps them. With Selection, Delete or
-  Backspace erases the selected element unless an editor has focus. There is
-  no undo (still excluded).
+  Backspace erases the selected element unless an editor has focus. An erase
+  is undone by creating the element again under a new id, so the tombstone
+  stays permanent (D12).
 
 ## D9 — Hand-drawn rendering (2026-10-30, see ADR 0005)
 
@@ -173,8 +175,8 @@ constraints like D1.
 
 Still excluded: fonts and font sizes, opacity, layers and z-order (elements
 stay in creation order), gradients and patterns, per-point or per-segment
-styles, and roughness and fill styles (D9), as well as undo, history and the
-other D8 exclusions (live cursors excepted, D11).
+styles, and roughness and fill styles (D9), as well as the other D8
+exclusions (live cursors excepted, D11; undo and redo excepted, D12).
 
 Consequences for the earlier decisions:
 
@@ -238,3 +240,47 @@ Consequences for the earlier decisions:
 - D2 and D3: cursors are a second kind of transient message with the same
   throttle, never-persisted and stale-after-2000-ms rules; they carry no
   `base_version` because they refer to no element.
+
+## D12 — Undo and redo approved (2026-10-30, see ADR 0008)
+
+The human explicitly approved undo and redo on 2026-10-30. This lifts the SPEC
+§2 (and D8) **undo** and **history** exclusions for one thing: each viewer can
+undo and redo their own actions on a board.
+
+- **Local and per viewer**: each open board view keeps its own undo and redo
+  stacks of its own completed actions: creating an element, moving, resizing or
+  dragging an endpoint, editing text, changing a style and erasing, where one
+  eraser stroke is one entry. A new action clears the redo stack. Two style
+  changes of the same element and property within 500 ms are one entry. The
+  stacks are never stored or broadcast; a reload clears them.
+- **Keys and buttons**: Ctrl/⌘+Z undoes, Ctrl/⌘+Shift+Z and Ctrl+Y redo, unless
+  a text editor or another input has focus (its own text undo applies there).
+  Undo and Redo buttons in the toolbar do the same. The shortcuts help lists
+  the chords from the same registry the client reads.
+- **Replayed as ordinary actions**: an undo or redo is a `commit_position`,
+  `commit_shape`, `commit_style`, `erase_element` or `create_element` through
+  the existing code interfaces, with the atomic version increment of D0 and the
+  normal broadcast. There is no new merge rule and no new action.
+- **Erase**: undoing an erase creates the element again with the same kind,
+  box, points, text, style and seed but a **new id**; the erased id stays a
+  tombstone (D0). The stacks map the old id to the new one for later entries.
+- **Conflicts**: last writer wins. If someone else erased the element of an
+  entry, the entry is dropped and the view says so ("Can't undo: erased by
+  someone else"); nothing is resurrected. If someone else changed the element
+  after me, my undo still commits my previous values as a new version.
+
+Still excluded: a shared or global history, browsing versions, time travel,
+undo across reloads, and the other D8 exclusions.
+
+Consequences for the earlier decisions:
+
+- D0: unchanged. An undo is a commit like any other and wins only by being the
+  latest version. An erased id never comes back; a re-created element is a new
+  element.
+- D8: `create_element` replies to the view that sent it with the created
+  element, `erase` with the elements it erased, and the three commits with
+  whether they succeeded, so a view records only actions that happened. Add
+  rectangle pushes `created` with the element to the view that clicked it.
+  Older clients ignore the replies.
+- D10: a re-created element is drawn on top of every element created before it
+  (creation order is z-order), not where it was.

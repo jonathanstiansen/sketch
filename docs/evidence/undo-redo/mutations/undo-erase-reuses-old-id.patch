@@ -1,0 +1,62 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index 095c4de..1feffb2 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -695,7 +695,7 @@ export class Canvas extends ViewHook {
+       return (await this.pushErase(replay.ids)).length > 0 ? new Map() : undefined
+     }
+     const created = await Promise.all(
+-      replay.elements.map(async ({ id, snapshot }) => [id, await this.pushCreate(snapshot, crypto.randomUUID())] as const),
++      replay.elements.map(async ({ id, snapshot }) => [id, await this.pushCreate({ ...snapshot, id }, crypto.randomUUID())] as const),
+     )
+     const ids = new Map(created.flatMap(([id, element]) => (element === undefined ? [] : [[id, element.id] as const])))
+     return ids.size === 0 ? undefined : ids
+diff --git a/assets/js/hooks/element_history.ts b/assets/js/hooks/element_history.ts
+index 841a25b..f078d1e 100644
+--- a/assets/js/hooks/element_history.ts
++++ b/assets/js/hooks/element_history.ts
+@@ -71,8 +71,8 @@ export function recordedElements(value: unknown): Recorded<ElementSnapshot>[] {
+   return value.flatMap((element) => recordedElement(element) ?? [])
+ }
+ 
+-export function createPayload({ kind, x, y, width, height, points, text, seed, style }: ElementSnapshot, dragId: string): Record<string, unknown> {
+-  return { kind, drag_id: dragId, x, y, width, height, points, text, seed, ...style }
++export function createPayload({ kind, x, y, width, height, points, text, seed, style, id }: ElementSnapshot & { id?: string }, dragId: string): Record<string, unknown> {
++  return { id, kind, drag_id: dragId, x, y, width, height, points, text, seed, ...style }
+ }
+ 
+ export function changePayload(elementId: string, change: ElementChange, dragId: string): Record<string, unknown> {
+diff --git a/lib/sketch/canvas/element.ex b/lib/sketch/canvas/element.ex
+index f57b836..14fa8a8 100644
+--- a/lib/sketch/canvas/element.ex
++++ b/lib/sketch/canvas/element.ex
+@@ -122,7 +122,7 @@ defmodule Sketch.Canvas.Element do
+     defaults [:read]
+ 
+     create :create do
+-      accept [:kind, :x, :y, :width, :height, :points, :text, :seed, :board_id] ++
++      accept [:id, :kind, :x, :y, :width, :height, :points, :text, :seed, :board_id] ++
+                @style_properties
+     end
+ 
+@@ -183,7 +183,7 @@ defmodule Sketch.Canvas.Element do
+   end
+ 
+   attributes do
+-    uuid_primary_key :id
++    uuid_primary_key :id, writable?: true
+ 
+     attribute :kind, Sketch.Canvas.ElementKind,
+       allow_nil?: false,
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index ce448dd..00a6846 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -93,6 +93,7 @@ defmodule SketchWeb.BoardLive do
+         |> Map.merge(text)
+         |> Map.merge(seed)
+         |> Map.merge(style)
++        |> Map.merge(if is_uuid(params["id"]), do: %{id: params["id"]}, else: %{})
+ 
+       {reply, socket} = create_element(socket, kind, shape)
+       {:noreply, socket} = broadcast_preview(socket, "draw_end", %{drag_id: drag_id})
