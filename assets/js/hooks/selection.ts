@@ -3,33 +3,20 @@ import {
   ENDPOINTS,
   absolutePoints,
   cornerPoint,
-  wrapText,
   type Box,
   type Corner,
   type Endpoint,
   type Point,
 } from "./canvas_logic"
 import type { PreviewKind, SelectionHandles } from "./tools"
-import { isMigratedKind, rendererFor } from "../elements"
-import { renderElement, setLivePoints } from "../elements/dom"
-import type { MigratedKind } from "../generated/manifest"
+import { rendererFor } from "../elements"
+import { renderElement } from "../elements/dom"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
 const OUTLINE_GAP = 4
-const NOTE_PARTS = "rect[data-note-body], svg[data-note-clip]"
-const NOTE_TEXT = "data-note-text"
-const NOTE_SOURCE = "data-source"
 
-type ShapeTag = "rect" | "text" | "tspan" | "g" | "svg"
-
-export interface TextLayout {
-  fontSize: number
-  lineHeight: number
-  baseline: number
-  charWidth: number
-  notePadding: number
-}
+type ShapeTag = "rect" | "g"
 
 function svgShape<K extends ShapeTag>(tag: K, attributes: Record<string, string>): SVGElementTagNameMap[K] {
   const shape = document.createElementNS(SVG_NS, tag)
@@ -41,7 +28,7 @@ function svgRect(attributes: Record<string, string>): SVGRectElement {
   return svgShape("rect", attributes)
 }
 
-export function setBox(shape: Element, box: Box): void {
+function setBox(shape: Element, box: Box): void {
   const { x, y, width, height } = box
   shape.setAttribute("x", String(x))
   shape.setAttribute("y", String(y))
@@ -49,47 +36,10 @@ export function setBox(shape: Element, box: Box): void {
   shape.setAttribute("height", String(height))
 }
 
-export function setShape(shape: Element, box: Box, points: readonly Point[], text: string | undefined, layout: TextLayout): void {
+export function setShape(shape: Element, box: Box, points: readonly Point[], text: string | undefined): void {
   const renderer = rendererFor(shape.getAttribute("data-kind"))
-  if (renderer !== undefined) {
-    renderElement(shape, renderer, box, points, text ?? shape.getAttribute("data-text") ?? "")
-    return
-  }
-  setBox(shape, box)
-  setLivePoints(shape, points)
-  for (const part of shape.querySelectorAll(NOTE_PARTS)) setBox(part, box)
-  const note = noteText(shape)
-  if (note !== null) setNoteText(shape, note, text ?? note.getAttribute(NOTE_SOURCE) ?? shape.getAttribute("data-text") ?? "", layout)
-}
-
-function noteText(shape: Element): Element | null {
-  return shape.querySelector(`text[${NOTE_TEXT}]`)
-}
-
-function setNoteText(note: Element, body: Element, text: string, layout: TextLayout): void {
-  const { fontSize, lineHeight, baseline, charWidth, notePadding } = layout
-  const lines = wrapText(text, Number(note.getAttribute("width")) - 2 * notePadding, charWidth)
-  body.setAttribute("font-size", String(fontSize))
-  body.setAttribute(NOTE_SOURCE, text)
-  body.replaceChildren(...lines.map((line, index) => textLine(line, baseline + index * lineHeight)))
-}
-
-export function layoutKey(shape: Element): string {
-  return `${shape.getAttribute("width") ?? ""}:${shape.getAttribute("data-text") ?? ""}`
-}
-
-export function layoutCommittedNote(note: Element, layout: TextLayout): void {
-  const body = noteText(note)
-  const key = layoutKey(note)
-  if (body === null || body.getAttribute("data-laid-out") === key) return
-  setNoteText(note, body, note.getAttribute("data-text") ?? "", layout)
-  body.setAttribute("data-laid-out", key)
-}
-
-function textLine(line: string, y: number): SVGTSpanElement {
-  const span = svgShape("tspan", { x: "0", y: String(y) })
-  span.textContent = line
-  return span
+  if (renderer === undefined) throw new Error("the shape has no known data-kind")
+  renderElement(shape, renderer, box, points, text ?? shape.getAttribute("data-text") ?? "")
 }
 
 export function isCorner(value: string | undefined): value is Corner {
@@ -162,15 +112,7 @@ export class SelectionOverlay {
   }
 }
 
-function noteGroup(id: string): SVGGElement {
-  const group = svgShape("g", { "data-draw": id, class: "draw-preview" })
-  const clip = svgShape("svg", { "data-note-clip": "", overflow: "hidden" })
-  clip.append(svgShape("text", { "data-text-body": "", [NOTE_TEXT]: "", class: "text-element" }))
-  group.append(svgShape("rect", { "data-note-body": "", rx: "6", class: "note-body" }), clip)
-  return group
-}
-
-function localPreview(id: string, kind: MigratedKind): SVGGElement {
+function localPreview(id: string, kind: PreviewKind): SVGGElement {
   return svgShape("g", { "data-draw": id, "data-kind": kind, class: "local-preview" })
 }
 
@@ -180,7 +122,7 @@ export class DrawLayer {
   shape(id: string, kind: PreviewKind): SVGElement {
     const existing = this.find(id)
     if (existing !== null) return existing
-    const shape = this.newShape(id, kind)
+    const shape = localPreview(id, kind)
     this.layer.append(shape)
     return shape
   }
@@ -191,10 +133,6 @@ export class DrawLayer {
 
   hideText(id: string): void {
     this.find(id)?.setAttribute("data-text-editing", "")
-  }
-
-  private newShape(id: string, kind: PreviewKind): SVGElement {
-    return isMigratedKind(kind) ? localPreview(id, kind) : noteGroup(id)
   }
 
   private find(id: string): SVGElement | null {

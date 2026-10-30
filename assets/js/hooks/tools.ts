@@ -1,17 +1,19 @@
-import { ENDPOINTS, type Point } from "./canvas_logic.ts"
+import { ENDPOINTS, type Point, type Size } from "./canvas_logic.ts"
 import {
   DEFAULT_TOOL,
   ELEMENT_KINDS,
   KIND_SPECS,
-  POINT_KINDS,
   REQUIRED_TEXT_KINDS,
+  TEXT_KINDS,
   TOOLS as TOOL_SPECS,
+  TYPED_KINDS,
   type ElementKind,
   type KindSpec,
-  type PointKind,
   type RequiredTextKind,
+  type TextKind,
   type ToolId,
   type ToolSpec,
+  type TypedKind,
 } from "../generated/manifest.ts"
 
 export { DEFAULT_TOOL, type ToolId }
@@ -33,14 +35,24 @@ export const TOOLS: readonly Tool[] = TOOL_SPECS.map((tool) => ({ id: tool.id, e
 
 export type PreviewKind = NonNullable<(typeof TOOL_SPECS)[number]["creates"]>
 
-export type DrawnKind = Exclude<PreviewKind, RequiredTextKind>
+export type DrawnKind = Exclude<PreviewKind, TypedKind>
 
-function isElementKind(value: string | undefined): value is ElementKind {
+export type DrawGesture = (typeof KIND_SPECS)[DrawnKind]["drawGesture"]
+
+export function isElementKind(value: string | null | undefined): value is ElementKind {
   return ELEMENT_KINDS.some((kind) => kind === value)
 }
 
+export function isTextKind(value: string | undefined): value is TextKind {
+  return TEXT_KINDS.some((kind) => kind === value)
+}
+
 export function requiresText(kind: ElementKind): kind is RequiredTextKind {
-  return REQUIRED_TEXT_KINDS.some((typed) => typed === kind)
+  return REQUIRED_TEXT_KINDS.some((required) => required === kind)
+}
+
+export function isTypedKind(kind: ElementKind): kind is TypedKind {
+  return TYPED_KINDS.some((typed) => typed === kind)
 }
 
 export function isPreviewKind(value: string): value is PreviewKind {
@@ -48,7 +60,7 @@ export function isPreviewKind(value: string): value is PreviewKind {
 }
 
 export function isDrawnKind(value: string): value is DrawnKind {
-  return isPreviewKind(value) && !requiresText(value)
+  return isPreviewKind(value) && !isTypedKind(value)
 }
 
 export const DRAWN_KINDS: readonly DrawnKind[] = ELEMENT_KINDS.filter(isDrawnKind)
@@ -62,13 +74,17 @@ export function drawnKind(tool: string): DrawnKind | undefined {
   return kind !== undefined && isDrawnKind(kind) ? kind : undefined
 }
 
-export function typedKind(tool: string): RequiredTextKind | undefined {
+export function typedKind(tool: string): TypedKind | undefined {
   const kind = createdKind(tool)
-  return kind !== undefined && requiresText(kind) ? kind : undefined
+  return kind !== undefined && isTypedKind(kind) ? kind : undefined
 }
 
-export function isPointKind(kind: DrawnKind): kind is DrawnKind & PointKind {
-  return POINT_KINDS.some((pointKind) => pointKind === kind)
+export function drawGesture(kind: DrawnKind): DrawGesture {
+  return KIND_SPECS[kind].drawGesture
+}
+
+export function defaultSize(kind: ElementKind): Size {
+  return KIND_SPECS[kind].defaultSize
 }
 
 export type SelectionHandles = "corners" | "endpoints" | "none"
@@ -80,7 +96,7 @@ function hasEndpoints({ geometry }: KindSpec): boolean {
 export function selectionHandles(kind: string | undefined): SelectionHandles {
   if (!isElementKind(kind)) return "corners"
   if (hasEndpoints(KIND_SPECS[kind])) return "endpoints"
-  return requiresText(kind) ? "none" : "corners"
+  return isTypedKind(kind) ? "none" : "corners"
 }
 
 export interface KeyInput {

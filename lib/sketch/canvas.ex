@@ -39,10 +39,6 @@ defmodule Sketch.Canvas do
   @spec kind_specs() :: [Sketch.Canvas.Kind.t()]
   defdelegate kind_specs, to: Kinds, as: :all
 
-  @doc "The kinds whose spec, and therefore rendering, has not moved off the legacy paths yet (ADR 0004)."
-  @spec legacy_kinds() :: [atom()]
-  defdelegate legacy_kinds, to: Kinds, as: :legacy_ids
-
   defdelegate geometry, to: Sketch.Canvas.Geometry, as: :dimensions
 
   defdelegate default_box(element_count), to: Sketch.Canvas.Geometry
@@ -50,6 +46,12 @@ defmodule Sketch.Canvas do
   defdelegate fit_shape(kind, box, points), to: Sketch.Canvas.Geometry
 
   defdelegate point_kinds, to: Sketch.Canvas.Geometry
+
+  defdelegate text_whitespace, to: Sketch.Canvas.Geometry
+
+  defdelegate text_lines(text), to: Sketch.Canvas.Geometry
+
+  defdelegate wrap_text(text, max_width, char_width), to: Sketch.Canvas.Geometry
 
   @doc "A client's merged view of a board, built from element events (ADR 0001)."
   defdelegate new_board_state(element_events), to: Sketch.Canvas.BoardState, as: :new

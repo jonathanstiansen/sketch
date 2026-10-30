@@ -2,7 +2,6 @@ defmodule Sketch.Architecture.SourcePolicyTest do
   use ExUnit.Case, async: true
 
   alias Sketch.ArchitectureCheck
-  alias Sketch.Canvas.Kinds.Legacy
 
   @fixtures "test/architecture/fixtures/files"
 
@@ -76,7 +75,7 @@ defmodule Sketch.Architecture.SourcePolicyTest do
         ArchitectureCheck.kind_branching_violations(
           File.cwd!(),
           element_kinds(),
-          kind_branching_paths() ++ legacy_kind_files()
+          kind_branching_paths()
         )
 
       assert violations == [], ArchitectureCheck.format_violations(violations)
@@ -87,7 +86,7 @@ defmodule Sketch.Architecture.SourcePolicyTest do
         ArchitectureCheck.kind_branching_violations(
           fixture("a22"),
           element_kinds(),
-          kind_branching_paths() ++ ["assets/js/hooks/legacy.ts"]
+          kind_branching_paths()
         )
 
       assert subjects(violations, "A22") ==
@@ -97,6 +96,7 @@ defmodule Sketch.Architecture.SourcePolicyTest do
                  "assets/js/hooks/branches.ts:8",
                  "assets/js/hooks/branches.ts:11",
                  "assets/js/hooks/branches.ts:13",
+                 "assets/js/hooks/note.ts:1",
                  "lib/branches.ex:4",
                  "lib/branches.ex:5",
                  "lib/branches.ex:6",
@@ -106,32 +106,21 @@ defmodule Sketch.Architecture.SourcePolicyTest do
                ])
     end
 
-    test "every legacy kind file still branches on a kind" do
-      branching =
-        File.cwd!()
-        |> ArchitectureCheck.kind_branching_violations(element_kinds(), kind_branching_paths())
-        |> MapSet.new(&(&1.subject |> String.split(":") |> hd()))
+    test "only the kind modules, renderers and generated files may branch, with no per-file exception" do
+      assert kind_branching_paths() == [
+               "lib/sketch/canvas/kinds/",
+               "lib/sketch_web/elements/",
+               "assets/js/elements/",
+               "assets/js/generated/"
+             ]
 
-      for file <- legacy_kind_files() do
-        assert MapSet.member?(branching, file),
-               "#{file} no longer branches on a kind; remove it from legacy_kind_files"
-      end
-    end
-
-    test "legacy_kind_files is empty exactly when Sketch.Canvas.Kinds.Legacy has no kinds" do
-      no_legacy_files? = Enum.empty?(legacy_kind_files())
-      no_legacy_kinds? = Enum.empty?(Legacy.specs())
-
-      assert no_legacy_files? == no_legacy_kinds?,
-             "legacy_kind_files and Sketch.Canvas.Kinds.Legacy must be emptied together"
+      refute Map.has_key?(ArchitectureCheck.registry()[:allowlists], :legacy_kind_files)
     end
   end
 
   defp element_kinds, do: Enum.map(Sketch.Canvas.element_kinds(), &Atom.to_string/1)
 
   defp kind_branching_paths, do: allowlist(:kind_branching_paths)
-
-  defp legacy_kind_files, do: allowlist(:legacy_kind_files)
 
   defp allowlist(name),
     do: Enum.map(Map.fetch!(ArchitectureCheck.registry()[:allowlists], name), &elem(&1, 0))

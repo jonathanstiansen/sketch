@@ -45,8 +45,23 @@ defmodule Sketch.Canvas.KindContractTest do
     assert Enum.sort(created) == Enum.sort(Canvas.element_kinds())
   end
 
-  defp well_formed?(%Kind{geometry: geometry, text: text, default_size: size}) do
-    geometry_ok?(geometry) and text in [:none, :optional, :required] and
+  test "a draw gesture must be able to produce its kind's geometry and text" do
+    box = %Kind{id: :sample, geometry: :box, text: :none, draw_gesture: :box, default_size: nil}
+
+    assert Kind.consistent?(box)
+    assert Kind.consistent?(%{box | draw_gesture: :click_to_type, text: :required})
+    assert Kind.consistent?(%{box | draw_gesture: :two_point, geometry: {:points, 2..2//1}})
+    assert Kind.consistent?(%{box | draw_gesture: :path, geometry: {:points, 2..500//1}})
+
+    refute Kind.consistent?(%{box | draw_gesture: :click_to_type})
+    refute Kind.consistent?(%{box | draw_gesture: :two_point})
+    refute Kind.consistent?(%{box | draw_gesture: :path, geometry: {:points, 2..2//1}})
+    refute Kind.consistent?(%{box | geometry: {:points, 2..2//1}})
+    refute Kind.consistent?(%{box | draw_gesture: :drag})
+  end
+
+  defp well_formed?(%Kind{geometry: geometry, text: text, default_size: size} = spec) do
+    geometry_ok?(geometry) and text in [:none, :optional, :required] and Kind.consistent?(spec) and
       positive_integer?(size.width) and positive_integer?(size.height)
   end
 

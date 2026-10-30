@@ -121,19 +121,12 @@
   cursor: inherit;
 }
 
-.draw-preview,
 .local-preview > * {
   fill: color-mix(in oklab, var(--color-primary) 35%, transparent);
   stroke: var(--color-base-content);
   stroke-width: 2;
   stroke-dasharray: 6 4;
   pointer-events: none;
-}
-
-polyline.draw-preview {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .selection-outline {
@@ -229,12 +222,14 @@ polyline.draw-preview {
   filter: drop-shadow(0 2px 3px color-mix(in oklab, var(--color-base-content) 30%, transparent));
 }
 
-g.draw-preview {
+.local-preview > .note-body {
   opacity: 0.75;
 }
 
-.draw-preview .text-element {
+.local-preview > [data-note-clip] {
+  fill: none;
   stroke: none;
+  opacity: 0.75;
 }
 
 .text-editor {

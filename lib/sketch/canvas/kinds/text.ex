@@ -13,6 +13,7 @@ defmodule Sketch.Canvas.Kinds.Text do
       id: :text,
       geometry: :box,
       text: :required,
+      draw_gesture: :click_to_type,
       default_size: %{width: 1, height: 25}
     }
 end

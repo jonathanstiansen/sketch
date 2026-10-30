@@ -8,7 +8,6 @@ defmodule SketchWeb.Elements.Text do
   @font_size Sketch.Canvas.geometry().font_size
   @line_height Sketch.Canvas.geometry().line_height
   @text_baseline Sketch.Canvas.geometry().text_baseline
-  @line_breaks ["\r\n", "\r", "\n"]
 
   @impl true
   def render(%{width: width, height: height, text: text}) do
@@ -32,7 +31,7 @@ defmodule SketchWeb.Elements.Text do
           {"pointer-events", "none"},
           {"class", "text-element fill-base-content"}
         ],
-        children: text |> String.split(@line_breaks) |> Enum.with_index(&line/2)
+        children: text |> Sketch.Canvas.text_lines() |> Enum.with_index(&line/2)
       }
     ]
   end

@@ -1,3 +1,5 @@
+import { TEXT_WHITESPACE } from "../generated/manifest.ts"
+
 export const PREVIEW_INTERVAL_MS = 50
 export const MIN_SIZE = 1
 export const DRAG_THRESHOLD = 3
@@ -265,8 +267,25 @@ export function textLines(text: string): string[] {
   return text.replace(/\r\n?/g, "\n").split("\n")
 }
 
+const WORD_BREAKS: ReadonlySet<string> = new Set(TEXT_WHITESPACE)
+
 export function isBlankText(text: string): boolean {
-  return text.trim() === ""
+  return Array.from(text).every((character) => WORD_BREAKS.has(character))
+}
+
+function words(paragraph: string): string[] {
+  const found: string[] = []
+  let word = ""
+  for (const character of paragraph) {
+    if (!WORD_BREAKS.has(character)) {
+      word += character
+      continue
+    }
+    if (word !== "") found.push(word)
+    word = ""
+  }
+  if (word !== "") found.push(word)
+  return found
 }
 
 export function textBox(origin: Point, text: string, measure: (line: string) => number, lineHeight: number, canvas: Size): Box {
@@ -293,7 +312,7 @@ function characterChunks(word: string, size: number): string[] {
 function wrapParagraph(paragraph: string, chars: number): string[] {
   const lines: string[] = []
   let current = ""
-  for (const word of paragraph.split(/\s+/).filter((part) => part !== "")) {
+  for (const word of words(paragraph)) {
     const joined = current === "" ? word : `${current} ${word}`
     if (Array.from(joined).length <= chars) {
       current = joined

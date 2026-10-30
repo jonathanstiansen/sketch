@@ -10,6 +10,7 @@ defmodule Sketch.Canvas.Kinds.Ellipse do
       id: :ellipse,
       geometry: :box,
       text: :none,
+      draw_gesture: :box,
       default_size: %{width: 120, height: 80}
     }
 end

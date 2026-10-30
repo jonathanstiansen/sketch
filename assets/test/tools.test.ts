@@ -4,7 +4,10 @@ import fc from "fast-check"
 import {
   DEFAULT_TOOL,
   TOOLS,
+  defaultSize,
   deletesSelection,
+  drawGesture,
+  drawnKind,
   nextTool,
   panScroll,
   pointerAction,
@@ -194,6 +197,22 @@ void test("a pointer action of text always has a typed kind to create or edit, a
     assert.equal(typedKind(id) !== undefined, action === "text", id)
   }
   assert.equal(typedKind("text"), "text")
+})
+
+void test("the hook draws each tool's kind with the gesture and click size from its spec", () => {
+  const drawn = TOOLS.flatMap(({ id }) => {
+    const kind = drawnKind(id)
+    return kind === undefined ? [] : [[id, drawGesture(kind), defaultSize(kind)] as const]
+  })
+  assert.deepEqual(drawn, [
+    ["rectangle", "box", { width: 120, height: 80 }],
+    ["diamond", "box", { width: 120, height: 80 }],
+    ["ellipse", "box", { width: 120, height: 80 }],
+    ["arrow", "two_point", { width: 120, height: 80 }],
+    ["line", "two_point", { width: 120, height: 80 }],
+    ["draw", "path", { width: 120, height: 80 }],
+    ["note", "box", { width: 200, height: 160 }],
+  ])
 })
 
 const anyPoint = fc.record({ x: fc.integer({ min: -5000, max: 5000 }), y: fc.integer({ min: -5000, max: 5000 }) })

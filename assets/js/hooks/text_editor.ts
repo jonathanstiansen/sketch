@@ -1,5 +1,10 @@
 import { textBox, textLines, type Box, type Point, type Size } from "./canvas_logic"
-import type { TextLayout } from "./selection"
+
+export interface TextLayout {
+  fontSize: number
+  lineHeight: number
+  notePadding: number
+}
 
 export interface TextEditorOptions {
   layer: HTMLElement

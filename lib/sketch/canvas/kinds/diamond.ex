@@ -10,6 +10,7 @@ defmodule Sketch.Canvas.Kinds.Diamond do
       id: :diamond,
       geometry: :box,
       text: :none,
+      draw_gesture: :box,
       default_size: %{width: 120, height: 80}
     }
 end

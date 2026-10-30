@@ -1,0 +1,13 @@
+diff --git a/assets/js/elements/index.ts b/assets/js/elements/index.ts
+index 63f87f2..8660549 100644
+--- a/assets/js/elements/index.ts
++++ b/assets/js/elements/index.ts
+@@ -10,7 +10,7 @@ import { rectangle } from "./rectangle.ts"
+ import type { Renderer } from "./renderer.ts"
+ import { text } from "./text.ts"
+ 
+-export const RENDERERS = { rectangle, diamond, ellipse, arrow, freedraw, line, text, note } as const satisfies Record<ElementKind, Renderer>
++export const RENDERERS = { rectangle, diamond, ellipse, arrow, freedraw, line, text } as const satisfies Record<ElementKind, Renderer>
+ 
+ export function rendererFor(kind: string | null): Renderer | undefined {
+   return isElementKind(kind) ? RENDERERS[kind] : undefined

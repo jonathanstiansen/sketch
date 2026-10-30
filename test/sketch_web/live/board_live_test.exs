@@ -790,7 +790,27 @@ defmodule SketchWeb.BoardLiveTest do
       view |> render() |> LazyHTML.from_fragment() |> LazyHTML.query("#element-#{id}")
     end
 
-    test "a note is created with its text and renders as a rounded body with a clipped text in every view",
+    defp note_lines(view, id) do
+      view
+      |> note_element(id)
+      |> LazyHTML.query(
+        "g > svg[data-note-clip] > text[data-text-body][transform='translate(12 12)'] > tspan[x='0']"
+      )
+      |> Enum.map(&{LazyHTML.attribute(&1, "y"), LazyHTML.text(&1)})
+      |> Enum.map(fn {[y], text} -> {String.to_integer(y), text} end)
+    end
+
+    defp note_box?(view, id, width, height) do
+      local = "[x='0'][y='0'][width='#{width}'][height='#{height}']"
+
+      has_element?(view, "#element-#{id} > rect[data-note-body][rx='6']#{local}") and
+        has_element?(
+          view,
+          "#element-#{id} > svg[data-note-clip][overflow='hidden'][pointer-events='none']#{local}"
+        )
+    end
+
+    test "a note is created with its text and renders as a rounded body with the server-wrapped text clipped in every view",
          %{conn: conn, board: board} do
       {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
       {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
@@ -804,10 +824,11 @@ defmodule SketchWeb.BoardLiveTest do
       for view <- [creator, watcher] do
         assert has_element?(
                  view,
-                 "g#element-#{id}[data-kind='note'][data-version='0'] rect[data-note-body][width='200'][height='160']"
+                 "g#element-#{id}[data-kind='note'][data-version='0'][transform='translate(300 200)']"
                )
 
-        assert has_element?(view, "#element-#{id} svg[data-note-clip][x='300'][y='200']")
+        assert note_box?(view, id, 200, 160)
+        assert note_lines(view, id) == [{19, "<b>buy</b>"}, {44, "milk"}, {69, "and eggs"}]
 
         assert note_element(view, id) |> LazyHTML.attribute("data-text") == [
                  "<b>buy</b> milk\nand eggs"
@@ -825,7 +846,8 @@ defmodule SketchWeb.BoardLiveTest do
       box = %{x: 0, y: 0, width: 200, height: 160}
 
       render_hook(view, "create_element", note_params(box, ""))
-      assert [%{kind: :note, text: ""}] = Canvas.list_elements_for_board!(board.id)
+      assert [%{kind: :note, text: "", id: id}] = Canvas.list_elements_for_board!(board.id)
+      assert note_lines(view, id) == [{19, ""}]
 
       overlong = String.duplicate("a", Sketch.Canvas.geometry().max_text_length + 1)
       render_hook(view, "create_element", note_params(box, overlong))
@@ -870,13 +892,19 @@ defmodule SketchWeb.BoardLiveTest do
         assert note_element(view, element.id) |> LazyHTML.attribute("data-text") == [
                  "final words"
                ]
+
+        assert note_lines(view, element.id) == [{19, "final words"}]
       end
 
       commit.("")
       assert [%{text: "", version: 2}] = Canvas.list_elements_for_board!(board.id)
+      assert note_lines(watcher, element.id) == [{19, ""}]
     end
 
-    test "resizing commits the new box without touching the text", %{conn: conn, board: board} do
+    test "resizing commits the new box without touching the text, and the server re-wraps it", %{
+      conn: conn,
+      board: board
+    } do
       {:ok, resizer, _html} = live(conn, ~p"/b/#{board.id}")
       {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
 
@@ -887,9 +915,17 @@ defmodule SketchWeb.BoardLiveTest do
           y: 20,
           width: 200,
           height: 160,
-          text: "keep me",
+          text: "keep me\u00A0together and supercalifragilistic",
           board_id: board.id
         })
+
+      assert note_lines(watcher, element.id) == [
+               {19, "keep"},
+               {44, "me\u00A0together"},
+               {69, "and"},
+               {94, "supercalifragi"},
+               {119, "listic"}
+             ]
 
       render_hook(resizer, "commit_shape", %{
         "element_id" => element.id,
@@ -901,14 +937,30 @@ defmodule SketchWeb.BoardLiveTest do
         "points" => []
       })
 
-      assert [%{text: "keep me", width: 90, height: 60, version: 1}] =
+      assert [
+               %{
+                 text: "keep me\u00A0together and supercalifragilistic",
+                 width: 90,
+                 height: 60,
+                 version: 1
+               }
+             ] =
                Canvas.list_elements_for_board!(board.id)
 
       for view <- [resizer, watcher] do
-        assert has_element?(
-                 view,
-                 "g#element-#{element.id}[data-version='1'] rect[data-note-body][width='90'][height='60']"
-               )
+        assert has_element?(view, "g#element-#{element.id}[data-version='1']")
+        assert note_box?(view, element.id, 90, 60)
+
+        assert note_lines(view, element.id) == [
+                 {19, "keep"},
+                 {44, "me\u00A0to"},
+                 {69, "gethe"},
+                 {94, "r and"},
+                 {119, "super"},
+                 {144, "calif"},
+                 {169, "ragil"},
+                 {194, "istic"}
+               ]
       end
     end
 

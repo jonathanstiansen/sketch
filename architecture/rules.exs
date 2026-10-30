@@ -185,12 +185,13 @@
       rule: "Kind-specific branching lives only in kind modules, element renderers and generated files",
       status: :enforced,
       enforcement:
-        "lib and assets/js may not compare kind with a literal element kind (kind == :x or kind === \"x\", in either order or negated), use kind in [, match kind: :x, select data-kind=\"x\" or compare dataset.kind outside kind_branching_paths. legacy_kind_files lists the old code paths of kinds still in Sketch.Canvas.Kinds.Legacy; every entry must still match and the list must be empty exactly when Legacy has no kinds (ADR 0004). SketchWeb.Tools fails to compile if a tool creates an unknown kind, and mix sketch.gen.manifest --check fails in mix ci and CI if the client manifest is stale. SketchWeb.Elements fails to compile unless its renderers cover exactly the kinds outside Legacy; the client RENDERERS table satisfies Record<MigratedKind, Renderer> from the manifest, so tsc fails if either side lacks a renderer; mix sketch.gen.render_fixtures --check fails in mix ci and CI if the parity fixture is stale, and assets/test/render_parity.test.ts fails if a client renderer draws a different node tree",
+        "lib and assets/js may not compare kind with a literal element kind (kind == :x or kind === \"x\", in either order or negated), use kind in [, match kind: :x, select data-kind=\"x\" or compare dataset.kind outside kind_branching_paths, which must be exactly the four directories ADR 0004 names; there is no per-file exception (ADR 0004). Per-kind behaviour in the canvas hook comes from spec fields in the generated manifest (geometry, text, draw_gesture, default_size). SketchWeb.Tools fails to compile if a tool creates an unknown kind, Sketch.Canvas.Kinds fails to compile if a draw gesture cannot produce its kind's geometry, and mix sketch.gen.manifest --check fails in mix ci and CI if the client manifest is stale. SketchWeb.Elements fails to compile unless its renderers cover exactly the registered kinds; the client RENDERERS table satisfies Record<ElementKind, Renderer> from the manifest, so tsc fails if either side lacks a renderer; mix sketch.gen.render_fixtures --check fails in mix ci and CI if the render or wrap parity fixture is stale, and assets/test/render_parity.test.ts and assets/test/wrap_parity.test.ts fail if a client renderer draws a different node tree or the client wraps text into different lines",
       verified_by: [
         "test/architecture/source_policy_test.exs",
         "test/sketch/canvas/kind_contract_test.exs",
         "test/sketch_web/elements_test.exs",
-        "assets/test/render_parity.test.ts"
+        "assets/test/render_parity.test.ts",
+        "assets/test/wrap_parity.test.ts"
       ]
     }
   ],
@@ -220,10 +221,6 @@
       {"lib/sketch_web/elements/", "Server element renderers (A22, ADR 0004)"},
       {"assets/js/elements/", "Client element renderers (A22, ADR 0004)"},
       {"assets/js/generated/", "Files written by mix tasks, never edited by hand (A22, ADR 0004)"}
-    ],
-    legacy_kind_files: [
-      {"lib/sketch_web/live/board_live.ex", "Legacy kinds: the element_shape clause for note"},
-      {"assets/js/hooks/canvas.ts", "Legacy kinds: note creation, editing and layout and the note default size"}
     ],
     production_mix_deps: [
       {:ash, "Core framework (SPEC section 3)"},

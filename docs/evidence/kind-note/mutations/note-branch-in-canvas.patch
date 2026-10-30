@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index 87aadb2..6c14e6e 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -581,7 +581,7 @@ export class Canvas extends ViewHook {
+     const { box, points } = draw.dragged
+       ? draw.shape
+       : { box: clickBox(draw.start, defaultSize(draw.kind), this.canvasSize()), points: [] }
+-    if (isTextKind(draw.kind)) {
++    if (draw.kind === "note") {
+       this.openDrawnText(draw, draw.kind, box)
+       return
+     }
