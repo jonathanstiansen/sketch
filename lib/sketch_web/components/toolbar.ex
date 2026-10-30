@@ -26,6 +26,7 @@ defmodule SketchWeb.Toolbar do
           pressed={tool.id == SketchWeb.Tools.default_id()}
         />
         <span class="mx-1 h-6 w-px bg-base-300" aria-hidden="true"></span>
+        <SketchWeb.ExportMenu.export_button />
         <button
           id={help_button_id()}
           type="button"
@@ -89,7 +90,11 @@ defmodule SketchWeb.Toolbar do
   end
 
   def shortcuts_help(assigns) do
-    assigns = assign(assigns, :tools, SketchWeb.Tools.all())
+    assigns =
+      assign(assigns,
+        tools: SketchWeb.Tools.all(),
+        export_actions: SketchWeb.ExportActions.with_shortcuts()
+      )
 
     ~H"""
     <section
@@ -116,6 +121,12 @@ defmodule SketchWeb.Toolbar do
         </dd>
         <dt>Move canvas</dt>
         <dd class="flex items-center gap-1"><.key>Space</.key>+ drag</dd>
+        <%= for action <- @export_actions do %>
+          <dt>{action.label}</dt>
+          <dd class="flex items-center gap-1">
+            <.key :for={key <- action.keys}>{key}</.key>
+          </dd>
+        <% end %>
         <dt>Back to Selection</dt>
         <dd>
           <.key>Esc</.key>

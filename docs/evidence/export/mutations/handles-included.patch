@@ -1,0 +1,13 @@
+diff --git a/assets/js/export/export_dom.ts b/assets/js/export/export_dom.ts
+index 6ea16e0..ed3448d 100644
+--- a/assets/js/export/export_dom.ts
++++ b/assets/js/export/export_dom.ts
+@@ -161,6 +161,8 @@ export function buildSvg(canvas: SVGSVGElement, options: ExportOptions): ExportS
+     setPaint(background, "fill", getComputedStyle(canvas).backgroundColor, colors)
+     svg.append(background)
+   }
++  const outline = canvas.querySelector("#selection")
++  if (outline !== null) content.append(outline.cloneNode(true))
+   svg.append(content)
+   return { markup: `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(svg)}`, box }
+ }

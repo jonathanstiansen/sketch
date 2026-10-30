@@ -100,6 +100,14 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
   class a renderer maps a token to; whether a colour is readable in a theme is checked by eye in
   the evidence screenshots, not by a test.
 
+- Export (PNG, SVG and clipboard) is built on the client from the live DOM, so it is not
+  covered by the server render-parity checks. It resolves each element's colours with
+  `getComputedStyle` for the theme on screen and rasterises through an `Image` and a canvas
+  (area capped at 16 million pixels). `font-family` is written out, but the exported file
+  depends on the viewer having a matching font, and PNG text uses the browser's own fallback.
+  Copying SVG text next to the PNG and reading the clipboard need a secure context and the
+  browser's permission; a refusal is shown as a message, not retried.
+
 - The BEAM checks see static calls and module references. A module name built at runtime (for
   example with `Module.concat/1` or `String.to_existing_atom/1`) would not be seen. Code review
   covers that case; Credo and the atom-table check make it unusual enough to stand out.

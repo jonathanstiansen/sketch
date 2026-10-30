@@ -4,6 +4,7 @@ import { LiveSocket } from "phoenix_live_view"
 import { hooks as colocatedHooks } from "phoenix-colocated/sketch"
 import topbar from "../vendor/topbar"
 import { Canvas, keepGestureMarkers } from "./hooks/canvas"
+import { ExportMenu } from "./hooks/export_menu"
 import type { LiveReloader } from "./env"
 
 function readCsrfToken(): string {
@@ -17,7 +18,7 @@ function readCsrfToken(): string {
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: readCsrfToken() },
-  hooks: { ...colocatedHooks, Canvas },
+  hooks: { ...colocatedHooks, Canvas, ExportMenu },
   dom: { onBeforeElUpdated: keepGestureMarkers },
 })
 

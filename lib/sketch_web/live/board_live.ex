@@ -269,6 +269,7 @@ defmodule SketchWeb.BoardLive do
             </a>
           </p>
           <SketchWeb.Toolbar.shortcuts_help />
+          <SketchWeb.ExportMenu.export_menu board_id={@board_id} />
         </div>
         <div class="relative flex min-h-0 flex-1 flex-col">
           <SketchWeb.StylePanel.style_panel />
