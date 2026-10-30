@@ -1,0 +1,12 @@
+diff --git a/docs/evidence/render-model/dom.sh b/docs/evidence/render-model/dom.sh
+index 6c2057d..d8f09a6 100755
+--- a/docs/evidence/render-model/dom.sh
++++ b/docs/evidence/render-model/dom.sh
+@@ -1,6 +1,7 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+ port=4032
++pkill -f phx.server || true
+ PORT=$port mix phx.server > /dev/null 2>&1 &
+ server=$!
+ trap 'kill $server' EXIT
