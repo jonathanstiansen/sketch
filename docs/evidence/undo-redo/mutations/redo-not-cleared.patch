@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/history_logic.ts b/assets/js/hooks/history_logic.ts
+index 985d19c..3b2f88b 100644
+--- a/assets/js/hooks/history_logic.ts
++++ b/assets/js/hooks/history_logic.ts
+@@ -62,7 +62,7 @@ export class History<S, C> {
+     const recorded = this.toOriginalIds(entry)
+     const top = this.coalescingTop(recorded, now)
+     this.generation += 1
+-    this.redoStack = []
++    this.redoStack = this.redoStack
+     const pushed = top === undefined || recorded.type !== "commit" ? recorded : { ...top, after: recorded.after }
+     if (top !== undefined) this.undoStack.pop()
+     this.undoStack.push(pushed)
