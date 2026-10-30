@@ -6,5 +6,6 @@ defmodule SketchWeb.Elements.Line do
   @behaviour SketchWeb.ElementRenderer
 
   @impl true
-  def render(%{points: points, seed: seed}), do: SketchWeb.ElementRenderer.segments(points, seed)
+  def render(%{points: points, seed: seed, style: style}),
+    do: SketchWeb.ElementRenderer.segments(points, seed, style)
 end

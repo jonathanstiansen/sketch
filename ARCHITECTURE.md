@@ -41,8 +41,8 @@ the only path excluded from the A21 scan.
 | A05 | Every Element belongs to exactly one Board. | Enforced |
 | A06 | Board membership is immutable. | Enforced |
 | A07 | Queries and events are scoped to the selected board. | Enforced |
-| A08 | Invalid coordinates and sizes cannot be persisted (addendum D1, D8): `x, y >= 0`, `width, height >= 1` (`>= 0` for point kinds such as lines, arrows and freehand strokes), `x + width` and `y + height` within the canvas, a line or arrow's two points, or a freehand stroke's 2 to 500 points, inside its box, text only on text and note elements, at most 2000 code points and non-blank for text (ADR 0003), and a `seed` in `0..2_147_483_647` (addendum D9, ADR 0005). `Sketch.Canvas.Geometry` holds the bounds; the `FitsCanvas`, `PointsFitShape` and `TextFitsKind` validations (atomic, so they also check stored values during updates), the code-point `max_length` on `text` and PostgreSQL CHECK constraints all derive from it, and property tests compare Ash and raw SQL over arbitrary boxes, points, strings and seeds. | Enforced |
-| A09 | Durable movement and resizing increment `version` atomically (ADR 0001, ADR 0003). `commit_position` and `commit_shape` use `atomic_update(:version, expr(version + 1))`; a non-sandboxed test runs 50 interleaved moves and resizes across 25 concurrent connections and requires versions `1..50` with no duplicates and a stored box equal to the commit that returned version 50. | Enforced |
+| A08 | Invalid coordinates and sizes cannot be persisted (addendum D1, D8): `x, y >= 0`, `width, height >= 1` (`>= 0` for point kinds such as lines, arrows and freehand strokes), `x + width` and `y + height` within the canvas, a line or arrow's two points, or a freehand stroke's 2 to 500 points, inside its box, text only on text and note elements, at most 2000 code points and non-blank for text (ADR 0003), a `seed` in `0..2_147_483_647` (addendum D9, ADR 0005), and style tokens from `Sketch.Canvas.Style`, with every property that does not apply to the kind at its default (addendum D10, ADR 0006). `Sketch.Canvas.Geometry` holds the bounds; the `FitsCanvas`, `PointsFitShape` and `TextFitsKind` validations (atomic, so they also check stored values during updates), the code-point `max_length` on `text` and PostgreSQL CHECK constraints all derive from it, and property tests compare Ash and raw SQL over arbitrary boxes, points, strings and seeds. | Enforced |
+| A09 | Durable movement, resizing and restyling increment `version` atomically (ADR 0001, ADR 0003, ADR 0006). `commit_position`, `commit_shape` and `commit_style` use `atomic_update(:version, expr(version + 1))` and each writes only its own attributes; a non-sandboxed test runs 50 interleaved moves, resizes and restyles across 25 concurrent connections and requires versions `1..50` with no duplicates, a stored row equal to the commit that returned version 50, and the box and style of the last box and last style commit. | Enforced |
 | A10 | Transient previews never trigger persistence. Previews and cancels are relayed with `SketchWeb.Endpoint.broadcast_from/4`; an instrumented LiveView test asserts they cause zero Repo queries. | Enforced |
 | A11 | Durable events originate from successful Ash changes. | Enforced |
 | A12 | No custom GenServer, event broker or repository layer: no `lib` module implements GenServer, `:gen_server`, `:gen_statem`, `:gen_event` or GenStage, uses Agent, Registry or `:pg`, or is named `*Repository*`. | Enforced |
@@ -55,7 +55,7 @@ the only path excluded from the A21 scan.
 | A19 | Accepted rules stay active until explicitly changed. The registry test requires A01-A22 exactly once with valid statuses and existing verification files. | Unverified (addendum D6) |
 | A20 | E2E tests contain no fixed sleeps (`waitForTimeout`, `setTimeout`, `sleep(`). | Enforced |
 | A21 | No suppression directives for ESLint, TypeScript, Credo or Dialyzer and no Dialyzer ignore file (addendum D5). | Enforced |
-| A22 | Kind-specific branching lives only in kind modules (`lib/sketch/canvas/kinds/`), element renderers (`lib/sketch_web/elements/`, `assets/js/elements/`) and generated files (`assets/js/generated/`) (ADR 0004). The scan of `lib` and `assets/js` rejects `kind == :x` and `kind === "x"` (either order, negated), `kind in [`, `kind: :x`, `data-kind="x"` and `dataset.kind` comparisons for any element kind. There is no per-file exception: a test requires the allowed paths to be exactly those four directories. The canvas hook reads per-kind behaviour (geometry, text, `draw_gesture`, default size) from the specs in the generated manifest, never from kind ids. Element kinds are declared once in `Sketch.Canvas.Kinds`, which fails to compile if a draw gesture cannot produce its kind's geometry; `SketchWeb.Tools` fails to compile if a tool creates an unknown kind, and `mix sketch.gen.manifest --check` fails `mix ci` and CI if `assets/js/generated/manifest.ts` is stale. Renderers are forced equal: `SketchWeb.Elements` fails to compile unless its renderers cover exactly the registered kinds, the client `RENDERERS` table `satisfies Record<ElementKind, Renderer>` (so `tsc` fails if either side lacks one), `mix sketch.gen.render_fixtures --check` fails `mix ci` and CI if `assets/test/fixtures/render_parity.json`, `wrap_parity.json` or `random_parity.json` is stale, and `assets/test/render_parity.test.ts`, `wrap_parity.test.ts` and `random_parity.test.ts` fail if a client renderer draws a different node tree from the server for any fixture shape and seed, the client wraps a fixture text into different lines, or the hand-drawn random source or number formatting differs (ADR 0005). | Enforced |
+| A22 | Kind-specific branching lives only in kind modules (`lib/sketch/canvas/kinds/`), element renderers (`lib/sketch_web/elements/`, `assets/js/elements/`) and generated files (`assets/js/generated/`) (ADR 0004). The scan of `lib` and `assets/js` rejects `kind == :x` and `kind === "x"` (either order, negated), `kind in [`, `kind: :x`, `data-kind="x"` and `dataset.kind` comparisons for any element kind. There is no per-file exception: a test requires the allowed paths to be exactly those four directories. The canvas hook reads per-kind behaviour (geometry, text, `draw_gesture`, default size, style properties) from the specs in the generated manifest, never from kind ids. Element kinds are declared once in `Sketch.Canvas.Kinds`, which fails to compile if a draw gesture cannot produce its kind's geometry or a spec's `style` names an unknown property (ADR 0006); `SketchWeb.Tools` fails to compile if a tool creates an unknown kind, and `mix sketch.gen.manifest --check` fails `mix ci` and CI if `assets/js/generated/manifest.ts` is stale. Renderers are forced equal: `SketchWeb.Elements` fails to compile unless its renderers cover exactly the registered kinds, the client `RENDERERS` table `satisfies Record<ElementKind, Renderer>` (so `tsc` fails if either side lacks one), `mix sketch.gen.render_fixtures --check` fails `mix ci` and CI if `assets/test/fixtures/render_parity.json`, `wrap_parity.json` or `random_parity.json` is stale, and `assets/test/render_parity.test.ts`, `wrap_parity.test.ts` and `random_parity.test.ts` fail if a client renderer draws a different node tree from the server for any fixture shape, seed and sampled style, the client wraps a fixture text into different lines, or the hand-drawn random source or number formatting differs (ADR 0005). | Enforced |
 
 ## Element kinds
 
@@ -63,14 +63,15 @@ ADR 0004 is complete: every kind is a spec module in `lib/sketch/canvas/kinds/`,
 server and one client renderer in local coordinates, and the canvas hook has no kind-specific
 code. Adding a kind takes:
 
-1. A spec module `lib/sketch/canvas/kinds/<kind>.ex` and its line in `Sketch.Canvas.Kinds`.
+1. A spec module `lib/sketch/canvas/kinds/<kind>.ex` and its line in `Sketch.Canvas.Kinds`, including
+   the style properties that apply to it (ADR 0006).
 2. A server renderer `lib/sketch_web/elements/<kind>.ex` and its line in `SketchWeb.Elements`.
 3. A client renderer `assets/js/elements/<kind>.ts` and its entry in `RENDERERS`
    (`assets/js/elements/index.ts`).
 4. A tool entry in `SketchWeb.Tools`.
 5. `mix sketch.gen.manifest` and `mix sketch.gen.render_fixtures` (both outputs are committed and
-   checked in CI), and `mix ash.codegen` if the kind holds text or points, because the CHECK
-   constraints list those kinds.
+   checked in CI), and `mix ash.codegen`, because the CHECK constraints list the kinds that hold
+   text or points and the kinds each style property applies to.
 6. CSS for any new class, and tests.
 
 Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `mix ci`.
@@ -91,7 +92,13 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
   have no float rounding or printing to disagree on (ADR 0005). Note wrapping is also compared on 885
   deterministic (text, width) pairs. Two implementations that agree on all of them but differ
   elsewhere are not caught. Odd and even sizes are both included,
-  so a renderer that halves a size is checked on whole and fractional results.
+  so a renderer that halves a size is checked on whole and fractional results. Styles are sampled,
+  not multiplied out: every shape in the default style, and three shapes per kind in each
+  applicable token on its own and in a few combinations (ADR 0006).
+- Style colours live in `assets/css/app.css`. A test requires a light and two dark values (the
+  `prefers-color-scheme` and `data-theme` blocks) for every colour token and a rule for every
+  class a renderer maps a token to; whether a colour is readable in a theme is checked by eye in
+  the evidence screenshots, not by a test.
 
 - The BEAM checks see static calls and module references. A module name built at runtime (for
   example with `Module.concat/1` or `String.to_existing_atom/1`) would not be seen. Code review

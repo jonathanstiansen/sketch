@@ -5,7 +5,7 @@ defmodule SketchWeb.Elements.Ellipse do
   import SketchWeb.ElementRenderer, only: [half: 1]
 
   @impl true
-  def render(%{width: width, height: height, seed: seed}) do
+  def render(%{width: width, height: height, seed: seed, style: style}) do
     [
       %{
         tag: "ellipse",
@@ -16,10 +16,10 @@ defmodule SketchWeb.Elements.Ellipse do
           {"ry", half(height)},
           {"stroke", "transparent"},
           {"stroke-width", 2},
-          {"class", "fill-primary"}
+          {"class", SketchWeb.ElementRenderer.fill_class(style)}
         ]
       },
-      SketchWeb.ElementRenderer.sketch(SketchWeb.HandDrawn.ellipse(width, height, seed))
+      SketchWeb.ElementRenderer.sketch(SketchWeb.HandDrawn.ellipse(width, height, seed), style)
     ]
   end
 end

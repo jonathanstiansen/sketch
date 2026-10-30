@@ -374,10 +374,10 @@ defmodule SketchWeb.BoardLiveTest do
                "g#element-#{id}[data-kind='arrow'][data-points='200,80 0,0'][live-points='200,80 0,0']" <>
                  "[transform='translate(200 220)'] > " <>
                  "line[data-line-hit][x1='200'][y1='80'][x2='0'][y2='0'] + " <>
-                 "path[data-line-stroke][marker-end='url(#arrowhead)'][d='#{stroke}']"
+                 "path[data-line-stroke][marker-end='url(#arrowhead-ink)'][d='#{stroke}']"
              )
 
-      assert has_element?(view, "#canvas defs marker#arrowhead")
+      assert has_element?(view, "#canvas defs marker#arrowhead-ink")
     end
 
     test "the server rebuilds a line's box around its points clamped into the canvas", %{

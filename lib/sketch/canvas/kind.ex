@@ -10,9 +10,14 @@ defmodule Sketch.Canvas.Kind do
   `default_size`), `:two_point` drags from a start to an end point, `:path` records a freehand
   path, and `:click_to_type` opens a text editor at the click, sized to the typed text. A drawn
   kind that holds text opens its editor over the drawn box.
+
+  `style` lists the `Sketch.Canvas.Style` properties that apply to the kind (ADR 0006); every other
+  property keeps its default.
   """
 
-  @enforce_keys [:id, :geometry, :text, :draw_gesture, :default_size]
+  alias Sketch.Canvas.Style
+
+  @enforce_keys [:id, :geometry, :text, :draw_gesture, :default_size, :style]
   defstruct @enforce_keys
 
   @type geometry :: :box | {:points, Range.t()}
@@ -25,7 +30,8 @@ defmodule Sketch.Canvas.Kind do
           geometry: geometry(),
           text: text(),
           draw_gesture: draw_gesture(),
-          default_size: size()
+          default_size: size(),
+          style: [Style.property()]
         }
 
   @callback spec() :: t()
@@ -46,4 +52,11 @@ defmodule Sketch.Canvas.Kind do
     do: first == 2 and last > 2
 
   def consistent?(%__MODULE__{}), do: false
+
+  @doc "Whether a spec's `style` lists distinct properties that `Sketch.Canvas.Style` declares."
+  @spec style_known?(t()) :: boolean()
+  def style_known?(%__MODULE__{style: style}) when is_list(style),
+    do: Enum.uniq(style) == style and style -- Style.properties() == []
+
+  def style_known?(%__MODULE__{}), do: false
 end

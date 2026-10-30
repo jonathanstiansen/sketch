@@ -19,6 +19,7 @@ defmodule Sketch.Canvas do
       define :create_element, action: :create
       define :commit_position, action: :commit_position, get_by: [:id, :board_id]
       define :commit_shape, action: :commit_shape, get_by: [:id, :board_id]
+      define :commit_style, action: :commit_style, get_by: [:id, :board_id]
       define :erase_element, action: :erase, get_by: [:id, :board_id]
       define :list_elements_for_board, action: :list_for_board, args: [:board_id]
     end
@@ -40,6 +41,22 @@ defmodule Sketch.Canvas do
   defdelegate kind_specs, to: Kinds, as: :all
 
   defdelegate geometry, to: Sketch.Canvas.Geometry, as: :dimensions
+
+  @doc "The style properties, in panel order (ADR 0006)."
+  defdelegate style_properties, to: Sketch.Canvas.Style, as: :properties
+
+  @doc "A style property's tokens, in panel order; the first is its default."
+  defdelegate style_tokens(property), to: Sketch.Canvas.Style, as: :tokens
+
+  defdelegate style_defaults, to: Sketch.Canvas.Style, as: :defaults
+
+  defdelegate style_label(name), to: Sketch.Canvas.Style, as: :label
+
+  defdelegate style_stroke_px(width), to: Sketch.Canvas.Style, as: :stroke_px
+
+  defdelegate style_sketch_px(width), to: Sketch.Canvas.Style, as: :sketch_px
+
+  defdelegate style_dash_array(style, width), to: Sketch.Canvas.Style, as: :dash_array
 
   defdelegate default_box(element_count), to: Sketch.Canvas.Geometry
 

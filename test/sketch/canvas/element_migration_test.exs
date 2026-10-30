@@ -25,7 +25,16 @@ defmodule Sketch.Canvas.ElementMigrationTest do
                           __DIR__
                         )
 
+  @styling 20_261_030_064_759
+  @styling_migration Sketch.Repo.Migrations.Styling
+  @styling_file Path.expand(
+                  "../../../priv/repo/migrations/20261030064759_styling.exs",
+                  __DIR__
+                )
+
   setup_all do
+    unless Code.ensure_loaded?(@styling_migration), do: Code.require_file(@styling_file)
+
     unless Code.ensure_loaded?(@migration), do: Code.require_file(@migration_file)
 
     unless Code.ensure_loaded?(@hand_drawn_seed_migration),
@@ -127,5 +136,34 @@ defmodule Sketch.Canvas.ElementMigrationTest do
     assert length(seeds) == 21
     assert Enum.all?(seeds, &(&1 in 0..Sketch.Canvas.geometry().max_seed))
     assert length(Enum.uniq(seeds)) > 1
+  end
+
+  test "adding the style keeps every existing element's look and lets an old server keep inserting (ADR 0006)" do
+    board = Canvas.create_board!()
+    assert :ok = Ecto.Migrator.down(Repo, @styling, @styling_migration, @migrator_opts)
+
+    insert = fn kind ->
+      Repo.query!(
+        "INSERT INTO elements (board_id, kind, x, y, width, height, text) " <>
+          "VALUES ($1, $2, 0, 0, 10, 10, $3)",
+        [Ecto.UUID.dump!(board.id), kind, if(kind == "text", do: "hi", else: "")]
+      )
+    end
+
+    for kind <- ~w(rectangle note text), do: insert.(kind)
+    assert :ok = Ecto.Migrator.up(Repo, @styling, @styling_migration, @migrator_opts)
+    insert.("ellipse")
+
+    elements = Canvas.list_elements_for_board!(board.id)
+    assert length(elements) == 4
+
+    for element <- elements do
+      assert Map.take(element, Canvas.style_properties()) == Canvas.style_defaults()
+    end
+
+    note = Enum.find(elements, &(&1.kind == :note))
+
+    assert {:ok, %{version: 1, fill_color: :blue}} =
+             Canvas.commit_style(note.id, board.id, %{fill_color: :blue})
   end
 end

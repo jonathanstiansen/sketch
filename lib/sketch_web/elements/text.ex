@@ -10,7 +10,7 @@ defmodule SketchWeb.Elements.Text do
   @text_baseline Sketch.Canvas.geometry().text_baseline
 
   @impl true
-  def render(%{width: width, height: height, text: text}) do
+  def render(%{width: width, height: height, text: text, style: style}) do
     [
       %{
         tag: "rect",
@@ -29,7 +29,7 @@ defmodule SketchWeb.Elements.Text do
           {"data-text-body", ""},
           {"font-size", @font_size},
           {"pointer-events", "none"},
-          {"class", "text-element fill-base-content"}
+          {"class", "text-element #{SketchWeb.ElementRenderer.ink_class(style)}"}
         ],
         children: text |> Sketch.Canvas.text_lines() |> Enum.with_index(&line/2)
       }

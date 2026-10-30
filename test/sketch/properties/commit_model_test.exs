@@ -11,7 +11,14 @@ defmodule Sketch.Properties.CommitModelTest do
   @canvas_width Geometry.canvas_width()
   @canvas_height Geometry.canvas_height()
   @max_text_length Geometry.max_text_length()
-  @shape_fields [:kind, :x, :y, :width, :height, :points, :text, :version]
+  @style_defaults %{
+    stroke_color: :ink,
+    fill_color: :auto,
+    stroke_width: :thin,
+    stroke_style: :solid
+  }
+  @style_fields Map.keys(@style_defaults)
+  @shape_fields [:kind, :x, :y, :width, :height, :points, :text, :version] ++ @style_fields
 
   defp coordinate(limit), do: one_of([integer(0..limit), member_of([-1, 0, limit - 1, limit])])
 
@@ -66,6 +73,21 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp with_text(shape), do: one_of([shape, map(tuple({shape, text()}), &put_text/1)])
 
+  defp token(property),
+    do: one_of([member_of(Canvas.style_tokens(property)), constant(:purple)])
+
+  defp style do
+    @style_fields
+    |> Enum.map(&tuple({constant(&1), token(&1)}))
+    |> one_of()
+    |> list_of(min_length: 1, max_length: 4)
+    |> map(&Map.new/1)
+  end
+
+  defp with_style(shape), do: one_of([shape, map(tuple({shape, style()}), &merge_style/1)])
+
+  defp merge_style({shape, style}), do: Map.merge(shape, style)
+
   defp put_text({shape, text}), do: Map.put(shape, :text, text)
 
   defp text_edit do
@@ -86,7 +108,8 @@ defmodule Sketch.Properties.CommitModelTest do
     index = integer(0..100)
 
     one_of([
-      tuple({constant(:create), CanvasFixtures.element_kind(), with_text(shape())}),
+      tuple({constant(:create), CanvasFixtures.element_kind(), with_style(with_text(shape()))}),
+      tuple({member_of([:commit_style, :commit_style_wrong_board]), index, style()}),
       tuple(
         {member_of([:commit_position, :commit_position_wrong_board]), index,
          fixed_map(%{x: coordinate(@canvas_width), y: coordinate(@canvas_height)})}
@@ -100,14 +123,29 @@ defmodule Sketch.Properties.CommitModelTest do
     ])
   end
 
-  defp valid_shape?(%{kind: kind, x: x, y: y, width: width, height: height} = shape) do
+  defp valid_shape?(%{kind: kind} = shape) do
+    valid_box?(shape) and length(shape.points) in point_count(kind) and
+      inside?(shape.points, shape.width, shape.height) and text_fits?(kind, shape.text) and
+      Enum.all?(@style_fields, &style_fits?(kind, &1, Map.fetch!(shape, &1)))
+  end
+
+  defp valid_box?(%{kind: kind, x: x, y: y, width: width, height: height}) do
     min_size = min_size(kind)
 
     x >= 0 and y >= 0 and width >= min_size and height >= min_size and
-      x + width <= @canvas_width and y + height <= @canvas_height and
-      length(shape.points) in point_count(kind) and
-      inside?(shape.points, width, height) and text_fits?(kind, shape.text)
+      x + width <= @canvas_width and y + height <= @canvas_height
   end
+
+  defp style_fits?(kind, property, token) do
+    token in Canvas.style_tokens(property) and
+      (token == @style_defaults[property] or styled?(kind, property))
+  end
+
+  defp styled?(_kind, :stroke_color), do: true
+  defp styled?(kind, :fill_color), do: kind in [:rectangle, :diamond, :ellipse, :note]
+
+  defp styled?(kind, _stroke_property),
+    do: kind in [:rectangle, :diamond, :ellipse, :arrow, :line, :freedraw]
 
   defp min_size(kind) when kind in [:arrow, :freedraw, :line], do: 0
   defp min_size(_box_kind), do: 1
@@ -160,7 +198,11 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp run({:create, kind, input}, ctx, model) do
     attrs = Map.merge(input, %{board_id: ctx.board.id, kind: kind})
-    created = Map.merge(%{points: [], text: "", version: 0}, Map.put(input, :kind, kind))
+
+    created =
+      %{points: [], text: "", version: 0}
+      |> Map.merge(@style_defaults)
+      |> Map.merge(Map.put(input, :kind, kind))
 
     case Canvas.create_element(attrs) do
       {:ok, element} -> {:ok, model ++ [{element.id, created}], {"create", element.id, created}}
@@ -212,6 +254,8 @@ defmodule Sketch.Properties.CommitModelTest do
   defp target(:commit_shape_wrong_board, ctx), do: {:commit_shape, ctx.other_board}
   defp target(:edit_text, ctx), do: {:commit_shape, ctx.board}
   defp target(:edit_text_wrong_board, ctx), do: {:commit_shape, ctx.other_board}
+  defp target(:commit_style, ctx), do: {:commit_style, ctx.board}
+  defp target(:commit_style_wrong_board, ctx), do: {:commit_style, ctx.other_board}
 
   defp text_elements(model), do: Enum.filter(model, fn {_id, shape} -> shape.kind == :text end)
 
@@ -219,7 +263,8 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp live(model), do: Enum.reject(model, fn {_id, shape} -> erased?(shape) end)
 
-  defp next_shape(action, moved) when action in [:commit_position, :commit_shape, :edit_text] do
+  defp next_shape(action, moved)
+       when action in [:commit_position, :commit_shape, :edit_text, :commit_style] do
     if valid_shape?(moved) and not erased?(moved),
       do: {:ok, %{moved | version: moved.version + 1}},
       else: :rejected
@@ -227,8 +272,12 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp next_shape(_wrong_board, _moved), do: :rejected
 
-  defp expected_create?({:create, kind, input}),
-    do: valid_shape?(Map.merge(%{points: [], text: ""}, Map.put(input, :kind, kind)))
+  defp expected_create?({:create, kind, input}) do
+    %{points: [], text: ""}
+    |> Map.merge(@style_defaults)
+    |> Map.merge(Map.put(input, :kind, kind))
+    |> valid_shape?()
+  end
 
   defp stored(board) do
     board.id
@@ -250,7 +299,7 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp subscribe(board), do: :ok = SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
 
-  property "the database and the broadcasts follow a model of creates, moves, shape and text edits, erases, and wrong-board edits and erases (A07, A08, A09, A11)" do
+  property "the database and the broadcasts follow a model of creates, moves, shape, text and style edits, erases, and wrong-board edits and erases (A07, A08, A09, A11, ADR 0006)" do
     check all ops <- list_of(op(), max_length: 20), max_runs: 75 do
       {board, initial} = seed_board()
       ctx = %{board: board, other_board: Canvas.create_board!()}
@@ -281,7 +330,9 @@ defmodule Sketch.Properties.CommitModelTest do
   property "a commit or erase after an erase fails, broadcasts nothing and leaves the row gone (A11)" do
     check all kind <- CanvasFixtures.element_kind(),
               later <-
-                list_of(member_of([:commit_position, :commit_shape, :erase]), min_length: 1),
+                list_of(member_of([:commit_position, :commit_shape, :commit_style, :erase]),
+                  min_length: 1
+                ),
               max_runs: 50 do
       board = Canvas.create_board!()
       box = Canvas.default_box(0)
@@ -311,6 +362,9 @@ defmodule Sketch.Properties.CommitModelTest do
 
   defp late(:commit_shape, element, board),
     do: Canvas.commit_shape(element.id, board.id, Map.take(element, [:x, :y, :width, :height]))
+
+  defp late(:commit_style, element, board),
+    do: Canvas.commit_style(element.id, board.id, %{stroke_color: :red})
 
   defp late(:erase, element, board), do: Canvas.erase_element(element.id, board.id)
 end

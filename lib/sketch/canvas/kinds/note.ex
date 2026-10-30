@@ -14,6 +14,7 @@ defmodule Sketch.Canvas.Kinds.Note do
       geometry: :box,
       text: :optional,
       draw_gesture: :box,
-      default_size: %{width: 200, height: 160}
+      default_size: %{width: 200, height: 160},
+      style: [:stroke_color, :fill_color]
     }
 end

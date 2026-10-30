@@ -14,6 +14,7 @@ defmodule Sketch.Canvas.Kinds.Text do
       geometry: :box,
       text: :required,
       draw_gesture: :click_to_type,
-      default_size: %{width: 1, height: 25}
+      default_size: %{width: 1, height: 25},
+      style: [:stroke_color]
     }
 end

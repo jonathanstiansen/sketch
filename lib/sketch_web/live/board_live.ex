@@ -9,6 +9,12 @@ defmodule SketchWeb.BoardLive do
   @point_kinds Enum.map(Sketch.Canvas.point_kinds(), &Atom.to_string/1)
   @max_text_bytes Sketch.Canvas.geometry().max_text_length * 4
   @max_seed Sketch.Canvas.geometry().max_seed
+  @style_properties Sketch.Canvas.style_properties()
+  @style_params Enum.map(@style_properties, &{Atom.to_string(&1), &1})
+  @stroke_colors Enum.map(Sketch.Canvas.style_tokens(:stroke_color), &Atom.to_string/1)
+  @fill_colors Enum.map(Sketch.Canvas.style_tokens(:fill_color), &Atom.to_string/1)
+  @stroke_widths Enum.map(Sketch.Canvas.style_tokens(:stroke_width), &Atom.to_string/1)
+  @stroke_styles Enum.map(Sketch.Canvas.style_tokens(:stroke_style), &Atom.to_string/1)
 
   defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
 
@@ -17,6 +23,12 @@ defmodule SketchWeb.BoardLive do
   defguardp is_kind(value) when is_binary(value) and value in @kinds
 
   defguardp is_seed(value) when is_integer(value) and value >= 0 and value <= @max_seed
+
+  defguardp is_style_token(property, value)
+            when (property == :stroke_color and value in @stroke_colors) or
+                   (property == :fill_color and value in @fill_colors) or
+                   (property == :stroke_width and value in @stroke_widths) or
+                   (property == :stroke_style and value in @stroke_styles)
 
   defguardp is_box(x, y, width, height)
             when is_integer(x) and is_integer(y) and is_integer(width) and is_integer(height) and
@@ -62,13 +74,15 @@ defmodule SketchWeb.BoardLive do
       when is_kind(kind) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
     with {:ok, points} <- points(params),
          {:ok, text} <- text(params),
-         {:ok, seed} <- seed(params) do
+         {:ok, seed} <- seed(params),
+         {:ok, style} <- style(params) do
       shape =
         kind
         |> String.to_existing_atom()
         |> Sketch.Canvas.fit_shape(%{x: x, y: y, width: width, height: height}, points)
         |> Map.merge(text)
         |> Map.merge(seed)
+        |> Map.merge(style)
 
       socket
       |> create_element(kind, shape)
@@ -93,20 +107,18 @@ defmodule SketchWeb.BoardLive do
       )
       when is_kind(kind) and is_uuid(drag_id) and is_seq(seq) and is_box(x, y, width, height) and
              fits_kind(kind, width, height) do
-    case seed(params) do
-      {:ok, seed} ->
-        relay_shape(
-          socket,
-          "draw_preview",
-          params,
-          Map.merge(
-            %{kind: kind, drag_id: drag_id, seq: seq, x: x, y: y, width: width, height: height},
-            seed
-          )
-        )
-
-      :error ->
-        {:noreply, socket}
+    with {:ok, seed} <- seed(params),
+         {:ok, style} <- style(params) do
+      relay_shape(
+        socket,
+        "draw_preview",
+        params,
+        %{kind: kind, drag_id: drag_id, seq: seq, x: x, y: y, width: width, height: height}
+        |> Map.merge(seed)
+        |> Map.merge(style)
+      )
+    else
+      :error -> {:noreply, socket}
     end
   end
 
@@ -194,14 +206,27 @@ defmodule SketchWeb.BoardLive do
     end
   end
 
+  def handle_event("commit_style", %{"element_id" => element_id} = params, socket)
+      when is_uuid(element_id) do
+    case style(params) do
+      {:ok, style} when map_size(style) > 0 ->
+        commit(socket, element_id, nil, "Could not restyle element", fn board_id ->
+          Sketch.Canvas.commit_style(element_id, board_id, style)
+        end)
+
+      _empty_or_invalid ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_event(event, _params, socket)
-      when event in ~w(create_element draw_preview draw_cancel preview drag_cancel commit commit_shape) do
+      when event in ~w(create_element draw_preview draw_cancel preview drag_cancel commit commit_shape commit_style) do
     {:noreply, socket}
   end
 
   @impl true
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: element}, socket)
-      when event in ~w(create commit_position commit_shape) do
+      when event in ~w(create commit_position commit_shape commit_style) do
     case Sketch.Canvas.apply_board_event(socket.assigns.board_state, element) do
       {:changed, board_state, element} ->
         {:noreply,
@@ -245,50 +270,54 @@ defmodule SketchWeb.BoardLive do
           </p>
           <SketchWeb.Toolbar.shortcuts_help />
         </div>
-        <div
-          id="canvas-viewport"
-          phx-hook="Canvas"
-          data-tool="selection"
-          data-canvas-width={@geometry.canvas_width}
-          data-canvas-height={@geometry.canvas_height}
-          data-max-points={@geometry.max_points}
-          data-max-text-length={@geometry.max_text_length}
-          data-font-size={@geometry.font_size}
-          data-line-height={@geometry.line_height}
-          data-note-padding={@geometry.note_padding}
-          class="relative min-h-0 flex-1 overflow-auto border-t border-base-300"
-        >
-          <svg
-            id="canvas"
-            width={@geometry.canvas_width}
-            height={@geometry.canvas_height}
-            viewBox={"0 0 #{@geometry.canvas_width} #{@geometry.canvas_height}"}
-            class="block select-none bg-base-100"
+        <div class="relative flex min-h-0 flex-1 flex-col">
+          <SketchWeb.StylePanel.style_panel />
+          <div
+            id="canvas-viewport"
+            phx-hook="Canvas"
+            data-tool="selection"
+            data-canvas-width={@geometry.canvas_width}
+            data-canvas-height={@geometry.canvas_height}
+            data-max-points={@geometry.max_points}
+            data-max-text-length={@geometry.max_text_length}
+            data-font-size={@geometry.font_size}
+            data-line-height={@geometry.line_height}
+            data-note-padding={@geometry.note_padding}
+            class="relative min-h-0 flex-1 overflow-auto border-t border-base-300"
           >
-            <defs>
-              <marker
-                id="arrowhead"
-                viewBox="0 0 10 10"
-                refX="9"
-                refY="5"
-                markerWidth="5"
-                markerHeight="5"
-                orient="auto"
-              >
-                <path d="M0 0L10 5L0 10z" class="fill-base-content" />
-              </marker>
-            </defs>
-            <g id="elements" phx-update="stream">
-              <SketchWeb.Elements.element
-                :for={{dom_id, element} <- @streams.elements}
-                dom_id={dom_id}
-                element={element}
-              />
-            </g>
-            <g id="draw-previews" phx-update="ignore"></g>
-            <g id="selection" phx-update="ignore"></g>
-          </svg>
-          <div id="text-editor-layer" phx-update="ignore" class="absolute top-0 left-0"></div>
+            <svg
+              id="canvas"
+              width={@geometry.canvas_width}
+              height={@geometry.canvas_height}
+              viewBox={"0 0 #{@geometry.canvas_width} #{@geometry.canvas_height}"}
+              class="block select-none bg-base-100"
+            >
+              <defs>
+                <marker
+                  :for={stroke_color <- @stroke_colors}
+                  id={SketchWeb.ElementRenderer.arrowhead_id(stroke_color)}
+                  viewBox="0 0 10 10"
+                  refX="9"
+                  refY="5"
+                  markerWidth="5"
+                  markerHeight="5"
+                  orient="auto"
+                >
+                  <path d="M0 0L10 5L0 10z" class={"ink-palette-#{stroke_color}"} />
+                </marker>
+              </defs>
+              <g id="elements" phx-update="stream">
+                <SketchWeb.Elements.element
+                  :for={{dom_id, element} <- @streams.elements}
+                  dom_id={dom_id}
+                  element={element}
+                />
+              </g>
+              <g id="draw-previews" phx-update="ignore"></g>
+              <g id="selection" phx-update="ignore"></g>
+            </svg>
+            <div id="text-editor-layer" phx-update="ignore" class="absolute top-0 left-0"></div>
+          </div>
         </div>
       </div>
     </Layouts.app>
@@ -318,6 +347,21 @@ defmodule SketchWeb.BoardLive do
   defp seed(%{"seed" => seed}) when is_seed(seed), do: {:ok, %{seed: seed}}
   defp seed(%{"seed" => _invalid}), do: :error
   defp seed(_without_seed), do: {:ok, %{}}
+
+  defp style(params) do
+    Enum.reduce_while(@style_params, {:ok, %{}}, fn {param, property}, {:ok, style} ->
+      case params do
+        %{^param => value} when is_style_token(property, value) ->
+          {:cont, {:ok, Map.put(style, property, String.to_existing_atom(value))}}
+
+        %{^param => _invalid} ->
+          {:halt, :error}
+
+        _without_property ->
+          {:cont, {:ok, style}}
+      end
+    end)
+  end
 
   defp commit_shape_error(%{text: _text}), do: "Could not edit text"
   defp commit_shape_error(_shape), do: "Could not resize element"
@@ -375,6 +419,9 @@ defmodule SketchWeb.BoardLive do
 
   defp committed({:ok, _element}, socket, _element_id, _drag_id, _message), do: {:noreply, socket}
 
+  defp committed({:error, _error}, socket, _element_id, nil, message),
+    do: {:noreply, put_flash(socket, :error, message)}
+
   defp committed({:error, _error}, socket, element_id, drag_id, message) do
     socket
     |> put_flash(:error, message)
@@ -406,6 +453,7 @@ defmodule SketchWeb.BoardLive do
     socket
     |> assign(:board_id, board_id)
     |> assign(:geometry, Sketch.Canvas.geometry())
+    |> assign(:stroke_colors, Sketch.Canvas.style_tokens(:stroke_color))
     |> assign(:board_state, Sketch.Canvas.new_board_state(elements))
     |> stream(:elements, elements, dom_id: &element_dom_id(&1.id))
   end
