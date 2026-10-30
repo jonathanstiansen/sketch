@@ -66,7 +66,7 @@ the only path excluded from the A21 scan.
 
 A23 keeps every chord in one place. Adding a shortcut takes:
 
-1. A chord in its feature's registry (`SketchWeb.Tools`, `HistoryActions`, `ZoomActions`,
+1. A chord in its feature's registry (`SketchWeb.Tools`, `HistoryActions`, `ClipboardActions`, `ZoomActions`,
    `ExportActions`), or in `SketchWeb.FixedShortcuts` if it belongs to none. A new registry is a
    module with `shortcuts/0` added to `@registries` in `SketchWeb.Shortcuts`. The entry format is in
    the `SketchWeb.Shortcuts.Aggregate` moduledoc.
@@ -157,6 +157,19 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
   keep their screen size; the text editor layer is scaled with a CSS transform. At zoom levels
   where the scroll position would have to be negative (the canvas is smaller than the viewport)
   the point under the pointer cannot stay put.
+- Duplicate, copy, cut, paste and Alt+drag (Ctrl/⌘+D, C, X, V from `SketchWeb.ClipboardActions`)
+  are client-side compositions of the existing `create_element` and `erase` events, so the
+  server validates and clamps every pasted element like any other create. The system clipboard
+  holds text/plain JSON `{"type":"sketch/elements","version":1,"elements":[...]}`;
+  `assets/js/hooks/clipboard_logic.ts` encodes, validates (total: it never throws) and places it
+  and is checked by fast-check in `assets/test/clipboard_logic.test.ts`; the wiring is checked by
+  `e2e/tests/clipboard.spec.ts`. Copy and paste need a secure context and the browser's clipboard
+  permission (Chromium asks on the first paste, Firefox may not offer `readText`); a refusal is
+  shown in the status line, not retried. The clipboard is a list so multi-select can extend it, but
+  selection is single for now. A duplicate or paste is one undo entry; undo erases the created
+  elements (so redo creates them under new ids, D12). Alt+drag shows the copy as a draw preview and
+  sends nothing for the original; Esc with Alt still held does not cancel it, because the Esc chord
+  requires Alt up.
 - Exports clone `#elements > [data-element]` only, which is how the selection, draw-preview and
   remote-cursor layers stay out of them; there is no exclusion list to extend.
 

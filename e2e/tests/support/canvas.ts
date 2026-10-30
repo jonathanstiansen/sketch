@@ -5,6 +5,8 @@ import { createBoard, openBoard } from "./board"
 const recordingDir = process.env.E2E_RECORD_DIR
 const recordingSize = { width: 960, height: 600 }
 
+export const CLIPBOARD_PERMISSIONS = ["clipboard-read", "clipboard-write"]
+
 export interface Session {
   pageA: Page
   pageB: Page
@@ -31,8 +33,8 @@ export async function openSharedBoard(
   preparePageB: (page: Page) => Promise<void> = () => Promise.resolve(),
 ): Promise<Session> {
   const contexts = await Promise.all([
-    browser.newContext(recordingOptions(`${name}-a`)),
-    browser.newContext(recordingOptions(`${name}-b`)),
+    browser.newContext({ permissions: CLIPBOARD_PERMISSIONS, ...recordingOptions(`${name}-a`) }),
+    browser.newContext({ permissions: CLIPBOARD_PERMISSIONS, ...recordingOptions(`${name}-b`) }),
   ])
   const [pageA, pageB] = await Promise.all(contexts.map((context) => context.newPage()))
   if (pageA === undefined || pageB === undefined) throw new Error("pages did not open")

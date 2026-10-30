@@ -14,6 +14,7 @@ export default defineConfig({
   reporter: process.env.CI === undefined ? "list" : [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
+    permissions: ["clipboard-read", "clipboard-write"],
     trace: "retain-on-failure",
   },
   ...(measure ? {} : { grepInvert: /@measure/ }),
