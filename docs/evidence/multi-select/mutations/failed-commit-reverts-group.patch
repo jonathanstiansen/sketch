@@ -1,0 +1,15 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index 374c1d6..5b35c3d 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -1172,6 +1172,10 @@ export class Canvas extends ViewHook {
+     }))
+     const failed = await this.commitGroupAndRecord(changes, group.dragId)
+     for (const { id } of failed) this.revert(id)
++    if (failed.length === 0) return
++    for (const change of changes) {
++      if (!failed.includes(change)) void this.pushChange(change.id, change.before, group.dragId)
++    }
+   }
+ 
+   private pushGroupCancel(group: GroupDrag): void {

@@ -1,0 +1,17 @@
+diff --git a/assets/js/hooks/selection_logic.ts b/assets/js/hooks/selection_logic.ts
+index fd44a67..7d10fd6 100644
+--- a/assets/js/hooks/selection_logic.ts
++++ b/assets/js/hooks/selection_logic.ts
+@@ -61,7 +61,11 @@ export function movedGroup(origins: readonly Shape[], wanted: Point, canvas: Siz
+     wanted,
+     canvas,
+   )
+-  return { delta, shapes: origins.map((origin) => translatedShape(origin, delta)) }
++  const shapes = origins.map(({ box, points }) => ({
++    box: { ...box, x: clamp(box.x + wanted.x, canvas.width - box.width), y: clamp(box.y + wanted.y, canvas.height - box.height) },
++    points,
++  }))
++  return { delta, shapes }
+ }
+ 
+ export interface GroupPreviewEntry extends Box {
