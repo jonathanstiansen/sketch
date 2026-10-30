@@ -52,3 +52,8 @@ and the update finds nothing. The cost is that a client's set of erased ids
 grows for the life of its LiveView; a reload rebuilds the state from the
 database and starts the set empty. Undo would need soft deletes instead of a
 hard delete and is still excluded.
+
+Undo and redo were approved on 2026-10-30 (addendum D12) without soft deletes
+and without a new merge rule: every undo is an ordinary commit, create or
+erase, and an undone erase creates the element again under a new id, so the
+tombstone stays permanent (ADR 0008).
