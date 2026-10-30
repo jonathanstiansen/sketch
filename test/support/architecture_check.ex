@@ -50,7 +50,7 @@ defmodule Sketch.ArchitectureCheck do
   @literal_chord_checks ~r/\b\w*(?:[kK]ey|[cC]ode)\w*\b(?:\.\w+\(\))?\s*(?:===|!==|==|!=)\s*["'`]|["'`]\s*(?:===|!==|==|!=)\s*[\w.]*\b\w*(?:[kK]ey|[cC]ode)\b|\bswitch\s*\(\s*[\w.]*\b(?:key|code)\s*\)|\]\s*\.includes\(\s*[\w.]*\b(?:key|code)\b|phx-(?:window-)?key(?:down|up)?=|aria-keyshortcuts=["']/
   @script_extensions ~w(.sh .bash .mjs .cjs .js .ts)
   @script_directories ~w(docs/evidence e2e scripts)
-  @kill_command ~r/(?<![\w.$\/-])kill\b(?!\s*\()((?:\s+-[\w-]+)*)((?:\s+"[^"]*"|\s+[^\s;|&)'"`]+)*)/
+  @kill_command ~r/(?<![\w.$\/-])kill(?=$|[\s;|&)'"`])((?:\s+-[\w-]+)*)((?:\s+"[^"]*"|\s+[^\s;|&)'"`]+)*)/
   @pid_reference ~r/^["']?(?:\$\{?[A-Za-z_]\w*\}?|\$!|%\d+)["']?;?$/
 
   @scanned_extensions ~w(.ex .exs .heex .eex .ts .tsx .js .mjs .cjs .json .yml .yaml)
@@ -305,7 +305,8 @@ defmodule Sketch.ArchitectureCheck do
 
   defp kill_problems(line) do
     named =
-      for command <- ~w(pkill killall), Regex.match?(~r/(?<![\w.-])#{command}\b/, line) do
+      for command <- ~w(pkill killall),
+          Regex.match?(~r/(?<![\w.-])#{command}(?=$|[\s;|&)'"`])/, line) do
         "#{command} stops processes by name"
       end
 

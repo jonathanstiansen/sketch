@@ -12,3 +12,4 @@ kill "$server"
 kill -9 $server
 kill -0 "${server}"
 kill $!
+docs/evidence/demo/mutate.sh kill-by-name-in-evidence-script pkill-notes.txt
