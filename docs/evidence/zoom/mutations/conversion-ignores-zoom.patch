@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index 4ef9fbf..0f11d11 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -1337,7 +1337,7 @@ export class Canvas extends ViewHook {
+ 
+   private canvasPoint(event: PointerEvent): Point {
+     const bounds = this.svg().getBoundingClientRect()
+-    return screenToCanvas(clientPoint(event), { x: bounds.left, y: bounds.top }, this.zoom)
++    return screenToCanvas(clientPoint(event), { x: bounds.left, y: bounds.top }, 1)
+   }
+ 
+   private svg(): SVGSVGElement {
