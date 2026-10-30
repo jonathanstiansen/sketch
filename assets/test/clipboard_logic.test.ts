@@ -342,6 +342,6 @@ void test("Alt on an element with Selection copies it; without Alt it moves; Alt
   assert.equal(pointerAction({ ...base, altKey: false }), "move")
   assert.equal(pointerAction(base), "move")
   assert.equal(pointerAction({ ...base, altKey: true, onHandle: true }), "resize")
-  assert.equal(pointerAction({ ...base, altKey: true, onElement: false }), "deselect")
+  assert.equal(pointerAction({ ...base, altKey: true, onElement: false }), "marquee")
   assert.equal(pointerAction({ ...base, altKey: true, tool: "rectangle" }), "draw")
 })

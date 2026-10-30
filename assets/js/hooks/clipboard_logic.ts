@@ -1,5 +1,6 @@
-import { MIN_SIZE, clamp, isBlankText, textBox, textLines, type Box, type Point, type Size } from "./canvas_logic.ts"
+import { MIN_SIZE, groupBox, isBlankText, textBox, textLines, type Box, type Point, type Size } from "./canvas_logic.ts"
 import type { ElementSnapshot } from "./element_history.ts"
+import { clampGroupDelta } from "./selection_logic.ts"
 import { focusContext, shortcutFor, type ShortcutInput } from "./shortcuts.ts"
 import { isElementKind } from "./tools.ts"
 import { isSeed } from "../elements/dom.ts"
@@ -124,34 +125,12 @@ export function decodeClipboard(text: string): Decoded {
   return { status: "text", text }
 }
 
-export function groupBox(elements: readonly Box[]): Box | undefined {
-  const [first, ...rest] = elements
-  if (first === undefined) return undefined
-  let left = first.x
-  let top = first.y
-  let right = first.x + first.width
-  let bottom = first.y + first.height
-  for (const { x, y, width, height } of rest) {
-    left = Math.min(left, x)
-    top = Math.min(top, y)
-    right = Math.max(right, x + width)
-    bottom = Math.max(bottom, y + height)
-  }
-  return { x: left, y: top, width: right - left, height: bottom - top }
-}
-
 function translated(elements: readonly ElementSnapshot[], delta: Point): ElementSnapshot[] {
   return elements.map((element) => ({ ...element, x: element.x + delta.x, y: element.y + delta.y }))
 }
 
 export function translateInto(elements: readonly ElementSnapshot[], wanted: Point, canvas: Size): ElementSnapshot[] {
-  const bounds = groupBox(elements)
-  if (bounds === undefined) return []
-  const delta = {
-    x: clamp(bounds.x + wanted.x, canvas.width - bounds.width) - bounds.x,
-    y: clamp(bounds.y + wanted.y, canvas.height - bounds.height) - bounds.y,
-  }
-  return translated(elements, delta)
+  return translated(elements, clampGroupDelta(elements, wanted, canvas))
 }
 
 export function duplicated(elements: readonly ElementSnapshot[], canvas: Size): ElementSnapshot[] {

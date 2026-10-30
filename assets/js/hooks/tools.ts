@@ -95,7 +95,7 @@ export interface KeyInput extends ShortcutInput {
   readonly editable: boolean
 }
 
-export type PointerAction = "pan" | "draw" | "text" | "erase" | "move" | "copy" | "resize" | "deselect" | "none"
+export type PointerAction = "pan" | "draw" | "text" | "erase" | "move" | "copy" | "resize" | "toggle" | "marquee" | "none"
 
 export interface PointerInput {
   button: number
@@ -104,6 +104,7 @@ export interface PointerInput {
   onElement: boolean
   onHandle: boolean
   altKey?: boolean
+  shiftKey?: boolean
 }
 
 const PRIMARY_BUTTON = 0
@@ -140,21 +141,26 @@ export function escapes(input: KeyInput): boolean {
   return keyShortcut(input)?.action === "escape"
 }
 
-function selectionAction(onElement: boolean, onHandle: boolean, altKey: boolean): PointerAction {
+function selectionAction(onElement: boolean, onHandle: boolean, altKey: boolean, shiftKey: boolean): PointerAction {
   if (onHandle) return "resize"
-  if (!onElement) return "deselect"
-  return altKey ? "copy" : "move"
+  if (!onElement) return "marquee"
+  if (altKey) return "copy"
+  return shiftKey ? "toggle" : "move"
 }
 
-export function pointerAction({ button, tool, spaceHeld, onElement, onHandle, altKey = false }: PointerInput): PointerAction {
+export function pointerAction({ button, tool, spaceHeld, onElement, onHandle, altKey = false, shiftKey = false }: PointerInput): PointerAction {
   if (button === MIDDLE_BUTTON) return "pan"
   if (button !== PRIMARY_BUTTON) return "none"
   if (spaceHeld || tool === "hand") return "pan"
   const created = createdKind(tool)
   if (created !== undefined) return isDrawnKind(created) ? "draw" : "text"
   if (tool === "eraser") return "erase"
-  if (tool === "selection") return selectionAction(onElement, onHandle, altKey)
+  if (tool === "selection") return selectionAction(onElement, onHandle, altKey, shiftKey)
   return "none"
+}
+
+export function keepsSelection(tool: ToolId): boolean {
+  return tool === "selection" || tool === "eraser"
 }
 
 export function panScroll(startScroll: Point, startPointer: Point, pointer: Point): Point {

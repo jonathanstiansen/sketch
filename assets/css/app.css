@@ -139,6 +139,28 @@
   vector-effect: non-scaling-stroke;
 }
 
+.selection-group-outline {
+  fill: none;
+  stroke: var(--color-secondary);
+  stroke-width: 1;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.selection-marquee {
+  fill: color-mix(in oklab, var(--color-secondary) 8%, transparent);
+  stroke: var(--color-secondary);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+
+[data-style-property][data-mixed] [data-style-value] {
+  border-style: dashed;
+  border-color: color-mix(in oklab, currentColor 35%, transparent);
+}
+
 .selection-handle {
   fill: var(--color-base-100);
   stroke: var(--color-secondary);

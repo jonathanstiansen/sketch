@@ -18,6 +18,7 @@ defmodule SketchWeb.Shortcuts do
     SketchWeb.Tools,
     SketchWeb.HistoryActions,
     SketchWeb.ClipboardActions,
+    SketchWeb.SelectionActions,
     SketchWeb.ZoomActions,
     SketchWeb.ExportActions,
     SketchWeb.FixedShortcuts

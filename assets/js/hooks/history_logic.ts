@@ -7,14 +7,25 @@ export interface Recorded<S> {
   readonly snapshot: S
 }
 
+export interface Change<C> {
+  readonly id: string
+  readonly before: C
+  readonly after: C
+}
+
+export interface Replayed<C> {
+  readonly id: string
+  readonly change: C
+}
+
 export type Entry<S, C> =
   | { readonly type: "create" | "erase"; readonly elements: readonly Recorded<S>[] }
-  | { readonly type: "commit"; readonly id: string; readonly before: C; readonly after: C; readonly coalesce?: string }
+  | { readonly type: "commit"; readonly changes: readonly Change<C>[]; readonly coalesce?: string }
 
 export type Replay<S, C> =
   | { readonly type: "erase"; readonly ids: readonly string[] }
   | { readonly type: "create"; readonly elements: readonly Recorded<S>[] }
-  | { readonly type: "commit"; readonly id: string; readonly change: C }
+  | { readonly type: "commit"; readonly changes: readonly Replayed<C>[] }
 
 export type Step<S, C> =
   | { readonly status: "replay"; readonly direction: Direction; readonly replay: Replay<S, C> }
@@ -34,6 +45,14 @@ interface Pending<S, C> {
 function needsLiveElements(entry: Entry<unknown, unknown>, direction: Direction): boolean {
   if (entry.type === "commit") return true
   return (entry.type === "create") === (direction === "undo")
+}
+
+function sameIds(a: readonly Change<unknown>[], b: readonly Change<unknown>[]): boolean {
+  return a.length === b.length && a.every(({ id }, index) => id === b[index]?.id)
+}
+
+function coalesced<S, C>(top: Commit<S, C>, next: Commit<S, C>): Commit<S, C> {
+  return { ...top, changes: top.changes.map((change, index) => ({ ...change, after: next.changes[index]?.after ?? change.after })) }
 }
 
 export class History<S, C> {
@@ -63,7 +82,7 @@ export class History<S, C> {
     const top = this.coalescingTop(recorded, now)
     this.generation += 1
     this.redoStack = []
-    const pushed = top === undefined || recorded.type !== "commit" ? recorded : { ...top, after: recorded.after }
+    const pushed = top === undefined || recorded.type !== "commit" ? recorded : coalesced(top, recorded)
     if (top !== undefined) this.undoStack.pop()
     this.undoStack.push(pushed)
     this.coalesceTarget = { entry: pushed, at: now }
@@ -119,7 +138,8 @@ export class History<S, C> {
 
   private replayOf(entry: Entry<S, C>, direction: Direction): Replay<S, C> {
     if (entry.type === "commit") {
-      return { type: "commit", id: this.currentId(entry.id), change: direction === "undo" ? entry.before : entry.after }
+      const changes = entry.changes.map(({ id, before, after }) => ({ id: this.currentId(id), change: direction === "undo" ? before : after }))
+      return { type: "commit", changes }
     }
     const erases = (entry.type === "create") === (direction === "undo")
     if (erases) return { type: "erase", ids: entry.elements.map(({ id }) => this.currentId(id)) }
@@ -131,11 +151,14 @@ export class History<S, C> {
     const top = this.undoStack.at(-1)
     if (target === undefined || top === undefined || target.entry !== top || now - target.at > COALESCE_MS) return undefined
     if (top.type !== "commit" || entry.type !== "commit" || top.coalesce === undefined) return undefined
-    return top.coalesce === entry.coalesce && top.id === entry.id ? top : undefined
+    return top.coalesce === entry.coalesce && sameIds(top.changes, entry.changes) ? top : undefined
   }
 
   private withoutErased(entry: Entry<S, C>): Entry<S, C> | undefined {
-    if (entry.type === "commit") return this.isErased(entry.id) ? undefined : entry
+    if (entry.type === "commit") {
+      const live = entry.changes.filter(({ id }) => !this.isErased(id))
+      return live.length === 0 ? undefined : { ...entry, changes: live }
+    }
     const live = entry.elements.filter(({ id }) => !this.isErased(id))
     return live.length === 0 ? undefined : { ...entry, elements: live }
   }
@@ -165,7 +188,7 @@ export class History<S, C> {
   }
 
   private toOriginalIds(entry: Entry<S, C>): Entry<S, C> {
-    if (entry.type === "commit") return { ...entry, id: this.originalId(entry.id) }
+    if (entry.type === "commit") return { ...entry, changes: entry.changes.map((change) => ({ ...change, id: this.originalId(change.id) })) }
     return { ...entry, elements: entry.elements.map((element) => ({ ...element, id: this.originalId(element.id) })) }
   }
 }

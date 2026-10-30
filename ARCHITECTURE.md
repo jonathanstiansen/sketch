@@ -190,11 +190,23 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
   and is checked by fast-check in `assets/test/clipboard_logic.test.ts`; the wiring is checked by
   `e2e/tests/clipboard.spec.ts`. Copy and paste need a secure context and the browser's clipboard
   permission (Chromium asks on the first paste, Firefox may not offer `readText`); a refusal is
-  shown in the status line, not retried. The clipboard is a list so multi-select can extend it, but
-  selection is single for now. A duplicate or paste is one undo entry; undo erases the created
+  shown in the status line, not retried. The clipboard is a list, so a multi-selection copies and
+  pastes as one group (addendum D13). A duplicate or paste is one undo entry; undo erases the created
   elements (so redo creates them under new ids, D12). Alt+drag shows the copy as a draw preview and
   sends nothing for the original; Esc cancels it with Alt still held, because the Esc chord ignores
   held modifiers (ADR 0010).
+- Multi-select (addendum D13) is local UI state of the `Canvas` hook, like zoom: never pushed,
+  broadcast or stored; the E2E tests check that the other browser shows no selection outline,
+  marquee or selection attribute. A group drag sends one batched `group_preview` per tick and
+  commits each element on its own, so a group move is several versions, not one transaction: a
+  viewer can see some members land before others, and a member that fails is reverted alone.
+  `assets/js/hooks/selection_logic.ts` holds the pure parts (selection set operations, the marquee
+  hit test, the group move that clamps one delta for the whole group, the per-element merge of a
+  batched preview and the mixed style state) and is checked by fast-check in
+  `assets/test/selection_logic.test.ts`; the wiring by `e2e/tests/multi-select.spec.ts`. The
+  marquee hit test uses bounding boxes, so a marquee that touches a line's or stroke's box selects
+  it even if it misses the stroke. A group preview of more than 1000 elements is dropped by the
+  server and the group moves without live previews.
 - Exports clone `#elements > [data-element]` only, which is how the selection, draw-preview and
   remote-cursor layers stay out of them; there is no exclusion list to extend.
 

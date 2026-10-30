@@ -135,7 +135,7 @@ export type FocusContext = (typeof FOCUS_CONTEXTS)[number]
 
 export const CONTEXT_OVERLAPS: readonly (readonly [FocusContext, FocusContext])[] = []
 
-export const SHORTCUT_GROUPS = ["tool", "history", "clipboard", "zoom", "export", "canvas", "editor"] as const
+export const SHORTCUT_GROUPS = ["tool", "history", "clipboard", "selection", "zoom", "export", "canvas", "editor"] as const
 
 export type ShortcutGroup = (typeof SHORTCUT_GROUPS)[number]
 
@@ -173,6 +173,7 @@ export const SHORTCUTS = [
   { group: "clipboard", action: "copy", contexts: ["canvas"], chords: [{ key: ["c"], code: null, mod: "command", shift: false, alt: false, modifiers: "exact" }] },
   { group: "clipboard", action: "cut", contexts: ["canvas"], chords: [{ key: ["x"], code: null, mod: "command", shift: false, alt: false, modifiers: "exact" }] },
   { group: "clipboard", action: "paste", contexts: ["canvas"], chords: [{ key: ["v"], code: null, mod: "command", shift: false, alt: false, modifiers: "exact" }] },
+  { group: "selection", action: "select_all", contexts: ["canvas"], chords: [{ key: ["a"], code: null, mod: "command", shift: false, alt: false, modifiers: "exact" }] },
   { group: "zoom", action: "zoom_out", contexts: ["canvas", "editor"], chords: [{ key: ["-", "_"], code: null, mod: "command", shift: null, alt: false, modifiers: "exact" }] },
   { group: "zoom", action: "zoom_in", contexts: ["canvas", "editor"], chords: [{ key: ["=", "+"], code: null, mod: "command", shift: null, alt: false, modifiers: "exact" }] },
   { group: "zoom", action: "zoom_reset", contexts: ["canvas", "editor"], chords: [{ key: ["0"], code: null, mod: "command", shift: null, alt: false, modifiers: "exact" }] },

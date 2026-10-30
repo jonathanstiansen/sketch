@@ -9,6 +9,7 @@ defmodule SketchWeb.BoardLive do
   @point_kinds Enum.map(Sketch.Canvas.point_kinds(), &Atom.to_string/1)
   @max_text_bytes Sketch.Canvas.geometry().max_text_length * 4
   @max_seed Sketch.Canvas.geometry().max_seed
+  @max_group_elements 1000
   @style_properties Sketch.Canvas.style_properties()
   @style_params Enum.map(@style_properties, &{Atom.to_string(&1), &1})
   @stroke_colors Enum.map(Sketch.Canvas.style_tokens(:stroke_color), &Atom.to_string/1)
@@ -164,6 +165,37 @@ defmodule SketchWeb.BoardLive do
     })
   end
 
+  def handle_event(
+        "group_preview",
+        %{"drag_id" => drag_id, "seq" => seq, "elements" => [_ | _] = elements},
+        socket
+      )
+      when is_uuid(drag_id) and is_seq(seq) and length(elements) <= @max_group_elements do
+    case group_entries(elements) do
+      {:ok, entries} ->
+        broadcast_preview(socket, "group_preview", %{
+          drag_id: drag_id,
+          seq: seq,
+          elements: entries
+        })
+
+      :error ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event(
+        "group_cancel",
+        %{"drag_id" => drag_id, "element_ids" => [_ | _] = element_ids},
+        socket
+      )
+      when is_uuid(drag_id) and length(element_ids) <= @max_group_elements do
+    if Enum.all?(element_ids, &is_uuid/1),
+      do:
+        broadcast_preview(socket, "group_cancel", %{drag_id: drag_id, element_ids: element_ids}),
+      else: {:noreply, socket}
+  end
+
   def handle_event("drag_cancel", %{"element_id" => element_id, "drag_id" => drag_id}, socket)
       when is_uuid(element_id) and is_uuid(drag_id) do
     broadcast_preview(socket, "drag_cancel", %{element_id: element_id, drag_id: drag_id})
@@ -248,7 +280,7 @@ defmodule SketchWeb.BoardLive do
   end
 
   def handle_event(event, _params, socket)
-      when event in ~w(create_element draw_preview draw_cancel preview drag_cancel cursor cursor_leave commit commit_shape commit_style) do
+      when event in ~w(create_element draw_preview draw_cancel preview group_preview group_cancel drag_cancel cursor cursor_leave commit commit_shape commit_style) do
     {:noreply, socket}
   end
 
@@ -272,7 +304,7 @@ defmodule SketchWeb.BoardLive do
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket)
-      when event in ~w(preview drag_cancel draw_preview draw_end cursor cursor_leave) do
+      when event in ~w(preview group_preview group_cancel drag_cancel draw_preview draw_end cursor cursor_leave) do
     {:noreply, push_event(socket, event, payload)}
   end
 
@@ -354,6 +386,7 @@ defmodule SketchWeb.BoardLive do
               </g>
               <g id="draw-previews" phx-update="ignore"></g>
               <g id="selection" phx-update="ignore"></g>
+              <g id="marquee" phx-update="ignore" pointer-events="none"></g>
               <g id="remote-cursors" phx-update="ignore" pointer-events="none"></g>
             </svg>
             <div id="text-editor-layer" phx-update="ignore" class="absolute top-0 left-0"></div>
@@ -413,6 +446,48 @@ defmodule SketchWeb.BoardLive do
       end
     end)
   end
+
+  defp group_entries(elements) do
+    entries = Enum.map(elements, &group_entry/1)
+
+    if Enum.all?(entries, &match?({:ok, _entry}, &1)),
+      do: {:ok, Enum.map(entries, &elem(&1, 1))},
+      else: :error
+  end
+
+  defp group_entry(
+         %{
+           "element_id" => element_id,
+           "base_version" => base_version,
+           "x" => x,
+           "y" => y,
+           "width" => width,
+           "height" => height
+         } = params
+       )
+       when is_uuid(element_id) and is_seq(base_version) and is_box(x, y, width, height) do
+    entry = %{
+      element_id: element_id,
+      base_version: base_version,
+      x: x,
+      y: y,
+      width: width,
+      height: height
+    }
+
+    case points(params) do
+      {:ok, [_ | _] = points} ->
+        {:ok, Map.put(entry, :points, points)}
+
+      {:ok, []} when width >= @min_size and height >= @min_size ->
+        {:ok, Map.put(entry, :points, [])}
+
+      _invalid ->
+        :error
+    end
+  end
+
+  defp group_entry(_invalid), do: :error
 
   defp commit_shape_error(%{text: _text}), do: "Could not edit text"
   defp commit_shape_error(_shape), do: "Could not resize element"

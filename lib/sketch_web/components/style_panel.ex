@@ -3,8 +3,9 @@ defmodule SketchWeb.StylePanel do
   The properties panel (ADR 0006), rendered from the style registry: one group of buttons per style
   property, swatches for colours and segmented buttons for widths and stroke styles. Which groups
   show, and which button is pressed, is client-side UI state owned by the `Canvas` hook, like the
-  selected tool: it shows the properties that apply to the selected element or, with no selection,
-  to the active drawing tool's kind, and a hint otherwise. A button dispatches `sketch:set-style` to
+  selected tool: it shows the properties that apply to any selected element (marking a property
+  `data-mixed` when the selected values differ, addendum D13) or, with no selection, to the active
+  drawing tool's kind, and a hint otherwise. A button dispatches `sketch:set-style` to
   the canvas viewport.
 
   The panel is a bar of fixed height above the canvas, always present, so showing or hiding groups

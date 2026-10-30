@@ -101,6 +101,22 @@ export function resizedBox(box: Box, corner: Corner, pointer: Point, canvas: Siz
   return drawnBox(cornerPoint(box, OPPOSITE[corner]), pointer, canvas)
 }
 
+export function groupBox(elements: readonly Box[]): Box | undefined {
+  const [first, ...rest] = elements
+  if (first === undefined) return undefined
+  let left = first.x
+  let top = first.y
+  let right = first.x + first.width
+  let bottom = first.y + first.height
+  for (const { x, y, width, height } of rest) {
+    left = Math.min(left, x)
+    top = Math.min(top, y)
+    right = Math.max(right, x + width)
+    bottom = Math.max(bottom, y + height)
+  }
+  return { x: left, y: top, width: right - left, height: bottom - top }
+}
+
 export function sameBox(a: Box, b: Box): boolean {
   return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
 }
@@ -189,29 +205,35 @@ export function previewDelay(
   return Math.max(0, lastSentAt + PREVIEW_INTERVAL_MS - now)
 }
 
+function dragKey({ element_id, drag_id }: DragRef): string {
+  return JSON.stringify([element_id, drag_id])
+}
+
 export class RemotePreviews {
   private latestSeq = new Map<string, number>()
-  private finishedDragIds = new Set<string>()
+  private finishedDrags = new Set<string>()
   private activeDrags = new Map<string, string>()
   private erasedIds = new Set<string>()
 
   accept(preview: DragRef & { seq: number; base_version: number }, knownVersion: number): boolean {
+    const key = dragKey(preview)
     if (this.erasedIds.has(preview.element_id)) return false
-    if (this.finishedDragIds.has(preview.drag_id)) return false
+    if (this.finishedDrags.has(key)) return false
     if (preview.base_version < knownVersion) return false
-    const latest = this.latestSeq.get(preview.drag_id)
+    const latest = this.latestSeq.get(key)
     if (latest !== undefined && preview.seq <= latest) return false
 
-    this.latestSeq.set(preview.drag_id, preview.seq)
+    this.latestSeq.set(key, preview.seq)
     this.activeDrags.set(preview.element_id, preview.drag_id)
     return true
   }
 
-  finish({ element_id, drag_id }: DragRef): boolean {
-    this.finishedDragIds.add(drag_id)
-    this.latestSeq.delete(drag_id)
-    if (this.activeDrags.get(element_id) !== drag_id) return false
-    this.activeDrags.delete(element_id)
+  finish(ref: DragRef): boolean {
+    const key = dragKey(ref)
+    this.finishedDrags.add(key)
+    this.latestSeq.delete(key)
+    if (this.activeDrags.get(ref.element_id) !== ref.drag_id) return false
+    this.activeDrags.delete(ref.element_id)
     return true
   }
 
