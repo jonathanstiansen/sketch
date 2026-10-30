@@ -13,7 +13,8 @@ defmodule SketchWeb.ElementRenderer do
           width: non_neg_integer(),
           height: non_neg_integer(),
           points: [point()],
-          text: String.t()
+          text: String.t(),
+          seed: non_neg_integer()
         }
 
   @type attribute_value :: String.t() | number()
@@ -32,28 +33,54 @@ defmodule SketchWeb.ElementRenderer do
   def half(value) when rem(value, 2) == 0, do: div(value, 2)
   def half(value), do: value / 2
 
+  @sketch_stroke_width "1.5"
+
   @doc """
-  The two `line` nodes of a segment kind: a wide transparent one that takes the pointer and a thin
-  visible one on top, which also carries `stroke_attrs`.
+  The hand-drawn outline over an exact shape (ADR 0005): a `path` of `SketchWeb.HandDrawn` strokes
+  that never takes the pointer, so the shape under it keeps the hit geometry.
   """
-  @spec segments([point()], [{String.t(), attribute_value()}]) :: [svg_node()]
-  def segments([start, finish], stroke_attrs \\ []) do
+  @spec sketch(String.t(), String.t()) :: svg_node()
+  def sketch(path_data, class \\ "stroke-base-content") do
+    %{
+      tag: "path",
+      attrs: [
+        {"data-sketch", ""},
+        {"d", path_data},
+        {"fill", "none"},
+        {"stroke-width", @sketch_stroke_width},
+        {"stroke-linecap", "round"},
+        {"stroke-linejoin", "round"},
+        {"pointer-events", "none"},
+        {"class", class}
+      ]
+    }
+  end
+
+  @doc """
+  The two nodes of a segment kind: a wide transparent `line` that takes the pointer and the
+  hand-drawn `path` of the segment on top, which also carries `stroke_attrs`.
+  """
+  @spec segments([point()], non_neg_integer(), [{String.t(), attribute_value()}]) :: [svg_node()]
+  def segments([start, finish], seed, stroke_attrs \\ []) do
     [
       segment(start, finish, [
         {"data-line-hit", ""},
         {"stroke", "transparent"},
         {"stroke-width", 14}
       ]),
-      segment(
-        start,
-        finish,
-        [
-          {"data-line-stroke", ""},
-          {"stroke-width", 2},
-          {"pointer-events", "none"},
-          {"class", "stroke-base-content"}
-        ] ++ stroke_attrs
-      )
+      %{
+        tag: "path",
+        attrs:
+          [
+            {"data-line-stroke", ""},
+            {"d", SketchWeb.HandDrawn.line(start, finish, seed)},
+            {"fill", "none"},
+            {"stroke-width", @sketch_stroke_width},
+            {"stroke-linecap", "round"},
+            {"pointer-events", "none"},
+            {"class", "stroke-base-content"}
+          ] ++ stroke_attrs
+      }
     ]
   end
 

@@ -100,3 +100,7 @@ Outcome (2026-10-29): with note, the last kind, on the registry, the server
 renders every element, notes included. Note wrapping moved from the client to
 `Sketch.Canvas.Geometry.wrap_text/3`, with the client copy forced equal by a
 parity fixture, so the server now renders wrapped note lines.
+
+Every element also stores a `seed`, chosen by the drawing client and fixed on
+create, from which both renderers draw its hand-drawn strokes (ADR 0005). It
+is rendering data, not styling: there is still no per-element style.

@@ -1,8 +1,8 @@
 defmodule SketchWeb.Elements.Note do
   @moduledoc """
-  Renders a note as a rounded body over its box and, in a nested `svg` that clips to the box, a
-  `text` with one `tspan` per wrapped line: the text wraps to the box width minus
-  `Sketch.Canvas.Geometry` padding on both sides, at its character width per code point.
+  Renders a note as a rounded body over its box, its hand-drawn edges and, in a nested `svg` that
+  clips to the box, a `text` with one `tspan` per wrapped line: the text wraps to the box width
+  minus `Sketch.Canvas.Geometry` padding on both sides, at its character width per code point.
   """
   @behaviour SketchWeb.ElementRenderer
 
@@ -13,7 +13,7 @@ defmodule SketchWeb.Elements.Note do
   @padding Sketch.Canvas.geometry().note_padding
 
   @impl true
-  def render(%{width: width, height: height, text: text}) do
+  def render(%{width: width, height: height, text: text, seed: seed}) do
     [
       %{
         tag: "rect",
@@ -28,6 +28,10 @@ defmodule SketchWeb.Elements.Note do
           {"class", "note-body"}
         ]
       },
+      SketchWeb.ElementRenderer.sketch(
+        SketchWeb.HandDrawn.rectangle(width, height, seed),
+        "note-sketch"
+      ),
       %{
         tag: "svg",
         attrs: [

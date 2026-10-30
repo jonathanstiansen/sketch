@@ -1,7 +1,8 @@
 defmodule Sketch.Canvas.Element do
   @moduledoc """
   A shape on a board (ADR 0003): its `kind`, bounding box, for point kinds such as lines its points
-  relative to the box origin, and for text kinds its text. `version` is the server-ordered tag of the shape (ADR 0001).
+  relative to the box origin, for text kinds its text, and the `seed` its hand-drawn strokes are
+  generated from (ADR 0005), chosen once on create and never changed. `version` is the server-ordered tag of the shape (ADR 0001).
   `erase` hard-deletes it and publishes `%{id, board_id}`, a tombstone every client applies over any version.
   """
   use Ash.Resource,
@@ -20,7 +21,8 @@ defmodule Sketch.Canvas.Element do
   @box_kinds @kinds -- @point_kinds
   @box_min_size Geometry.dimensions().min_size
   @max_text_length Geometry.max_text_length()
-  @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :text, :version]
+  @max_seed Geometry.max_seed()
+  @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :text, :seed, :version]
 
   # The CHECK constraints were generated with the point kinds in this order; listing them in
   # registry order would change the SQL text, and so the migrations, without changing the rule.
@@ -46,6 +48,8 @@ defmodule Sketch.Canvas.Element do
   postgres do
     table "elements"
     repo Sketch.Repo
+
+    migration_defaults seed: ~s|fragment("floor(random() * #{@max_seed + 1})::bigint")|
 
     references do
       reference :board, on_delete: :delete, index?: true
@@ -81,6 +85,8 @@ defmodule Sketch.Canvas.Element do
           "CASE WHEN kind IN (#{@sql_required_text_kinds}) THEN text ~ '#{@sql_not_text_whitespace}' WHEN kind IN (#{@sql_text_kinds}) THEN true ELSE text = '' END"
 
       check_constraint :version, "version_not_negative", check: "version >= 0"
+
+      check_constraint :seed, "seed_in_range", check: "seed >= 0 AND seed <= #{@max_seed}"
     end
   end
 
@@ -88,7 +94,7 @@ defmodule Sketch.Canvas.Element do
     defaults [:read]
 
     create :create do
-      accept [:kind, :x, :y, :width, :height, :points, :text, :board_id]
+      accept [:kind, :x, :y, :width, :height, :points, :text, :seed, :board_id]
     end
 
     update :commit_position do
@@ -174,6 +180,12 @@ defmodule Sketch.Canvas.Element do
       public?: true,
       constraints: [max_length: @max_text_length, allow_empty?: true, trim?: false]
 
+    attribute :seed, :integer,
+      allow_nil?: false,
+      default: &__MODULE__.random_seed/0,
+      public?: true,
+      constraints: [min: 0, max: @max_seed]
+
     attribute :version, :integer,
       allow_nil?: false,
       default: 0,
@@ -187,6 +199,10 @@ defmodule Sketch.Canvas.Element do
   relationships do
     belongs_to :board, Sketch.Canvas.Board, allow_nil?: false, public?: true
   end
+
+  @doc "A seed drawn uniformly from `0..Geometry.max_seed()`, for creates that do not choose one."
+  @spec random_seed() :: non_neg_integer()
+  def random_seed, do: :rand.uniform(@max_seed + 1) - 1
 
   def event_payload(%{data: element}), do: to_event(element)
 

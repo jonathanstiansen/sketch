@@ -222,6 +222,30 @@ defmodule Sketch.Properties.GeometryTest do
     end
   end
 
+  property "Ash and PostgreSQL both accept a seed iff it is an integer in 0..max_seed", %{
+    board: board
+  } do
+    max_seed = Geometry.max_seed()
+
+    check all seed <- integer_near_bounds(max_seed), max_runs: 300 do
+      attrs = %{kind: :rectangle, x: 0, y: 0, width: 1, height: 1, board_id: board.id, seed: seed}
+      ash = Ash.Changeset.for_create(Element, :create, attrs).valid?
+
+      database =
+        match?(
+          {:ok, _result},
+          Repo.query(
+            "INSERT INTO elements (board_id, kind, x, y, width, height, seed) VALUES ($1, 'rectangle', 0, 0, 1, 1, $2)",
+            [Ecto.UUID.dump!(board.id), seed],
+            mode: :savepoint
+          )
+        )
+
+      assert ash == seed in 0..max_seed, inspect(seed)
+      assert database == ash, inspect(seed)
+    end
+  end
+
   property "the box around any two canvas points is a valid line whose points round-trip" do
     check all a <- fixed_map(%{x: integer(-100..4100), y: integer(-100..4100)}),
               b <- fixed_map(%{x: integer(-100..4100), y: integer(-100..4100)}),

@@ -44,8 +44,9 @@ defmodule SketchWeb.Elements do
   @doc """
   One element: a wrapper translated to the element's box, with the kind's children inside it.
   `data-x`, `data-y`, `data-width`, `data-height` and `data-points` are the committed shape;
-  `x`, `y`, `width`, `height` and `live-points` are the shape on screen, which the canvas hook
-  changes while an element is dragged or previewed. The live shape stays outside `data-*`
+  `data-seed` is the seed of its hand-drawn strokes (ADR 0005). `x`, `y`, `width`, `height` and
+  `live-points` are the shape on screen, which the canvas hook changes while an element is
+  dragged or previewed. The live shape stays outside `data-*`
   because LiveView still merges `data-*` attributes into an element a gesture has claimed.
   """
   def element(assigns) do
@@ -65,6 +66,7 @@ defmodule SketchWeb.Elements do
       data-height={@element.height}
       data-points={points_attribute(@element.points)}
       data-text={text_attribute(@element.text)}
+      data-seed={@element.seed}
       data-version={@element.version}
       x={@element.x}
       y={@element.y}
@@ -102,7 +104,13 @@ defmodule SketchWeb.Elements do
   end
 
   defp local_shape(element) do
-    %{width: element.width, height: element.height, points: element.points, text: element.text}
+    %{
+      width: element.width,
+      height: element.height,
+      points: element.points,
+      text: element.text,
+      seed: element.seed
+    }
   end
 
   defp points_attribute([]), do: nil

@@ -1,0 +1,270 @@
+{
+  "attributes": [
+    {
+      "allow_nil?": false,
+      "default": "fragment(\"gen_random_uuid()\")",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": true,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "id",
+      "type": "uuid"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "kind",
+      "type": "text"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "x",
+      "type": "bigint"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "y",
+      "type": "bigint"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "width",
+      "type": "bigint"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "height",
+      "type": "bigint"
+    },
+    {
+      "allow_nil?": false,
+      "default": "[]",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "points",
+      "type": [
+        "array",
+        "map"
+      ]
+    },
+    {
+      "allow_nil?": false,
+      "default": "\"\"",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "text",
+      "type": "text"
+    },
+    {
+      "allow_nil?": false,
+      "default": "fragment(\"floor(random() * 2147483648)::bigint\")",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "seed",
+      "type": "bigint"
+    },
+    {
+      "allow_nil?": false,
+      "default": "0",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "version",
+      "type": "bigint"
+    },
+    {
+      "allow_nil?": false,
+      "default": "fragment(\"(now() AT TIME ZONE 'utc')\")",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "inserted_at",
+      "type": "utc_datetime_usec"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": {
+        "deferrable": false,
+        "destination_attribute": "id",
+        "destination_attribute_default": null,
+        "destination_attribute_generated": null,
+        "index?": true,
+        "index_where": null,
+        "match_tenant?": false,
+        "match_type": null,
+        "match_with": null,
+        "multitenancy": {
+          "attribute": null,
+          "global": null,
+          "strategy": null
+        },
+        "name": "elements_board_id_fkey",
+        "on_delete": "delete",
+        "on_update": null,
+        "primary_key?": true,
+        "schema": "public",
+        "table": "boards"
+      },
+      "scale": null,
+      "size": null,
+      "source": "board_id",
+      "type": "uuid"
+    }
+  ],
+  "base_filter": null,
+  "check_constraints": [
+    {
+      "attribute": [
+        "x"
+      ],
+      "base_filter": null,
+      "check": "x >= 0 AND x + width <= 4000",
+      "name": "x_within_canvas"
+    },
+    {
+      "attribute": [
+        "y"
+      ],
+      "base_filter": null,
+      "check": "y >= 0 AND y + height <= 4000",
+      "name": "y_within_canvas"
+    },
+    {
+      "attribute": [
+        "width"
+      ],
+      "base_filter": null,
+      "check": "width >= CASE WHEN kind IN ('line', 'arrow', 'freedraw') THEN 0 ELSE 1 END",
+      "name": "width_at_least_min"
+    },
+    {
+      "attribute": [
+        "height"
+      ],
+      "base_filter": null,
+      "check": "height >= CASE WHEN kind IN ('line', 'arrow', 'freedraw') THEN 0 ELSE 1 END",
+      "name": "height_at_least_min"
+    },
+    {
+      "attribute": [
+        "points"
+      ],
+      "base_filter": null,
+      "check": "CASE WHEN kind = 'line' THEN cardinality(points) BETWEEN 2 AND 2 WHEN kind = 'arrow' THEN cardinality(points) BETWEEN 2 AND 2 WHEN kind = 'freedraw' THEN cardinality(points) BETWEEN 2 AND 500 ELSE cardinality(points) = 0 END\n",
+      "name": "points_match_kind"
+    },
+    {
+      "attribute": [
+        "points"
+      ],
+      "base_filter": null,
+      "check": "NOT jsonb_path_exists(array_to_json(points)::jsonb, '$[*] ? (@.type() != \"object\" || !exists(@.x) || !exists(@.y) ||\n  @.x.type() != \"number\" || @.y.type() != \"number\" ||\n  @.x.floor() != @.x || @.y.floor() != @.y ||\n  @.x < 0 || @.y < 0 || @.x > $w || @.y > $h)',\n  jsonb_build_object('w', width, 'h', height))\n",
+      "name": "points_within_box"
+    },
+    {
+      "attribute": [
+        "text"
+      ],
+      "base_filter": null,
+      "check": "char_length(text) <= 2000",
+      "name": "text_length"
+    },
+    {
+      "attribute": [
+        "text"
+      ],
+      "base_filter": null,
+      "check": "CASE WHEN kind IN ('text') THEN text ~ '[^ \\t\\n\\r]' WHEN kind IN ('text', 'note') THEN true ELSE text = '' END",
+      "name": "text_matches_kind"
+    },
+    {
+      "attribute": [
+        "version"
+      ],
+      "base_filter": null,
+      "check": "version >= 0",
+      "name": "version_not_negative"
+    },
+    {
+      "attribute": [
+        "seed"
+      ],
+      "base_filter": null,
+      "check": "seed >= 0 AND seed <= 2147483647",
+      "name": "seed_in_range"
+    }
+  ],
+  "create_table_options": null,
+  "custom_indexes": [],
+  "custom_statements": [],
+  "has_create_action": true,
+  "hash": "3A5EF3ECC7C8EE3DDD0B00854F0FC429B0FD99876436C801C4AADE65975193D9",
+  "identities": [],
+  "multitenancy": {
+    "attribute": null,
+    "global": null,
+    "strategy": null
+  },
+  "repo": "Elixir.Sketch.Repo",
+  "schema": null,
+  "table": "elements",
+  "temporal": null
+}

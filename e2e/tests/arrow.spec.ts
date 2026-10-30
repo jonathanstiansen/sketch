@@ -1,19 +1,22 @@
 import { expect, test, type Page } from "@playwright/test"
-import { clickAt, closeSession, expectBox, moveTo, openSharedBoard, pressAt } from "./support/canvas"
+import {
+  SKETCH_END_JITTER,
+  clickAt,
+  closeSession,
+  expectBox,
+  moveTo,
+  openSharedBoard,
+  pressAt,
+  sketchedStrokeDeviation,
+  type Segment,
+} from "./support/canvas"
 
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
 const element = '[data-element][data-kind="arrow"]'
-const stroke = `${element} > line[data-line-stroke]`
+const stroke = `${element} > path[data-line-stroke]`
 const drawPreview = '[data-draw][data-kind="arrow"]'
-const drawStroke = `${drawPreview} > line[data-line-stroke]`
+const drawStroke = `${drawPreview} > path[data-line-stroke]`
 const headMarker = "url(#arrowhead)"
-
-interface Segment {
-  x1: number
-  y1: number
-  x2: number
-  y2: number
-}
 
 function originOf({ x1, y1, x2, y2 }: Segment): { x: number; y: number } {
   return { x: Math.min(x1, x2), y: Math.min(y1, y2) }
@@ -27,13 +30,16 @@ function localSegment(segment: Segment): Segment {
 async function expectSegment(page: Page, wrapper: string, segment: Segment): Promise<void> {
   const { x, y } = originOf(segment)
   await expect(page.locator(wrapper)).toHaveAttribute("transform", `translate(${String(x)} ${String(y)})`)
-  for (const part of ["line[data-line-hit]", "line[data-line-stroke]"]) {
-    const line = page.locator(`${wrapper} > ${part}`)
-    await expect(line).toHaveCount(1)
-    for (const [name, value] of Object.entries(localSegment(segment))) {
-      await expect(line).toHaveAttribute(name, String(value))
-    }
+  const hit = page.locator(`${wrapper} > line[data-line-hit]`)
+  await expect(hit).toHaveCount(1)
+  for (const [name, value] of Object.entries(localSegment(segment))) {
+    await expect(hit).toHaveAttribute(name, String(value))
   }
+  const stroke = `${wrapper} > path[data-line-stroke]`
+  await expect(page.locator(stroke)).toHaveCount(1)
+  await expect
+    .poll(() => sketchedStrokeDeviation(page, stroke, localSegment(segment)))
+    .toBeLessThanOrEqual(SKETCH_END_JITTER)
 }
 
 function relativePoints(segment: Segment): string {

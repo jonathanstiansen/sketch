@@ -10,7 +10,7 @@ import {
 } from "./canvas_logic"
 import type { PreviewKind, SelectionHandles } from "./tools"
 import { rendererFor } from "../elements"
-import { renderElement } from "../elements/dom"
+import { SEED, renderElement } from "../elements/dom"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 const HANDLE_SIZE = 10
@@ -112,17 +112,17 @@ export class SelectionOverlay {
   }
 }
 
-function localPreview(id: string, kind: PreviewKind): SVGGElement {
-  return svgShape("g", { "data-draw": id, "data-kind": kind, class: "local-preview" })
+function localPreview(id: string, kind: PreviewKind, seed: number): SVGGElement {
+  return svgShape("g", { "data-draw": id, "data-kind": kind, [SEED]: String(seed), class: "local-preview" })
 }
 
 export class DrawLayer {
   constructor(private readonly layer: Element) {}
 
-  shape(id: string, kind: PreviewKind): SVGElement {
+  shape(id: string, kind: PreviewKind, seed: number): SVGElement {
     const existing = this.find(id)
     if (existing !== null) return existing
-    const shape = localPreview(id, kind)
+    const shape = localPreview(id, kind, seed)
     this.layer.append(shape)
     return shape
   }

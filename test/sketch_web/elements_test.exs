@@ -45,6 +45,7 @@ defmodule SketchWeb.ElementsTest do
         assert attrs["data-height"] == attrs["height"] and attrs["height"] == "#{shape.height}"
         assert attrs["data-points"] == attrs["live-points"]
         assert attrs["live-points"] == points_attribute(shape.points)
+        assert attrs["data-seed"] == "#{shape.seed}"
 
         assert tree(children) ==
                  @kind |> Elements.render_children(shape) |> RenderFixtures.normalize(),

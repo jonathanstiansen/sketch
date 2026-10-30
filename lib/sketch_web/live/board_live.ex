@@ -8,12 +8,15 @@ defmodule SketchWeb.BoardLive do
   @kinds Enum.map(Sketch.Canvas.element_kinds(), &Atom.to_string/1)
   @point_kinds Enum.map(Sketch.Canvas.point_kinds(), &Atom.to_string/1)
   @max_text_bytes Sketch.Canvas.geometry().max_text_length * 4
+  @max_seed Sketch.Canvas.geometry().max_seed
 
   defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
 
   defguardp is_seq(value) when is_integer(value) and value >= 0
 
   defguardp is_kind(value) when is_binary(value) and value in @kinds
+
+  defguardp is_seed(value) when is_integer(value) and value >= 0 and value <= @max_seed
 
   defguardp is_box(x, y, width, height)
             when is_integer(x) and is_integer(y) and is_integer(width) and is_integer(height) and
@@ -58,12 +61,14 @@ defmodule SketchWeb.BoardLive do
       )
       when is_kind(kind) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
     with {:ok, points} <- points(params),
-         {:ok, text} <- text(params) do
+         {:ok, text} <- text(params),
+         {:ok, seed} <- seed(params) do
       shape =
         kind
         |> String.to_existing_atom()
         |> Sketch.Canvas.fit_shape(%{x: x, y: y, width: width, height: height}, points)
         |> Map.merge(text)
+        |> Map.merge(seed)
 
       socket
       |> create_element(kind, shape)
@@ -88,15 +93,21 @@ defmodule SketchWeb.BoardLive do
       )
       when is_kind(kind) and is_uuid(drag_id) and is_seq(seq) and is_box(x, y, width, height) and
              fits_kind(kind, width, height) do
-    relay_shape(socket, "draw_preview", params, %{
-      kind: kind,
-      drag_id: drag_id,
-      seq: seq,
-      x: x,
-      y: y,
-      width: width,
-      height: height
-    })
+    case seed(params) do
+      {:ok, seed} ->
+        relay_shape(
+          socket,
+          "draw_preview",
+          params,
+          Map.merge(
+            %{kind: kind, drag_id: drag_id, seq: seq, x: x, y: y, width: width, height: height},
+            seed
+          )
+        )
+
+      :error ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event("draw_cancel", %{"drag_id" => drag_id}, socket) when is_uuid(drag_id) do
@@ -303,6 +314,10 @@ defmodule SketchWeb.BoardLive do
 
   defp text(%{"text" => _invalid}), do: :error
   defp text(_without_text), do: {:ok, %{}}
+
+  defp seed(%{"seed" => seed}) when is_seed(seed), do: {:ok, %{seed: seed}}
+  defp seed(%{"seed" => _invalid}), do: :error
+  defp seed(_without_seed), do: {:ok, %{}}
 
   defp commit_shape_error(%{text: _text}), do: "Could not edit text"
   defp commit_shape_error(_shape), do: "Could not resize element"

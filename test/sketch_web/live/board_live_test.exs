@@ -167,6 +167,72 @@ defmodule SketchWeb.BoardLiveTest do
     assert Canvas.list_elements_for_board!(board.id) == []
   end
 
+  test "create_element stores the client's seed and every view draws the same hand-drawn path from it",
+       %{conn: conn, board: board} do
+    {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+    {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+    seed = Sketch.Canvas.geometry().max_seed
+
+    render_hook(creator, "create_element", Map.put(create_params(10, 20, 120, 80), "seed", seed))
+
+    assert [%{id: id, seed: ^seed}] = Canvas.list_elements_for_board!(board.id)
+    path = SketchWeb.HandDrawn.rectangle(120, 80, seed)
+
+    {:ok, reloaded, _html} = live(conn, ~p"/b/#{board.id}")
+
+    for view <- [creator, watcher, reloaded] do
+      assert has_element?(
+               view,
+               "g#element-#{id}[data-seed='#{seed}'] > path[data-sketch][d='#{path}']"
+             )
+    end
+  end
+
+  test "create_element without a seed stores a random one, and with an invalid seed creates nothing",
+       %{conn: conn, board: board} do
+    {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
+    max_seed = Sketch.Canvas.geometry().max_seed
+
+    for seed <- [-1, max_seed + 1, "7", 1.5, nil] do
+      render_hook(view, "create_element", Map.put(create_params(10, 10, 5, 5), "seed", seed))
+    end
+
+    assert Canvas.list_elements_for_board!(board.id) == []
+
+    render_hook(view, "create_element", create_params(10, 10, 5, 5))
+    assert [%{id: id, seed: seed}] = Canvas.list_elements_for_board!(board.id)
+    assert seed in 0..max_seed
+    assert has_element?(view, "g#element-#{id}[data-seed='#{seed}']")
+  end
+
+  test "a draw preview relays its seed, and one with an invalid seed is dropped", %{
+    conn: conn,
+    board: board
+  } do
+    {:ok, creator, _html} = live(conn, ~p"/b/#{board.id}")
+    {:ok, watcher, _html} = live(conn, ~p"/b/#{board.id}")
+
+    preview = %{
+      "kind" => "ellipse",
+      "drag_id" => @drag_id,
+      "x" => 10,
+      "y" => 20,
+      "width" => 30,
+      "height" => 40,
+      "points" => []
+    }
+
+    render_hook(creator, "draw_preview", Map.merge(preview, %{"seq" => 1, "seed" => 0}))
+    assert_push_event(watcher, "draw_preview", %{seq: 1, seed: 0, kind: "ellipse"})
+
+    render_hook(creator, "draw_preview", Map.merge(preview, %{"seq" => 2, "seed" => -3}))
+    refute_push_event(watcher, "draw_preview", %{seq: 2})
+
+    render_hook(creator, "draw_preview", Map.put(preview, "seq", 3))
+    assert_push_event(watcher, "draw_preview", %{seq: 3} = without_seed)
+    refute Map.has_key?(without_seed, :seed)
+  end
+
   test "a rectangle created elsewhere appears", %{conn: conn, board: board} do
     {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
 
@@ -263,7 +329,7 @@ defmodule SketchWeb.BoardLiveTest do
     defp line_selector(id, {x, y}, {x1, y1, x2, y2}, version) do
       "g#element-#{id}[data-kind='line'][data-version='#{version}']" <>
         "[transform='translate(#{x} #{y})'][live-points='#{x1},#{y1} #{x2},#{y2}'] > " <>
-        "line[data-line-stroke][x1='#{x1}'][y1='#{y1}'][x2='#{x2}'][y2='#{y2}']"
+        "line[data-line-hit][x1='#{x1}'][y1='#{y1}'][x2='#{x2}'][y2='#{y2}'] + path[data-line-stroke]"
     end
 
     test "a drawn line is stored with its relative points and rendered in local coordinates in every view",
@@ -301,11 +367,14 @@ defmodule SketchWeb.BoardLiveTest do
       assert [%{kind: :arrow, id: id} = arrow] = Canvas.list_elements_for_board!(board.id)
       assert Enum.map(arrow.points, &{&1.x, &1.y}) == [{200, 80}, {0, 0}]
 
+      stroke = SketchWeb.HandDrawn.line(%{x: 200, y: 80}, %{x: 0, y: 0}, arrow.seed)
+
       assert has_element?(
                view,
                "g#element-#{id}[data-kind='arrow'][data-points='200,80 0,0'][live-points='200,80 0,0']" <>
                  "[transform='translate(200 220)'] > " <>
-                 "line[data-line-stroke][marker-end='url(#arrowhead)'][x1='200'][y1='80'][x2='0'][y2='0']"
+                 "line[data-line-hit][x1='200'][y1='80'][x2='0'][y2='0'] + " <>
+                 "path[data-line-stroke][marker-end='url(#arrowhead)'][d='#{stroke}']"
              )
 
       assert has_element?(view, "#canvas defs marker#arrowhead")

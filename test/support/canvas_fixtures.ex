@@ -15,7 +15,7 @@ defmodule Sketch.CanvasFixtures do
   end
 
   @doc "A rectangle's notification payload, shaped like `Sketch.Canvas.element_event/1`."
-  def rectangle_event(attrs), do: rectangle(Map.merge(%{points: [], text: ""}, attrs))
+  def rectangle_event(attrs), do: rectangle(Map.merge(%{points: [], text: "", seed: 0}, attrs))
 
   @doc "Inserts `count` rectangles with random boxes inside the canvas on the board."
   def generate_rectangles(board_id, count) do

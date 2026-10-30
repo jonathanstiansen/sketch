@@ -25,6 +25,7 @@ defmodule Sketch.Canvas.Geometry do
   @required_text_kinds for %{id: id, text: :required} <- Kinds.all(), do: id
   @text_kinds for %{id: id, text: text} <- Kinds.all(), text != :none, do: id
   @max_text_length 2000
+  @max_seed 2_147_483_647
   @font_size 20
   @line_height 25
   @text_baseline 19
@@ -54,6 +55,7 @@ defmodule Sketch.Canvas.Geometry do
           min_size: pos_integer(),
           max_points: pos_integer(),
           max_text_length: pos_integer(),
+          max_seed: pos_integer(),
           font_size: pos_integer(),
           line_height: pos_integer(),
           text_baseline: pos_integer(),
@@ -89,6 +91,10 @@ defmodule Sketch.Canvas.Geometry do
 
   @spec max_text_length() :: pos_integer()
   def max_text_length, do: @max_text_length
+
+  @doc "The largest element seed; a seed is any integer in `0..max_seed` (ADR 0005)."
+  @spec max_seed() :: pos_integer()
+  def max_seed, do: @max_seed
 
   @doc "The text kinds whose text must contain a character other than whitespace."
   @spec required_text_kinds() :: [atom()]
@@ -236,6 +242,7 @@ defmodule Sketch.Canvas.Geometry do
       min_size: @min_size,
       max_points: @max_points,
       max_text_length: @max_text_length,
+      max_seed: @max_seed,
       font_size: @font_size,
       line_height: @line_height,
       text_baseline: @text_baseline,

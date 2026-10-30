@@ -74,6 +74,7 @@ export const GEOMETRY = {
   fontSize: 20,
   lineHeight: 25,
   maxPoints: 500,
+  maxSeed: 2147483647,
   maxTextLength: 2000,
   minSize: 1,
   notePadding: 12,
