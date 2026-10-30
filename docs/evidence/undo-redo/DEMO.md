@@ -166,7 +166,7 @@ Mutation killed (exit 2)
 Result: 10/12 passed (1/1 property, 9/11 tests), 1 excluded
 ```
 
-Every file this PR touched outside the evidence folder (A added, M modified) against `live-cursors`. The stack logic and the reply parsing are new pure modules; the canvas hook gains the recording, the replay and the key and button handling (pointer events stay in that file, A13); `BoardLive` gains the replies and the `created` push; the chords live in the new `SketchWeb.HistoryActions` registry, copied into the manifest; `architecture/rules.exs` only gains verification files and wording for A09 and A11, and no rule, status or allowlist changed.
+Every file this PR touched outside the evidence folder (A added, M modified) against `live-cursors`. The stack logic and the reply parsing are new pure modules; the canvas hook gains the recording, the replay and the key and button handling (pointer events stay in that file, A13); `BoardLive` gains the replies and the `created` push; the chords live in the new `SketchWeb.HistoryActions` registry, copied into the manifest; `architecture/rules.exs` only gains verification files and wording for A09 and A11, and no rule, status or allowlist changed. `sessions.spec.ts` now waits for the home page's LiveView to connect before clicking New board, which CI showed could be lost right after the restart test.
 
 ```bash
 git diff --name-status -M live-cursors...HEAD -- . ':!docs/evidence' | sort -k2; git diff --shortstat live-cursors...HEAD -- . ':!docs/evidence'
@@ -185,6 +185,7 @@ M	docs/adr/0001-ash-atomic-lww-consistency.md
 M	docs/adr/0003-element-model.md
 A	docs/adr/0008-undo-and-redo-replayed-as-ordinary-commits.md
 M	docs/SPEC-ADDENDUM.md
+M	e2e/tests/sessions.spec.ts
 A	e2e/tests/undo.spec.ts
 M	lib/sketch_web/client_manifest.ex
 M	lib/sketch_web/components/toolbar.ex
@@ -193,5 +194,5 @@ M	lib/sketch_web/live/board_live.ex
 A	test/sketch_web/live/board_live_undo_test.exs
 M	test/sketch/canvas/concurrent_commits_test.exs
 M	test/sketch/properties/lww_merge_test.exs
- 20 files changed, 1845 insertions(+), 56 deletions(-)
+ 21 files changed, 1847 insertions(+), 56 deletions(-)
 ```
