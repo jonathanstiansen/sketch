@@ -118,6 +118,67 @@ defmodule Sketch.Architecture.SourcePolicyTest do
     end
   end
 
+  describe "keyboard shortcuts come from SketchWeb.Shortcuts (A23)" do
+    test "application" do
+      violations =
+        ArchitectureCheck.literal_chord_violations(File.cwd!(), literal_chord_paths())
+
+      assert violations == [], ArchitectureCheck.format_violations(violations)
+    end
+
+    test "rejects literal key checks, LiveView key bindings and literal aria-keyshortcuts outside the allowed files" do
+      violations =
+        ArchitectureCheck.literal_chord_violations(fixture("a23"), literal_chord_paths())
+
+      assert subjects(violations, "A23") ==
+               Enum.sort([
+                 "assets/js/hooks/keys.ts:2",
+                 "assets/js/hooks/keys.ts:3",
+                 "assets/js/hooks/keys.ts:4",
+                 "assets/js/hooks/keys.ts:5",
+                 "assets/js/hooks/keys.ts:6",
+                 "assets/js/hooks/keys.ts:9",
+                 "assets/js/hooks/keys.ts:10",
+                 "lib/board_live.ex:4",
+                 "lib/board_live.ex:5"
+               ])
+    end
+
+    test "only the generated table, the one matcher and two files with no Sketch shortcut are exempt" do
+      assert literal_chord_paths() == [
+               "assets/js/generated/",
+               "assets/js/hooks/shortcuts.ts",
+               "assets/js/app.ts",
+               "lib/sketch_web/components/layouts/root.html.heex"
+             ]
+    end
+  end
+
+  describe "scripts stop only processes they started, by PID" do
+    test "application" do
+      violations = ArchitectureCheck.process_kill_violations(File.cwd!())
+
+      assert violations == [], ArchitectureCheck.format_violations(violations)
+    end
+
+    test "rejects pkill, killall and kill without a PID variable in scripts and DEMO.md exec blocks" do
+      violations = ArchitectureCheck.process_kill_violations(fixture("processes"))
+
+      assert subjects(violations, "processes") == [
+               "docs/evidence/demo/DEMO.md:6",
+               "docs/evidence/demo/record.sh:3",
+               "docs/evidence/demo/record.sh:4",
+               "docs/evidence/demo/record.sh:5",
+               "docs/evidence/demo/record.sh:6",
+               "docs/evidence/demo/record.sh:7",
+               "e2e/tests/restart.spec.ts:6",
+               "scripts/stop.mjs:3"
+             ]
+    end
+  end
+
+  defp literal_chord_paths, do: allowlist(:literal_chord_paths)
+
   defp element_kinds, do: Enum.map(Sketch.Canvas.element_kinds(), &Atom.to_string/1)
 
   defp kind_branching_paths, do: allowlist(:kind_branching_paths)

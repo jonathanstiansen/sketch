@@ -6,7 +6,7 @@ defmodule SketchWeb.ExportMenu do
   """
   use SketchWeb, :html
 
-  alias SketchWeb.ExportActions
+  alias SketchWeb.{ExportActions, Shortcuts}
 
   @button "export-button"
   @menu "export-menu"
@@ -18,12 +18,12 @@ defmodule SketchWeb.ExportMenu do
     <button
       id={button_id()}
       type="button"
-      title={"#{@action.label} (#{Enum.join(@action.keys, "+")})"}
+      title={Shortcuts.title(@action.id)}
       aria-label={@action.label}
       aria-haspopup="true"
       aria-expanded="false"
       aria-controls={menu_id()}
-      aria-keyshortcuts={ExportActions.aria_keyshortcuts(@action)}
+      aria-keyshortcuts={Shortcuts.aria_keyshortcuts(@action.id)}
       class={[button_class(), "font-semibold"]}
     >
       <svg
@@ -69,13 +69,13 @@ defmodule SketchWeb.ExportMenu do
             :for={action <- @actions}
             type="button"
             data-export-action={action.id}
-            aria-keyshortcuts={ExportActions.aria_keyshortcuts(action)}
+            aria-keyshortcuts={Shortcuts.aria_keyshortcuts(action.id)}
             class="flex items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-primary"
           >
             {action.label}
-            <span :if={action.keys != []} class="flex gap-1" aria-hidden="true">
+            <span :if={action.chords != []} class="flex gap-1" aria-hidden="true">
               <kbd
-                :for={key <- action.keys}
+                :for={key <- hd(action.chords).keys}
                 class="rounded border border-base-300 bg-base-200 px-1.5 font-mono text-xs"
               >
                 {key}

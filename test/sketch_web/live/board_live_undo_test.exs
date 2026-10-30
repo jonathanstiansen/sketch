@@ -7,7 +7,7 @@ defmodule SketchWeb.BoardLiveUndoTest do
   alias Phoenix.Socket.Broadcast
   alias Sketch.Canvas
   alias Sketch.Canvas.Kinds
-  alias SketchWeb.HistoryActions
+  alias SketchWeb.{HistoryActions, Shortcuts}
 
   @drag_id "11111111-2222-4333-8444-555555555555"
   @undo_drag_id "66666666-7777-4888-9999-000000000000"
@@ -231,11 +231,9 @@ defmodule SketchWeb.BoardLiveUndoTest do
     end
   end
 
-  test "the registry gives each action its aria-keyshortcuts and title" do
-    [undo, redo] = HistoryActions.all()
-
-    assert HistoryActions.aria_keyshortcuts(undo) == "Control+Z Meta+Z"
-    assert HistoryActions.aria_keyshortcuts(redo) == "Control+Shift+Z Meta+Shift+Z Control+Y"
-    assert HistoryActions.title(undo) == "Undo (Ctrl/⌘+Z)"
+  test "the aggregate gives undo and redo their aria-keyshortcuts and title" do
+    assert Shortcuts.aria_keyshortcuts("undo") == "Control+Z Meta+Z"
+    assert Shortcuts.aria_keyshortcuts("redo") == "Control+Shift+Z Meta+Shift+Z Control+Y"
+    assert Shortcuts.title("undo") == "Undo (Ctrl/⌘+Z)"
   end
 end

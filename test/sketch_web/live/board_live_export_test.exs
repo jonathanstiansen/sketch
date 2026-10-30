@@ -4,7 +4,7 @@ defmodule SketchWeb.BoardLiveExportTest do
   import Phoenix.LiveViewTest
 
   alias Sketch.Canvas
-  alias SketchWeb.ExportActions
+  alias SketchWeb.{ExportActions, Shortcuts}
 
   setup do
     %{board: Canvas.create_board!()}
@@ -31,17 +31,14 @@ defmodule SketchWeb.BoardLiveExportTest do
     {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
     help = view |> element("#shortcuts-help") |> render()
 
-    for action <- ExportActions.with_shortcuts() do
+    for %{chords: [_ | _]} = action <- ExportActions.all() do
       assert help =~ action.label
     end
   end
 
-  test "the registry gives each chord an aria-keyshortcuts value" do
-    open = Enum.find(ExportActions.all(), &(&1.id == "open_menu"))
-    copy = Enum.find(ExportActions.all(), &(&1.id == "copy_png"))
-
-    assert ExportActions.aria_keyshortcuts(open) == "Control+Shift+E Meta+Shift+E"
-    assert ExportActions.aria_keyshortcuts(copy) == "Shift+Alt+C"
-    assert ExportActions.aria_keyshortcuts(%{chord: nil}) == nil
+  test "the aggregate gives each export chord an aria-keyshortcuts value" do
+    assert Shortcuts.aria_keyshortcuts("open_menu") == "Control+Shift+E Meta+Shift+E"
+    assert Shortcuts.aria_keyshortcuts("copy_png") == "Shift+Alt+C"
+    assert Shortcuts.aria_keyshortcuts("download_png") == nil
   end
 end

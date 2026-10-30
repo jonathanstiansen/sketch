@@ -4,7 +4,7 @@ defmodule SketchWeb.BoardLiveZoomTest do
   import Phoenix.LiveViewTest
 
   alias Sketch.Canvas
-  alias SketchWeb.ZoomActions
+  alias SketchWeb.{Shortcuts, ZoomActions}
 
   setup %{conn: conn} do
     board = Canvas.create_board!()
@@ -37,10 +37,10 @@ defmodule SketchWeb.BoardLiveZoomTest do
     end
   end
 
-  test "the registry gives each action its aria-keyshortcuts and title" do
-    assert ZoomActions.aria_keyshortcuts(ZoomActions.get!("zoom_in")) == "Control+= Meta+="
-    assert ZoomActions.aria_keyshortcuts(ZoomActions.get!("zoom_reset")) == "Control+0 Meta+0"
-    assert ZoomActions.aria_keyshortcuts(ZoomActions.get!("zoom_fit")) == "Shift+1"
-    assert ZoomActions.title(ZoomActions.get!("zoom_out")) == "Zoom out (Ctrl/⌘+-)"
+  test "the aggregate gives each zoom action its aria-keyshortcuts and title" do
+    assert Shortcuts.aria_keyshortcuts("zoom_in") == "Control+= Meta+="
+    assert Shortcuts.aria_keyshortcuts("zoom_reset") == "Control+0 Meta+0"
+    assert Shortcuts.aria_keyshortcuts("zoom_fit") == "Shift+1"
+    assert Shortcuts.title("zoom_out") == "Zoom out (Ctrl/⌘+-)"
   end
 end

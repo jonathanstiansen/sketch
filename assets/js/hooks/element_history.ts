@@ -1,9 +1,10 @@
 import type { Box, Point } from "./canvas_logic.ts"
 import { History, type Recorded } from "./history_logic.ts"
 import { isElementKind } from "./tools.ts"
+import { focusContext, shortcutFor, type ShortcutInput } from "./shortcuts.ts"
 import { isSeed } from "../elements/dom.ts"
 import { isStyleToken, styleFrom, type ElementStyle } from "../elements/style.ts"
-import { HISTORY_ACTIONS, STYLE_PROPERTIES, type ElementKind, type HistoryActionId, type HistoryChord, type StyleProperty } from "../generated/manifest.ts"
+import { HISTORY_ACTIONS, STYLE_PROPERTIES, type ElementKind, type HistoryActionId, type StyleProperty } from "../generated/manifest.ts"
 
 export interface ElementSnapshot extends Box {
   readonly kind: ElementKind
@@ -20,12 +21,7 @@ export type ElementChange =
 
 export type ElementHistory = History<ElementSnapshot, ElementChange>
 
-export interface HistoryKeyInput {
-  readonly key: string
-  readonly ctrlKey: boolean
-  readonly metaKey: boolean
-  readonly shiftKey: boolean
-  readonly altKey: boolean
+export interface HistoryKeyInput extends ShortcutInput {
   readonly editable: boolean
 }
 
@@ -83,14 +79,9 @@ export function changePayload(elementId: string, change: ElementChange, dragId: 
   return change.text === undefined ? shape : { ...shape, text: change.text }
 }
 
-function matchesChord(chord: HistoryChord, input: HistoryKeyInput): boolean {
-  const mod = chord.mod === "command" ? input.ctrlKey || input.metaKey : input.ctrlKey && !input.metaKey
-  return mod && !input.altKey && input.shiftKey === chord.shift && input.key.toLowerCase() === chord.key
-}
-
 export function historyActionFor(input: HistoryKeyInput): HistoryActionId | undefined {
-  if (input.editable) return undefined
-  return HISTORY_ACTIONS.find(({ chords }) => chords.some((chord) => matchesChord(chord, input)))?.id
+  const shortcut = shortcutFor(input, focusContext(input.editable))
+  return shortcut?.group === "history" ? shortcut.action : undefined
 }
 
 export function isHistoryAction(value: unknown): value is HistoryActionId {

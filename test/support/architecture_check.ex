@@ -47,6 +47,12 @@ defmodule Sketch.ArchitectureCheck do
     {~r/ignore_(?:warnings)\b/, "Dialyzer ignore option"}
   ]
 
+  @literal_chord_checks ~r/\b\w*(?:[kK]ey|[cC]ode)\w*\b(?:\.\w+\(\))?\s*(?:===|!==|==|!=)\s*["'`]|["'`]\s*(?:===|!==|==|!=)\s*[\w.]*\b\w*(?:[kK]ey|[cC]ode)\b|\bswitch\s*\(\s*[\w.]*\b(?:key|code)\s*\)|\]\s*\.includes\(\s*[\w.]*\b(?:key|code)\b|phx-(?:window-)?key(?:down|up)?=|aria-keyshortcuts=["']/
+  @script_extensions ~w(.sh .bash .mjs .cjs .js .ts)
+  @script_directories ~w(docs/evidence e2e scripts)
+  @kill_command ~r/(?<![\w.$\/-])kill\b(?!\s*\()((?:\s+-[\w-]+)*)((?:\s+"[^"]*"|\s+[^\s;|&)'"`]+)*)/
+  @pid_reference ~r/^["']?(?:\$\{?[A-Za-z_]\w*\}?|\$!|%\d+)["']?;?$/
+
   @scanned_extensions ~w(.ex .exs .heex .eex .ts .tsx .js .mjs .cjs .json .yml .yaml)
   @skipped_directories ~w(_build deps node_modules .git .elixir_ls cover tmp test-results playwright-report .claude)
   @skipped_paths ~w(priv/static priv/plts)
@@ -258,6 +264,86 @@ defmodule Sketch.ArchitectureCheck do
 
   defp allowed_path?(file, allowed_paths),
     do: Enum.any?(allowed_paths, &(file == &1 or String.starts_with?(file, &1)))
+
+  @doc """
+  Lines in `lib/` and `assets/js/` that check a keyboard key outside `SketchWeb.Shortcuts` (A23):
+  a `key`, `code` or `*Key*`/`*Code*` value compared with a string literal in either order, a
+  `switch` on `key` or `code`, a literal array's `.includes(…key)`, a `phx-key`/`phx-keydown`/
+  `phx-window-keydown` binding or a literal `aria-keyshortcuts` attribute. Files equal to or under an
+  `allowed_paths` entry are skipped.
+  """
+  @spec literal_chord_violations(Path.t(), [String.t()]) :: [violation()]
+  def literal_chord_violations(root, allowed_paths) do
+    root
+    |> source_files(~w(lib assets/js), ~w(.ex .exs .heex .ts .tsx .js .mjs))
+    |> Enum.reject(&allowed_path?(&1, allowed_paths))
+    |> Enum.flat_map(&matching_lines(root, &1, @literal_chord_checks, "A23", "literal key check"))
+  end
+
+  @doc """
+  Scripts under `docs/evidence/`, `e2e/` and `scripts/` and the exec blocks of every `DEMO.md`
+  under `docs/` that stop processes they did not start: any `pkill` or `killall`, and any `kill`
+  whose target is not a PID variable (`kill "$pid"`, `kill -9 $server`, `kill $!`, `kill %1`).
+  """
+  @spec process_kill_violations(Path.t()) :: [violation()]
+  def process_kill_violations(root) do
+    scripts =
+      root
+      |> source_files(@script_directories, @script_extensions)
+      |> Enum.flat_map(&numbered_lines(root, &1))
+
+    demos =
+      root
+      |> source_files(~w(docs), :any)
+      |> Enum.filter(&(Path.basename(&1) == "DEMO.md"))
+      |> Enum.flat_map(&exec_block_lines(root, &1))
+
+    for {subject, line} <- scripts ++ demos, problem <- kill_problems(line) do
+      violation("processes", subject, "#{problem}: #{String.trim(line)}")
+    end
+  end
+
+  defp kill_problems(line) do
+    named =
+      for command <- ~w(pkill killall), Regex.match?(~r/(?<![\w.-])#{command}\b/, line) do
+        "#{command} stops processes by name"
+      end
+
+    unowned =
+      for [_match, _flags, targets] <- Regex.scan(@kill_command, line),
+          targets = String.split(targets),
+          targets == [] or not Enum.all?(targets, &Regex.match?(@pid_reference, &1)) do
+        "kill without a PID variable"
+      end
+
+    named ++ unowned
+  end
+
+  defp numbered_lines(root, relative_path) do
+    root
+    |> Path.expand()
+    |> Path.join(relative_path)
+    |> File.read!()
+    |> String.split("\n")
+    |> Enum.with_index(1)
+    |> Enum.map(fn {line, number} -> {"#{relative_path}:#{number}", line} end)
+  end
+
+  defp exec_block_lines(root, relative_path) do
+    root
+    |> numbered_lines(relative_path)
+    |> Enum.map_reduce(:prose, fn {_subject, line} = numbered, state ->
+      case {state, String.trim(line)} do
+        {:prose, "```output" <> _} -> {nil, :output}
+        {:prose, "```" <> _} -> {nil, :exec}
+        {_block, "```"} -> {nil, :prose}
+        {:exec, _code} -> {numbered, :exec}
+        {_other, _text} -> {nil, state}
+      end
+    end)
+    |> elem(0)
+    |> Enum.reject(&is_nil/1)
+  end
 
   @spec e2e_violations(Path.t()) :: [violation()]
   def e2e_violations(root) do

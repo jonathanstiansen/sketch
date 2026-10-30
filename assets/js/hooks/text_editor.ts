@@ -1,4 +1,5 @@
 import { textBox, textLines, type Box, type Point, type Size } from "./canvas_logic"
+import { shortcutFor } from "./shortcuts"
 
 export interface TextLayout {
   fontSize: number
@@ -85,7 +86,7 @@ export class TextEditor {
   }
 
   private onKeyDown = (event: KeyboardEvent): void => {
-    if (event.key !== "Escape") return
+    if (shortcutFor(event, "editor")?.action !== "finish_text") return
     event.preventDefault()
     event.stopPropagation()
     this.commit()

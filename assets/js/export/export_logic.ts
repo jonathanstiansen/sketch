@@ -1,6 +1,6 @@
 import type { Box } from "../hooks/canvas_logic.ts"
 import type { ExportActionId } from "../generated/manifest.ts"
-import { EXPORT_ACTIONS } from "../generated/manifest.ts"
+import { shortcutFor, type FocusContext, type ShortcutInput } from "../hooks/shortcuts.ts"
 
 export const EXPORT_PADDING = 16
 export const MAX_PNG_PIXELS = 16_000_000
@@ -27,14 +27,6 @@ export interface Rgba {
 export interface Paint {
   readonly value: string
   readonly opacity: number
-}
-
-export interface KeyChord {
-  readonly code: string
-  readonly ctrlKey: boolean
-  readonly metaKey: boolean
-  readonly shiftKey: boolean
-  readonly altKey: boolean
 }
 
 const PAINT_PROPERTIES = ["fill", "stroke"] as const
@@ -117,14 +109,7 @@ export function markerReferences(value: string): string[] {
   return [...value.matchAll(/url\(#([^)]+)\)/g)].flatMap((match) => (match[1] === undefined ? [] : [match[1]]))
 }
 
-export function matchesChord(chord: { code: string; mod: boolean; shift: boolean; alt: boolean }, key: KeyChord): boolean {
-  const mod = key.ctrlKey || key.metaKey
-  return key.code === chord.code && mod === chord.mod && key.shiftKey === chord.shift && key.altKey === chord.alt
-}
-
-export function exportActionFor(key: KeyChord): ExportActionId | undefined {
-  for (const action of EXPORT_ACTIONS) {
-    if (action.chord !== null && matchesChord(action.chord, key)) return action.id
-  }
-  return undefined
+export function exportActionFor(input: ShortcutInput, context: FocusContext): ExportActionId | undefined {
+  const shortcut = shortcutFor(input, context)
+  return shortcut?.group === "export" ? shortcut.action : undefined
 }

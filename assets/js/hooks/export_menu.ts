@@ -2,6 +2,7 @@ import { ViewHook } from "phoenix_live_view"
 import { EXPORT_ACTIONS, type ExportActionId } from "../generated/manifest"
 import { buildSvg, copyPng, download, renderPng, svgBlob, type ExportOptions } from "../export/export_dom"
 import { exportActionFor, exportFilename, type ExportFormat } from "../export/export_logic"
+import { focusContext, shortcutFor } from "./shortcuts"
 
 const STATUS_MS = 3000
 const NOTHING_TO_EXPORT = "Nothing to export"
@@ -117,12 +118,13 @@ export class ExportMenu extends ViewHook {
   }
 
   private onKeyDown = (event: KeyboardEvent): void => {
-    if (event.key === "Escape" && this.isOpen) {
+    const context = focusContext(inTextEditor(event.target))
+    if (this.isOpen && shortcutFor(event, context)?.action === "escape") {
       this.close(true)
       return
     }
-    const action = exportActionFor(event)
-    if (action === undefined || inTextEditor(event.target)) return
+    const action = exportActionFor(event, context)
+    if (action === undefined) return
     event.preventDefault()
     void this.run(action)
   }

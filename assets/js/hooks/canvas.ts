@@ -70,12 +70,14 @@ import {
   zoomPercent,
   type View,
 } from "./zoom_logic"
+import { isShortcutKey } from "./shortcuts"
 import {
   DEFAULT_TOOL,
   defaultSize,
   deletesSelection,
   drawGesture,
   drawnKind,
+  escapes,
   isElementKind,
   isPreviewKind,
   isTextKind,
@@ -207,8 +209,10 @@ function isOk(reply: unknown): boolean {
 function keyInput(event: KeyboardEvent): KeyInput {
   return {
     key: event.key,
+    code: event.code,
     ctrlKey: event.ctrlKey,
     metaKey: event.metaKey,
+    shiftKey: event.shiftKey,
     altKey: event.altKey,
     editable: event.isComposing || isEditable(event.target),
   }
@@ -887,13 +891,13 @@ export class Canvas extends ViewHook {
 
   private onKeyDown = (event: KeyboardEvent): void => {
     const input = keyInput(event)
-    const zoomAction = zoomActionFor({ ...input, code: event.code, shiftKey: event.shiftKey })
+    const zoomAction = zoomActionFor(input)
     if (zoomAction !== undefined) {
       event.preventDefault()
       this.runZoom(zoomAction)
       return
     }
-    const historyAction = historyActionFor({ ...input, shiftKey: event.shiftKey })
+    const historyAction = historyActionFor(input)
     if (historyAction !== undefined) {
       event.preventDefault()
       this.runHistory(historyAction)
@@ -906,7 +910,7 @@ export class Canvas extends ViewHook {
     }
     if (togglesHelp(input)) this.toggleHelp()
     if (deletesSelection(input)) this.eraseSelected(event)
-    if (input.key === "Escape") this.escape()
+    if (escapes(input)) this.escape()
     this.useTool(nextTool(this.tool, input))
   }
 
@@ -926,7 +930,7 @@ export class Canvas extends ViewHook {
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {
-    if (event.key !== " ") return
+    if (!isShortcutKey("pan", event)) return
     if (this.pannedWithSpace) event.preventDefault()
     this.releaseSpace()
   }

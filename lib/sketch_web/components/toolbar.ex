@@ -1,14 +1,15 @@
 defmodule SketchWeb.Toolbar do
   @moduledoc """
-  The canvas toolbar and its shortcuts help, rendered from `SketchWeb.Tools`, the undo and redo
-  buttons, rendered from `SketchWeb.HistoryActions` (ADR 0008), and the zoom control, rendered from
-  `SketchWeb.ZoomActions`. The selected tool, the undo and redo stacks and the zoom level are
-  client-side UI state owned by the `Canvas` hook (`assets/js/hooks/tools.ts` and `zoom_logic.ts`
-  read the keymaps from the generated manifest); these components only render them.
+  The canvas toolbar, rendered from `SketchWeb.Tools`, the undo and redo buttons, rendered from
+  `SketchWeb.HistoryActions` (ADR 0008), the zoom control, rendered from `SketchWeb.ZoomActions`,
+  and the shortcuts help, rendered from `SketchWeb.Shortcuts` only (A23). The selected tool, the
+  undo and redo stacks and the zoom level are client-side UI state owned by the `Canvas` hook
+  (`assets/js/hooks/shortcuts.ts` matches key presses against the generated `SHORTCUTS`); these
+  components only render them.
   """
   use SketchWeb, :html
 
-  alias SketchWeb.{HistoryActions, ZoomActions}
+  alias SketchWeb.{HistoryActions, Shortcuts, ZoomActions}
 
   @help_button "shortcuts-help-button"
   @help_panel "shortcuts-help"
@@ -34,9 +35,9 @@ defmodule SketchWeb.Toolbar do
         <button
           id={help_button_id()}
           type="button"
-          title="Keyboard shortcuts (?)"
+          title={"Keyboard shortcuts (#{Shortcuts.key_hint("help")})"}
           aria-label="Keyboard shortcuts"
-          aria-keyshortcuts="Shift+?"
+          aria-keyshortcuts={Shortcuts.aria_keyshortcuts("help")}
           aria-expanded="false"
           aria-controls={help_panel_id()}
           phx-click={toggle_help()}
@@ -64,7 +65,7 @@ defmodule SketchWeb.Toolbar do
       data-tool-button={@tool.id}
       aria-label={@tool.label}
       aria-pressed={to_string(@pressed)}
-      aria-keyshortcuts={Enum.join(@tool.keys, " ")}
+      aria-keyshortcuts={Shortcuts.aria_keyshortcuts(@tool.id)}
       aria-disabled={to_string(not @tool.enabled)}
       disabled={not @tool.enabled}
       title={tool_title(@tool)}
@@ -117,8 +118,8 @@ defmodule SketchWeb.Toolbar do
       type="button"
       data-history-action={@action.id}
       aria-label={@action.label}
-      aria-keyshortcuts={HistoryActions.aria_keyshortcuts(@action)}
-      title={HistoryActions.title(@action)}
+      aria-keyshortcuts={Shortcuts.aria_keyshortcuts(@action.id)}
+      title={Shortcuts.title(@action.id)}
       disabled
       phx-click={run_history_action(@action.id)}
       class={button_class()}
@@ -161,8 +162,8 @@ defmodule SketchWeb.Toolbar do
         type="button"
         data-zoom-action={@zoom_reset.id}
         aria-label={@zoom_reset.label}
-        aria-keyshortcuts={ZoomActions.aria_keyshortcuts(@zoom_reset)}
-        title={ZoomActions.title(@zoom_reset)}
+        aria-keyshortcuts={Shortcuts.aria_keyshortcuts(@zoom_reset.id)}
+        title={Shortcuts.title(@zoom_reset.id)}
         phx-click={run_zoom_action(@zoom_reset.id)}
         class={[button_class(), "w-14 text-sm tabular-nums"]}
       >
@@ -182,8 +183,8 @@ defmodule SketchWeb.Toolbar do
       type="button"
       data-zoom-action={@action.id}
       aria-label={@action.label}
-      aria-keyshortcuts={ZoomActions.aria_keyshortcuts(@action)}
-      title={ZoomActions.title(@action)}
+      aria-keyshortcuts={Shortcuts.aria_keyshortcuts(@action.id)}
+      title={Shortcuts.title(@action.id)}
       phx-click={run_zoom_action(@action.id)}
       class={button_class()}
     >
@@ -204,13 +205,7 @@ defmodule SketchWeb.Toolbar do
   end
 
   def shortcuts_help(assigns) do
-    assigns =
-      assign(assigns,
-        tools: SketchWeb.Tools.all(),
-        history_actions: HistoryActions.all(),
-        zoom_actions: ZoomActions.all(),
-        export_actions: SketchWeb.ExportActions.with_shortcuts()
-      )
+    assigns = assign(assigns, :shortcuts, Shortcuts.all())
 
     ~H"""
     <section
@@ -221,56 +216,19 @@ defmodule SketchWeb.Toolbar do
     >
       <h2 class="mb-2 font-semibold">Keyboard shortcuts</h2>
       <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1">
-        <%= for tool <- @tools do %>
-          <dt class={not tool.enabled && "text-base-content/50"}>
-            {tool.label}
-            <span :if={not tool.enabled} class="text-xs">coming soon</span>
+        <%= for shortcut <- @shortcuts do %>
+          <dt class={not shortcut.enabled && "text-base-content/50"}>
+            {shortcut.label}
+            <span :if={not shortcut.enabled} class="text-xs">coming soon</span>
           </dt>
-          <dd class="flex gap-1">
-            <.key :for={key <- tool.keys}>{key}</.key>
-          </dd>
-        <% end %>
-        <dt>Delete selected</dt>
-        <dd id="shortcut-delete" class="flex gap-1">
-          <.key>Delete</.key>
-          <.key>Backspace</.key>
-        </dd>
-        <%= for action <- @history_actions do %>
-          <dt>{action.label}</dt>
-          <dd id={"shortcut-#{action.id}"} class="flex flex-wrap items-center gap-1">
-            <%= for {chord, index} <- Enum.with_index(action.chords) do %>
+          <dd id={"shortcut-#{shortcut.action}"} class="flex flex-wrap items-center gap-1">
+            <%= for {keys, index} <- Enum.with_index(Shortcuts.help_keys(shortcut)) do %>
               <span :if={index > 0} class="text-xs">or</span>
-              <.key :for={key <- chord.keys}>{key}</.key>
+              <.key :for={key <- keys}>{key}</.key>
             <% end %>
+            {shortcut.suffix}
           </dd>
         <% end %>
-        <%= for action <- @zoom_actions do %>
-          <dt>{action.label}</dt>
-          <dd id={"shortcut-#{action.id}"} class="flex flex-wrap items-center gap-1">
-            <%= for {chord, index} <- Enum.with_index(action.chords) do %>
-              <span :if={index > 0} class="text-xs">or</span>
-              <.key :for={key <- chord.keys}>{key}</.key>
-            <% end %>
-          </dd>
-        <% end %>
-        <dt>Zoom around the pointer</dt>
-        <dd class="flex items-center gap-1"><.key>Ctrl/⌘</.key>+ wheel or pinch</dd>
-        <dt>Move canvas</dt>
-        <dd class="flex items-center gap-1"><.key>Space</.key>+ drag</dd>
-        <%= for action <- @export_actions do %>
-          <dt>{action.label}</dt>
-          <dd class="flex items-center gap-1">
-            <.key :for={key <- action.keys}>{key}</.key>
-          </dd>
-        <% end %>
-        <dt>Back to Selection</dt>
-        <dd>
-          <.key>Esc</.key>
-        </dd>
-        <dt>This help</dt>
-        <dd>
-          <.key>?</.key>
-        </dd>
       </dl>
     </section>
     """

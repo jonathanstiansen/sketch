@@ -19,7 +19,11 @@ All architecture checks are ExUnit tests in `test/architecture/`, run by `mix te
 - **Compiled code (A01, A02, A03, A12)**: reads the BEAM files of modules whose source is in `lib/`.
   OTP `:xref` gives remote call edges; the BEAM atom table catches references that are not calls
   (for example passing `Sketch.Repo` around as a value); module attributes give declared behaviours.
-- **Source files (A13, A18, A20, A21, A22)**: line-based scans of the relevant source trees.
+- **Source files (A13, A18, A20, A21, A22, A23)**: line-based scans of the relevant source trees.
+- **Processes (CI requirement 9)**: a line-based scan of scripts under `docs/evidence/`, `e2e/` and
+  `scripts/` and of the exec blocks of every `DEMO.md`: no `pkill`, no `killall` and no `kill` whose
+  target is not a PID variable (`kill "$pid"`, `kill -9 $server`, `kill $!`). A script stops only
+  the processes it started.
 - **Dependencies (A15)**: the production deps from `mix.exs` and the `dependencies` of
   `assets/package.json` and `e2e/package.json` must equal the allowlist exactly.
 - **TypeScript (A14)**: `tsc` and ESLint run in CI; a test asserts the resolved compiler and ESLint
@@ -52,10 +56,27 @@ the only path excluded from the A21 scan.
 | A16 | Enforcement code and CI changes need review. | Unverified (addendum D6) |
 | A17 | Resource definitions match generated migrations (`mix ash.codegen --check`). | Enforced |
 | A18 | E2E tests use no request interception or mock libraries. | Enforced |
-| A19 | Accepted rules stay active until explicitly changed. The registry test requires A01-A22 exactly once with valid statuses and existing verification files. | Unverified (addendum D6) |
+| A19 | Accepted rules stay active until explicitly changed. The registry test requires A01-A23 exactly once with valid statuses and existing verification files. | Unverified (addendum D6) |
 | A20 | E2E tests contain no fixed sleeps (`waitForTimeout`, `setTimeout`, `sleep(`). | Enforced |
 | A21 | No suppression directives for ESLint, TypeScript, Credo or Dialyzer and no Dialyzer ignore file (addendum D5). | Enforced |
 | A22 | Kind-specific branching lives only in kind modules (`lib/sketch/canvas/kinds/`), element renderers (`lib/sketch_web/elements/`, `assets/js/elements/`) and generated files (`assets/js/generated/`) (ADR 0004). The scan of `lib` and `assets/js` rejects `kind == :x` and `kind === "x"` (either order, negated), `kind in [`, `kind: :x`, `data-kind="x"` and `dataset.kind` comparisons for any element kind. There is no per-file exception: a test requires the allowed paths to be exactly those four directories. The canvas hook reads per-kind behaviour (geometry, text, `draw_gesture`, default size, style properties) from the specs in the generated manifest, never from kind ids. Element kinds are declared once in `Sketch.Canvas.Kinds`, which fails to compile if a draw gesture cannot produce its kind's geometry or a spec's `style` names an unknown property (ADR 0006); `SketchWeb.Tools` fails to compile if a tool creates an unknown kind, and `mix sketch.gen.manifest --check` fails `mix ci` and CI if `assets/js/generated/manifest.ts` is stale. Renderers are forced equal: `SketchWeb.Elements` fails to compile unless its renderers cover exactly the registered kinds, the client `RENDERERS` table `satisfies Record<ElementKind, Renderer>` (so `tsc` fails if either side lacks one), `mix sketch.gen.render_fixtures --check` fails `mix ci` and CI if `assets/test/fixtures/render_parity.json`, `wrap_parity.json` or `random_parity.json` is stale, and `assets/test/render_parity.test.ts`, `wrap_parity.test.ts` and `random_parity.test.ts` fail if a client renderer draws a different node tree from the server for any fixture shape, seed and sampled style, the client wraps a fixture text into different lines, or the hand-drawn random source or number formatting differs (ADR 0005). | Enforced |
+| A23 | Every keyboard shortcut is declared in a registry aggregated by `SketchWeb.Shortcuts`; chords are unique per focus context (ADR 0009). The registries are `SketchWeb.Tools`, `HistoryActions`, `ZoomActions`, `ExportActions` and `FixedShortcuts` (Delete, Space, Esc, `?`, Esc in the text editor). `SketchWeb.Shortcuts.Aggregate` fails compilation when two actions share a chord in one focus context (`canvas`: nothing editable has focus; `editor`: text entry has focus), comparing keys without case, `KeyE` as `e` and `Digit1` as `1`, Ctrl/⌘ as overlapping Ctrl and Shift "any" as overlapping either; it also rejects a repeated action id and a malformed entry. The shortcuts help renders from the aggregate only, buttons take `aria-keyshortcuts` and titles from it, `mix sketch.gen.manifest` emits it as `SHORTCUTS` and `assets/js/hooks/shortcuts.ts` is the one client matcher. The scan of `lib` and `assets/js` rejects a `key`/`code` compared with a string literal, a `switch` on them, a literal array's `.includes(key)`, `phx-key`/`phx-keydown`/`phx-window-keydown` bindings and literal `aria-keyshortcuts` outside `literal_chord_paths`. | Enforced |
+
+## Keyboard shortcuts
+
+A23 keeps every chord in one place. Adding a shortcut takes:
+
+1. A chord in its feature's registry (`SketchWeb.Tools`, `HistoryActions`, `ZoomActions`,
+   `ExportActions`), or in `SketchWeb.FixedShortcuts` if it belongs to none. A new registry is a
+   module with `shortcuts/0` added to `@registries` in `SketchWeb.Shortcuts`. The entry format is in
+   the `SketchWeb.Shortcuts.Aggregate` moduledoc.
+2. `mix sketch.gen.manifest`, so `SHORTCUTS` in `assets/js/generated/manifest.ts` has it.
+3. Client code that asks `shortcutFor(input, context)` (or a wrapper such as `zoomActionFor`) for
+   the action and acts on `shortcut.action`; it never compares `event.key` or `event.code` itself.
+
+A chord already used in the same focus context fails compilation with both actions named; pick
+another chord or a different context. The help panel, `aria-keyshortcuts` and titles follow
+without further work.
 
 ## Element kinds
 
@@ -78,6 +99,14 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
 
 ## Known limits
 
+- A23's scan is line-based, like A22's. A key compared through a variable whose name holds neither
+  `key` nor `code`, a key name split across lines or a lookup table keyed by key names is not seen;
+  the negative fixture covers each direct form. The conflict check compares chords as declared: two
+  chords that only collide on some layouts (for example `Digit1` with Shift and a `!` key chord) are
+  not seen.
+- The layout spec (CI requirement 8) checks a fresh board and the style bar with a drawing tool
+  selected, at 860, 1024, 1280 and 1600 px wide and 800 px high, in Chromium. Open menus, the help
+  panel and widths outside that set are not checked.
 - A22 is a line-based scan of direct forms. A kind compared through a variable built at runtime, a
   `case` on the kind or a kind name split across lines is not seen; code review covers those, and
   the negative fixture covers each direct form.
@@ -121,10 +150,10 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
   stored, and a reload returns to 100%. The svg keeps its `viewBox` in canvas units and only its
   rendered `width` and `height` change, so everything on the wire stays in canvas coordinates.
   `assets/js/hooks/zoom_logic.ts` holds the pure math (clamp, levels, screen to canvas, the scroll
-  that keeps the point under the pointer fixed, fit to content, the chord matcher) and is checked
+  that keeps the point under the pointer fixed, fit to content) and is checked
   by fast-check in `assets/test/zoom_logic.test.ts`; the wiring is checked by
-  `e2e/tests/zoom.spec.ts`. The chords come from `SketchWeb.ZoomActions` through the manifest, like
-  undo and redo. Selection handles, the outline, line and freehand hit areas and remote cursors
+  `e2e/tests/zoom.spec.ts`. The chords come from `SketchWeb.ZoomActions` through `SketchWeb.Shortcuts`
+  and the manifest, like every other shortcut (A23). Selection handles, the outline, line and freehand hit areas and remote cursors
   keep their screen size; the text editor layer is scaled with a CSS transform. At zoom levels
   where the scroll position would have to be negative (the canvas is smaller than the viewport)
   the point under the pointer cannot stay put.
