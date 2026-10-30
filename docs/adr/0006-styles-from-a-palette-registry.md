@@ -93,7 +93,9 @@ The forces are the same ones ADR 0004 and ADR 0005 dealt with:
 7. **Panel and next-element style.** A properties panel, rendered from the
    registry by `SketchWeb.StylePanel`, shows the properties that apply to the
    selected element or, with no selection, to the active drawing tool's kind,
-   as swatches and segmented buttons with `aria-pressed`. The canvas hook owns
+   as swatches and segmented buttons with `aria-pressed`. It is a bar of fixed
+   height above the canvas, not an overlay, so it never covers an element and
+   never moves the canvas under a pointer. The canvas hook owns
    it, like the tool selection: with an element selected a change pushes
    `commit_style`, and every change also becomes the next element's style,
    local UI state applied, filtered to the drawn kind's properties, to the
