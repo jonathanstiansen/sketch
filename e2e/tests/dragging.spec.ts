@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs"
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test"
+import { newContext } from "./support/contexts"
 
 const recordingDir = process.env.E2E_RECORD_DIR
 const videoSize = { width: 640, height: 480 }
@@ -27,8 +28,8 @@ async function openSharedBoard(
   name: string,
   prepareB: (page: Page) => Promise<void> = () => Promise.resolve(),
 ): Promise<Session> {
-  const contextA = await browser.newContext(recordingOptions(`${name}-a`))
-  const contextB = await browser.newContext(recordingOptions(`${name}-b`))
+  const contextA = await newContext(browser, recordingOptions(`${name}-a`))
+  const contextB = await newContext(browser, recordingOptions(`${name}-b`))
   const [pageA, pageB] = await Promise.all([contextA.newPage(), contextB.newPage()])
   await prepareB(pageB)
 

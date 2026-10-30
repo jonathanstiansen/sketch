@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
 import { createBoard, grabRectangle, openBoard } from "./support/board"
+import { newContext } from "./support/contexts"
 
 const recordingDir = process.env.E2E_RECORD_DIR
 const videoSize = { width: 640, height: 480 }
@@ -33,7 +34,7 @@ function recordingOptions(name: string) {
 
 test("simultaneous drags of one rectangle converge on the persisted row", async ({ browser }, testInfo) => {
   const contexts = await Promise.all(
-    ["a", "b", "c"].map((name) => browser.newContext(recordingOptions(`same-rect-${name}`))),
+    ["a", "b", "c"].map((name) => newContext(browser, recordingOptions(`same-rect-${name}`))),
   )
   try {
     const [pageA, pageB, pageC] = await Promise.all(contexts.map((context) => context.newPage()))

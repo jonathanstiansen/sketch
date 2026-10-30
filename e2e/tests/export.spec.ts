@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import { expect, test, type Browser, type BrowserContext, type Download, type Page } from "@playwright/test"
 import { clickAt, moveTo, pressAt } from "./support/canvas"
 import { createBoard } from "./support/board"
+import { newContext } from "./support/contexts"
 
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
 const PADDING = 16
@@ -39,10 +40,9 @@ interface SvgSummary {
 }
 
 async function newExportContext(browser: Browser, options: { colorScheme?: "light" | "dark"; deviceScaleFactor?: number } = {}): Promise<BrowserContext> {
-  return browser.newContext({
+  return newContext(browser, {
     colorScheme: options.colorScheme ?? "light",
     deviceScaleFactor: options.deviceScaleFactor ?? 1,
-    permissions: ["clipboard-read", "clipboard-write"],
   })
 }
 

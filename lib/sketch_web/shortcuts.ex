@@ -1,8 +1,9 @@
 defmodule SketchWeb.Shortcuts do
   @moduledoc """
-  Every keyboard shortcut in one list (A23), aggregated at compile time from the registries below by
-  `SketchWeb.Shortcuts.Aggregate`, which fails compilation when two actions share a chord in the same
-  focus context. The shortcuts help renders from this list, the buttons take their
+  Every keyboard shortcut in one list (A23), aggregated at compile time from the registries in
+  `registries/0` by `SketchWeb.Shortcuts.Aggregate`, which fails compilation when two actions share
+  a chord in focus contexts that can be active at once. The registries also declare the shortcut
+  groups (`groups/0`) and focus contexts (`contexts/0`). The shortcuts help renders from this list, the buttons take their
   `aria-keyshortcuts` and titles from it, and `mod: :command` means Ctrl on Windows and Linux and
   Command on macOS. `mix sketch.gen.manifest` writes it to the client as `SHORTCUTS`, which
   `assets/js/hooks/shortcuts.ts` matches key presses against.
@@ -22,10 +23,19 @@ defmodule SketchWeb.Shortcuts do
     SketchWeb.FixedShortcuts
   ]
 
-  @shortcuts Aggregate.aggregate!(@registries)
+  @aggregate Aggregate.aggregate!(@registries)
+  @shortcuts @aggregate.entries
 
   @spec registries() :: [module()]
   def registries, do: @registries
+
+  @doc "The shortcut groups the registries declare, in registry order."
+  @spec groups() :: [atom()]
+  def groups, do: @aggregate.groups
+
+  @doc "The focus contexts the registries declare, each with the contexts it can be active with."
+  @spec contexts() :: [Aggregate.context()]
+  def contexts, do: @aggregate.contexts
 
   @doc "Every entry, in help order, including help-only gestures without chords."
   @spec all() :: [map()]

@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test"
+import { newContext } from "./support/contexts"
 
 test("two browser contexts open the home page", async ({ browser }) => {
-  const first = await browser.newContext()
-  const second = await browser.newContext()
+  const first = await newContext(browser)
+  const second = await newContext(browser)
 
   try {
     const [firstPage, secondPage] = await Promise.all([first.newPage(), second.newPage()])

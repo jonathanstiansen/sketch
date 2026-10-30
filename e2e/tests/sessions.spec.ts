@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
 import { connected } from "./support/board"
+import { newContext } from "./support/contexts"
 
 const recordingDir = process.env.E2E_RECORD_DIR
 const videoSize = { width: 800, height: 500 }
@@ -23,9 +24,9 @@ test("new boards are distinct, isolated, shareable and persistent", async ({ bro
       : { recordVideo: { dir: recordingDir, size: videoSize }, viewport: videoSize }
   if (recordingDir !== undefined) mkdirSync(recordingDir, { recursive: true })
 
-  const contextA = await browser.newContext(recording)
-  const contextB = await browser.newContext(recording)
-  const contextC = await browser.newContext()
+  const contextA = await newContext(browser, recording)
+  const contextB = await newContext(browser, recording)
+  const contextC = await newContext(browser)
 
   try {
     const [pageA, pageB, pageC] = await Promise.all([

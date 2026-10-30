@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process"
 import { mkdirSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
 import { createBoard } from "./support/board"
+import { newContext } from "./support/contexts"
 
 const repoRoot = new URL("../..", import.meta.url).pathname
 const recordingDir = process.env.E2E_RECORD_DIR
@@ -34,9 +35,9 @@ test("a rectangle added in one browser appears live in another and survives relo
       : { recordVideo: { dir: recordingDir, size: videoSize }, viewport: videoSize }
   if (recordingDir !== undefined) mkdirSync(recordingDir, { recursive: true })
 
-  const contextA = await browser.newContext(recording)
-  const contextB = await browser.newContext(recording)
-  const contextC = await browser.newContext()
+  const contextA = await newContext(browser, recording)
+  const contextB = await newContext(browser, recording)
+  const contextC = await newContext(browser)
 
   try {
     const [pageA, pageB, pageC] = await Promise.all([

@@ -1,5 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test"
 import { connected, createBoard, grabRectangle, openBoard, rectangleStates } from "./support/board"
+import { newContext } from "./support/contexts"
 
 const clientCount = 10
 const viewport = { width: 1000, height: 700 }
@@ -10,7 +11,7 @@ test("ten concurrent browsers share creates and simultaneous drags", async ({ br
   const contexts: BrowserContext[] = []
   try {
     for (let index = 0; index < clientCount; index++) {
-      contexts.push(await browser.newContext({ viewport }))
+      contexts.push(await newContext(browser, { viewport }))
     }
     const pages: Page[] = await Promise.all(contexts.map((context) => context.newPage()))
     const [first, ...others] = pages

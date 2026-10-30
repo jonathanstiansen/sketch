@@ -120,6 +120,10 @@ defmodule SketchWeb.Tools do
 
   @default_tool "selection"
 
+  @doc "The shortcut groups this registry owns (A23)."
+  @spec shortcut_groups() :: [atom()]
+  def shortcut_groups, do: [:tool]
+
   @spec all() :: [t()]
   def all, do: @tools
 
@@ -143,10 +147,26 @@ defmodule SketchWeb.Tools do
   end
 
   defp letter_chord(letter),
-    do: %{key: [letter], code: nil, mod: :none, shift: :any, alt: false, keys: [letter]}
+    do: %{
+      key: [letter],
+      code: nil,
+      mod: :none,
+      shift: :any,
+      alt: false,
+      modifiers: :exact,
+      keys: [letter]
+    }
 
   defp digit_chord(digit),
-    do: %{key: [], code: "Digit" <> digit, mod: :none, shift: false, alt: false, keys: [digit]}
+    do: %{
+      key: [],
+      code: "Digit" <> digit,
+      mod: :none,
+      shift: false,
+      alt: false,
+      modifiers: :exact,
+      keys: [digit]
+    }
 
   @doc "The tool selected when a board opens and after Esc."
   @spec default_id() :: String.t()

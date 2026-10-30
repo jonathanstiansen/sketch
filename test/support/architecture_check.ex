@@ -39,6 +39,7 @@ defmodule Sketch.ArchitectureCheck do
   @fixed_sleeps ~r/waitForTimeout|setTimeout|\bsleep\s*\(/
   @transport_mocks ~r/\.route(?:FromHAR|WebSocket)?\s*\(|from\s+["'](?:msw|@mswjs\/[^"']+|nock|sinon|mock-socket|playwright-msw|jest-mock)["']|\b(?:jest|vi)\.mock\s*\(/
   @mock_packages ~w(msw nock sinon mock-socket playwright-msw jest-mock)
+  @direct_contexts ~r/\.\s*newContext\s*\(|\b\w*[bB]rowser\s*\.\s*newPage\s*\(/
   @suppressions [
     {~r/eslint-(?:disable|enable)/, "ESLint directive"},
     {~r/@ts-(?:ignore|expect-error|nocheck)/, "TypeScript suppression comment"},
@@ -346,8 +347,8 @@ defmodule Sketch.ArchitectureCheck do
     |> Enum.reject(&is_nil/1)
   end
 
-  @spec e2e_violations(Path.t()) :: [violation()]
-  def e2e_violations(root) do
+  @spec e2e_violations(Path.t(), [String.t()]) :: [violation()]
+  def e2e_violations(root, context_helpers) do
     sources = source_files(root, ~w(e2e), ~w(.ts .tsx .js .mjs .cjs))
 
     sleeps =
@@ -356,7 +357,20 @@ defmodule Sketch.ArchitectureCheck do
     mocks =
       Enum.flat_map(sources, &matching_lines(root, &1, @transport_mocks, "A18", "transport mock"))
 
-    sleeps ++ mocks ++ mock_package_violations(root)
+    contexts =
+      sources
+      |> Enum.reject(&(&1 in context_helpers))
+      |> Enum.flat_map(
+        &matching_lines(
+          root,
+          &1,
+          @direct_contexts,
+          "e2e_contexts",
+          "browser context created outside the shared helper"
+        )
+      )
+
+    sleeps ++ mocks ++ contexts ++ mock_package_violations(root)
   end
 
   defp mock_package_violations(root) do
@@ -364,6 +378,57 @@ defmodule Sketch.ArchitectureCheck do
         name in @mock_packages or String.starts_with?(name, "@mswjs/") do
       violation("A18", "e2e/package.json", "depends on mock library #{name}")
     end
+  end
+
+  @typedoc """
+  Something a registry owns: its members as they appear in docs, whether a doc names them as
+  plain words or in code form (`` `x` ``, `:x` or `"x"`), how many in one line make a list, and
+  where the authoritative list lives.
+  """
+  @type owned_set :: %{
+          name: String.t(),
+          source: String.t(),
+          members: [String.t()],
+          form: :word | :code,
+          min: pos_integer()
+        }
+
+  @doc """
+  Lines of the living docs (every Markdown file at the root and directly in `docs/`, and
+  `architecture/rules.exs`, except `exempt`) that enumerate `min` or more members of an owned set.
+  A doc refers to the registry instead, so a new member never leaves a stale list behind.
+  """
+  @spec doc_enumeration_violations(Path.t(), [owned_set()], [String.t()]) :: [violation()]
+  def doc_enumeration_violations(root, sets, exempt) do
+    root = Path.expand(root)
+
+    for file <- living_docs(root) -- exempt,
+        {line, number} <-
+          root |> Path.join(file) |> File.read!() |> String.split("\n") |> Enum.with_index(1),
+        set <- sets,
+        named = Enum.filter(set.members, &names?(line, &1, set.form)),
+        length(named) >= set.min do
+      violation(
+        "doc_enumerations",
+        "#{file}:#{number}",
+        "lists #{length(named)} #{set.name} (#{Enum.join(named, ", ")}); refer to #{set.source} instead"
+      )
+    end
+  end
+
+  defp living_docs(root) do
+    ["*.md", "docs/*.md", "architecture/rules.exs"]
+    |> Enum.flat_map(&Path.wildcard(Path.join(root, &1)))
+    |> Enum.map(&Path.relative_to(&1, root))
+    |> Enum.sort()
+  end
+
+  defp names?(line, member, :word),
+    do: Regex.match?(~r/(?<!\w)#{Regex.escape(member)}(?!\w)/, line)
+
+  defp names?(line, member, :code) do
+    member = Regex.escape(member)
+    Regex.match?(~r/`#{member}`|(?<![\w:]):#{member}(?!\w)|"#{member}"/, line)
   end
 
   @spec suppression_violations(Path.t(), [String.t()]) :: [violation()]

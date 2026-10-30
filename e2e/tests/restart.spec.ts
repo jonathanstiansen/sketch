@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process"
 import { once } from "node:events"
 import { expect, test } from "@playwright/test"
 import { createBoard, grabRectangle, openBoard } from "./support/board"
+import { newContext } from "./support/contexts"
 
 const repoRoot = new URL("../..", import.meta.url).pathname
 const port = 4012
@@ -57,7 +58,7 @@ test("completed positions survive a server restart", async ({ browser, request }
   server = startServer()
   await expect.poll(serverReady, { timeout: 90_000 }).toBe(true)
 
-  const context = await browser.newContext({ baseURL: origin })
+  const context = await newContext(browser, { baseURL: origin })
   const page = await context.newPage()
   const rectangle = page.locator("[data-element][data-kind='rectangle']")
   const path = await createBoard(page)
@@ -77,7 +78,7 @@ test("completed positions survive a server restart", async ({ browser, request }
   server = startServer()
   await expect.poll(serverReady, { timeout: 90_000 }).toBe(true)
 
-  const reopened = await browser.newContext({ baseURL: origin, viewport: { width: 640, height: 480 } })
+  const reopened = await newContext(browser, { baseURL: origin, viewport: { width: 640, height: 480 } })
   const restarted = await reopened.newPage()
   await openBoard(restarted, path)
   const restoredRectangle = restarted.locator("[data-element][data-kind='rectangle']")

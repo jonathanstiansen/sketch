@@ -17,7 +17,9 @@ Sketch is a small collaborative canvas built with Ash, Phoenix LiveView and Post
 - Start PostgreSQL with `docker compose -f compose.dev.yaml up -d`.
 - Default to no code comments; extract well-named functions instead.
 - After changing usage rules config or deps, run `mix usage_rules.sync`. Everything between the `usage-rules` markers below is generated.
-- Keyboard shortcuts: declare every chord in a registry aggregated by `SketchWeb.Shortcuts` (A23, see ARCHITECTURE.md "Keyboard shortcuts"); never compare `event.key` or `event.code` in a hook.
+- Keyboard shortcuts: declare every chord in a registry aggregated by `SketchWeb.Shortcuts` (A23, see ARCHITECTURE.md "Keyboard shortcuts"); never compare `event.key` or `event.code` in a hook. A registry declares its own groups (`shortcut_groups/0`) and, when needed, focus contexts with the contexts they overlap (`shortcut_contexts/0`); every chord names a modifier policy (`:exact`, `:ignore_alt`, or `:any` for a cancel). Don't reuse another feature's group or edit `SketchWeb.Shortcuts.Aggregate` to add one.
+- Docs refer to a registry (for example `SketchWeb.Shortcuts.registries/0`) instead of listing its members; a test rejects such lists (CI requirement 10).
+- E2E: create every browser context with `newContext(browser, options)` from `e2e/tests/support/contexts.ts`, never `browser.newContext` or `browser.newPage` (CI requirement 11).
 - Layout: `e2e/tests/layout.spec.ts` must pass at 860, 1024, 1280 and 1600 px; fix an overlap in the layout, never in the test.
 
 ### Processes

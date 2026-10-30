@@ -2,6 +2,7 @@ defmodule Sketch.Architecture.SourcePolicyTest do
   use ExUnit.Case, async: true
 
   alias Sketch.ArchitectureCheck
+  alias Sketch.Canvas.Style
 
   @fixtures "test/architecture/fixtures/files"
 
@@ -22,25 +23,40 @@ defmodule Sketch.Architecture.SourcePolicyTest do
 
   describe "E2E tests use the real stack without fixed sleeps (A18, A20)" do
     test "application" do
-      violations = ArchitectureCheck.e2e_violations(File.cwd!())
+      violations = ArchitectureCheck.e2e_violations(File.cwd!(), e2e_context_paths())
 
       assert violations == [], ArchitectureCheck.format_violations(violations)
     end
 
     test "rejects fixed sleeps (A20)" do
-      violations = ArchitectureCheck.e2e_violations(fixture("a20"))
+      violations = ArchitectureCheck.e2e_violations(fixture("a20"), e2e_context_paths())
 
       assert subjects(violations, "A20") == ["e2e/sleep.spec.ts:4", "e2e/sleep.spec.ts:5"]
     end
 
     test "rejects request interception and mock libraries (A18)" do
-      violations = ArchitectureCheck.e2e_violations(fixture("a18"))
+      violations = ArchitectureCheck.e2e_violations(fixture("a18"), e2e_context_paths())
 
       assert subjects(violations, "A18") == [
                "e2e/mock.spec.ts:2",
                "e2e/mock.spec.ts:5",
                "e2e/package.json"
              ]
+    end
+
+    test "rejects a browser context or page created outside the shared helper (CI requirement 11)" do
+      violations = ArchitectureCheck.e2e_violations(fixture("e2e_contexts"), e2e_context_paths())
+
+      assert subjects(violations, "e2e_contexts") == [
+               "e2e/tests/direct.spec.ts:4",
+               "e2e/tests/direct.spec.ts:5",
+               "e2e/tests/direct.spec.ts:7",
+               "e2e/tests/support/other.ts:4"
+             ]
+    end
+
+    test "only the shared helper may create browser contexts" do
+      assert e2e_context_paths() == ["e2e/tests/support/contexts.ts"]
     end
   end
 
@@ -154,6 +170,41 @@ defmodule Sketch.Architecture.SourcePolicyTest do
     end
   end
 
+  describe "docs refer to registries instead of enumerating what they own (CI requirement 10)" do
+    test "application" do
+      violations =
+        ArchitectureCheck.doc_enumeration_violations(
+          File.cwd!(),
+          owned_sets(),
+          enumeration_exempt_docs()
+        )
+
+      assert violations == [], ArchitectureCheck.format_violations(violations)
+    end
+
+    test "rejects a stale list of shortcut registries, kinds, tools, style tokens, contexts or groups" do
+      violations =
+        ArchitectureCheck.doc_enumeration_violations(
+          fixture("doc_enumerations"),
+          owned_sets(),
+          enumeration_exempt_docs()
+        )
+
+      assert Enum.map(violations, &{&1.subject, &1.detail |> String.split(" (") |> hd()}) == [
+               {"ARCHITECTURE.md:5", "lists 4 shortcut registries"},
+               {"ARCHITECTURE.md:7", "lists 3 element kinds"},
+               {"ARCHITECTURE.md:9", "lists 3 tools"},
+               {"ARCHITECTURE.md:11", "lists 3 style tokens"},
+               {"architecture/rules.exs:3", "lists 2 focus contexts"},
+               {"docs/NOTES.md:3", "lists 3 shortcut groups"}
+             ]
+    end
+
+    test "only the human-owned specification is exempt" do
+      assert enumeration_exempt_docs() == ["docs/SPEC.md", "docs/SPEC-ADDENDUM.md"]
+    end
+  end
+
   describe "scripts stop only processes they started, by PID" do
     test "application" do
       violations = ArchitectureCheck.process_kill_violations(File.cwd!())
@@ -178,6 +229,62 @@ defmodule Sketch.Architecture.SourcePolicyTest do
   end
 
   defp literal_chord_paths, do: allowlist(:literal_chord_paths)
+
+  defp e2e_context_paths, do: allowlist(:e2e_context_paths)
+
+  defp enumeration_exempt_docs, do: allowlist(:enumeration_exempt_docs)
+
+  defp owned_sets do
+    [
+      %{
+        name: "shortcut registries",
+        source: "SketchWeb.Shortcuts.registries/0",
+        members:
+          Enum.map(SketchWeb.Shortcuts.registries(), &(&1 |> Module.split() |> List.last())),
+        form: :word,
+        min: 2
+      },
+      %{
+        name: "element kinds",
+        source: "Sketch.Canvas.Kinds",
+        members: Enum.map(Sketch.Canvas.element_kinds(), &Atom.to_string/1),
+        form: :code,
+        min: 3
+      },
+      %{
+        name: "tools",
+        source: "SketchWeb.Tools",
+        members: Enum.map(SketchWeb.Tools.all(), & &1.id),
+        form: :code,
+        min: 3
+      },
+      %{
+        name: "style tokens",
+        source: "Sketch.Canvas.Style",
+        members:
+          Style.properties()
+          |> Enum.flat_map(&Style.tokens/1)
+          |> Enum.uniq()
+          |> Enum.map(&Atom.to_string/1),
+        form: :code,
+        min: 3
+      },
+      %{
+        name: "focus contexts",
+        source: "SketchWeb.Shortcuts.contexts/0",
+        members: Enum.map(SketchWeb.Shortcuts.contexts(), &Atom.to_string(&1.id)),
+        form: :code,
+        min: 2
+      },
+      %{
+        name: "shortcut groups",
+        source: "SketchWeb.Shortcuts.groups/0",
+        members: Enum.map(SketchWeb.Shortcuts.groups(), &Atom.to_string/1),
+        form: :code,
+        min: 3
+      }
+    ]
+  end
 
   defp element_kinds, do: Enum.map(Sketch.Canvas.element_kinds(), &Atom.to_string/1)
 

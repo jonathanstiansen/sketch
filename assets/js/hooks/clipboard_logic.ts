@@ -25,8 +25,8 @@ export function isClipboardAction(value: unknown): value is ClipboardActionId {
 }
 
 export function clipboardActionFor(input: ClipboardKeyInput): ClipboardActionId | undefined {
-  const action = shortcutFor(input, focusContext(input.editable))?.action
-  return isClipboardAction(action) ? action : undefined
+  const shortcut = shortcutFor(input, focusContext(input.editable))
+  return shortcut?.group === "clipboard" && isClipboardAction(shortcut.action) ? shortcut.action : undefined
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
