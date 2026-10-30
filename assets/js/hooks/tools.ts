@@ -95,7 +95,7 @@ export interface KeyInput extends ShortcutInput {
   readonly editable: boolean
 }
 
-export type PointerAction = "pan" | "draw" | "text" | "erase" | "move" | "resize" | "deselect" | "none"
+export type PointerAction = "pan" | "draw" | "text" | "erase" | "move" | "copy" | "resize" | "deselect" | "none"
 
 export interface PointerInput {
   button: number
@@ -103,6 +103,7 @@ export interface PointerInput {
   spaceHeld: boolean
   onElement: boolean
   onHandle: boolean
+  altKey?: boolean
 }
 
 const PRIMARY_BUTTON = 0
@@ -139,19 +140,20 @@ export function escapes(input: KeyInput): boolean {
   return keyShortcut(input)?.action === "escape"
 }
 
-function selectionAction(onElement: boolean, onHandle: boolean): PointerAction {
+function selectionAction(onElement: boolean, onHandle: boolean, altKey: boolean): PointerAction {
   if (onHandle) return "resize"
-  return onElement ? "move" : "deselect"
+  if (!onElement) return "deselect"
+  return altKey ? "copy" : "move"
 }
 
-export function pointerAction({ button, tool, spaceHeld, onElement, onHandle }: PointerInput): PointerAction {
+export function pointerAction({ button, tool, spaceHeld, onElement, onHandle, altKey = false }: PointerInput): PointerAction {
   if (button === MIDDLE_BUTTON) return "pan"
   if (button !== PRIMARY_BUTTON) return "none"
   if (spaceHeld || tool === "hand") return "pan"
   const created = createdKind(tool)
   if (created !== undefined) return isDrawnKind(created) ? "draw" : "text"
   if (tool === "eraser") return "erase"
-  if (tool === "selection") return selectionAction(onElement, onHandle)
+  if (tool === "selection") return selectionAction(onElement, onHandle, altKey)
   return "none"
 }
 

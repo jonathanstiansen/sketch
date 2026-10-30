@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/live/board_live.ex b/lib/sketch_web/live/board_live.ex
+index 5d74560..9b0ec4c 100644
+--- a/lib/sketch_web/live/board_live.ex
++++ b/lib/sketch_web/live/board_live.ex
+@@ -89,7 +89,7 @@ defmodule SketchWeb.BoardLive do
+       shape =
+         kind
+         |> String.to_existing_atom()
+-        |> Sketch.Canvas.fit_shape(%{x: x, y: y, width: width, height: height}, points)
++        |> then(fn _kind -> %{x: x, y: y, width: width, height: height, points: points} end)
+         |> Map.merge(text)
+         |> Map.merge(seed)
+         |> Map.merge(style)

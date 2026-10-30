@@ -31,7 +31,7 @@ import { CursorSender, RemoteCursors, isRemoteCursor, type RemoteCursor } from "
 import { CursorLayer } from "./cursor_layer"
 import { DrawLayer, SelectionOverlay, isCorner, isEndpoint, setShape } from "./selection"
 import { TextEditor, type TextLayout } from "./text_editor"
-import { LIVE_POINTS, isSeed, randomSeed, styleAttribute, styleOf } from "../elements/dom"
+import { LIVE_POINTS, SEED, isSeed, randomSeed, styleAttribute, styleOf } from "../elements/dom"
 import {
   DEFAULT_STYLE,
   appliesTo,
@@ -55,7 +55,7 @@ import {
   type ElementHistory,
   type ElementSnapshot,
 } from "./element_history"
-import { STYLE_PROPERTIES, TEXT_KINDS, type ElementKind, type TextKind, type ZoomActionId } from "../generated/manifest"
+import { STYLE_PROPERTIES, TEXT_KINDS, type ClipboardActionId, type ElementKind, type TextKind, type ZoomActionId } from "../generated/manifest"
 import {
   DEFAULT_ZOOM,
   anchoredScroll,
@@ -71,6 +71,8 @@ import {
   type View,
 } from "./zoom_logic"
 import { isShortcutKey } from "./shortcuts"
+import { lineMeasurer, readClipboardText, writeClipboardText } from "./clipboard"
+import { clipboardActionFor, decodeClipboard, duplicated, encodeElements, pastedText, placedAround } from "./clipboard_logic"
 import {
   DEFAULT_TOOL,
   defaultSize,
@@ -149,7 +151,19 @@ interface Draw extends Throttled {
   path: Point[]
 }
 
-type Gesture = Edit | Draw
+interface Copy extends Throttled {
+  mode: "copy"
+  source: ElementSnapshot
+  grab: Point
+  origin: Shape
+  shape: Shape
+}
+
+type Gesture = Edit | Draw | Copy
+
+function isEdit(gesture: Gesture): gesture is Edit {
+  return gesture.mode !== "draw" && gesture.mode !== "copy"
+}
 
 interface Erase {
   pointerId: number
@@ -324,6 +338,14 @@ function committedShape(shape: Element): Shape {
   }
 }
 
+function snapshotOf(element: SVGElement): ElementSnapshot | undefined {
+  const { kind, text } = element.dataset
+  const seed = Number(element.getAttribute(SEED))
+  if (!isElementKind(kind) || !isSeed(seed)) return undefined
+  const { box, points } = committedShape(element)
+  return { kind, ...box, points, text: text ?? "", seed, style: styleOf(element) }
+}
+
 function setSize(svg: SVGSVGElement, name: "width" | "height", length: number): void {
   if (svg.getAttribute(name) !== String(length)) svg.setAttribute(name, String(length))
 }
@@ -385,6 +407,8 @@ export class Canvas extends ViewHook {
   private pannedWithSpace = false
   private pan: Pan | undefined
   private selectedId: string | undefined
+  private selectOnArrival: string | undefined
+  private lastPointer: Point | undefined
   private nextStyle: ElementStyle = DEFAULT_STYLE
   private stylePanel!: StylePanel
   private selection!: SelectionOverlay
@@ -494,6 +518,7 @@ export class Canvas extends ViewHook {
   private onCursorMove = (event: PointerEvent): void => {
     const canvas = this.canvasSize()
     const point = this.canvasPoint(event)
+    this.lastPointer = point
     const delay = this.cursorSender.move({ x: clamp(point.x, canvas.width), y: clamp(point.y, canvas.height) }, performance.now())
     if (delay === undefined) return
     this.cursorTimer = window.setTimeout(() => {
@@ -556,6 +581,7 @@ export class Canvas extends ViewHook {
       spaceHeld: this.spaceHeld,
       onElement: rect !== null,
       onHandle: isCorner(handle) || isEndpoint(handle),
+      altKey: event.altKey,
     })
     if (action === "pan") this.startPan(event)
     const kind = drawnKind(this.tool)
@@ -564,6 +590,7 @@ export class Canvas extends ViewHook {
     if (action === "erase") this.startErase(event)
     if (action === "deselect") this.select(undefined)
     if (action === "move" && rect !== null) this.startEdit(event, rect, { mode: "move" })
+    if (action === "copy" && rect !== null) this.startCopy(event, rect)
     if (action === "resize" && isCorner(handle)) this.editSelected(event, { mode: "resize", corner: handle })
     if (action === "resize" && isEndpoint(handle)) this.editSelected(event, { mode: "endpoint", endpoint: handle })
   }
@@ -599,6 +626,30 @@ export class Canvas extends ViewHook {
       lastSentAt: -Infinity,
       previewTimer: undefined,
     }
+  }
+
+  private startCopy(event: PointerEvent, rect: SVGElement): void {
+    const source = snapshotOf(rect)
+    const elementId = rect.dataset.element
+    if (!this.online || source === undefined || elementId === undefined) return
+    event.preventDefault()
+    this.select(elementId)
+    this.el.setPointerCapture(event.pointerId)
+    const origin = committedShape(rect)
+    const dragId = crypto.randomUUID()
+    this.gesture = {
+      mode: "copy",
+      source,
+      dragId,
+      pointerId: event.pointerId,
+      grab: subtract(this.canvasPoint(event), origin.box),
+      origin,
+      shape: origin,
+      seq: 0,
+      lastSentAt: -Infinity,
+      previewTimer: undefined,
+    }
+    this.showShape(this.draws.shape(dragId, source.kind, source.seed, source.style), origin, source.text)
   }
 
   private startDraw(event: PointerEvent, kind: DrawnKind): void {
@@ -681,9 +732,19 @@ export class Canvas extends ViewHook {
     this.record(entry)
   }
 
-  private async createAndRecord(snapshot: ElementSnapshot, dragId: string): Promise<void> {
+  private async createAndRecord(snapshot: ElementSnapshot, dragId: string): Promise<string | undefined> {
     const created = await this.pushCreate(snapshot, dragId)
     if (created !== undefined) this.record({ type: "create", elements: [created] })
+    return created?.id
+  }
+
+  private async createGroup(snapshots: readonly ElementSnapshot[]): Promise<void> {
+    const results = await Promise.all(snapshots.map((snapshot) => this.pushCreate(snapshot, crypto.randomUUID())))
+    const created = results.flatMap((element) => element ?? [])
+    if (created.length === 0) return
+    this.record({ type: "create", elements: created })
+    const [only] = created
+    if (created.length === 1 && only !== undefined) this.selectWhenPresent(only.id)
   }
 
   private record(entry: Entry<ElementSnapshot, ElementChange>): void {
@@ -704,7 +765,7 @@ export class Canvas extends ViewHook {
       return
     }
     const step = direction === "undo" ? this.history.undo() : this.history.redo()
-    if (step.status === "dropped") this.sayHistory(`Can't ${direction}: erased by someone else`)
+    if (step.status === "dropped") this.flash(`Can't ${direction}: erased by someone else`)
     if (step.status === "replay") void this.replay(step.direction, step.replay)
     this.syncHistoryButtons()
   }
@@ -713,7 +774,7 @@ export class Canvas extends ViewHook {
     const created = await this.runReplay(replay).catch(() => undefined)
     if (created === undefined) {
       this.history.failed()
-      this.sayHistory(`Couldn't ${direction}`)
+      this.flash(`Couldn't ${direction}`)
     } else {
       this.history.replayed(created)
     }
@@ -749,7 +810,7 @@ export class Canvas extends ViewHook {
     }
   }
 
-  private sayHistory(message: string): void {
+  private flash(message: string): void {
     const status = document.getElementById("history-status")
     if (status === null) return
     status.textContent = message
@@ -799,9 +860,20 @@ export class Canvas extends ViewHook {
     const pointer = this.canvasPoint(event)
     if (gesture.mode === "draw") {
       this.updateDraw(gesture, pointer)
+    } else if (gesture.mode === "copy") {
+      this.updateCopy(gesture, pointer)
     } else {
       this.updateEdit(gesture, pointer)
     }
+  }
+
+  private updateCopy(copy: Copy, pointer: Point): void {
+    const { source, origin } = copy
+    copy.shape = { box: movedBox(origin.box, pointer, copy.grab, this.canvasSize()), points: origin.points }
+    this.showShape(this.draws.shape(copy.dragId, source.kind, source.seed, source.style), copy.shape, source.text)
+    this.schedulePreview(copy, () => {
+      this.sendPreview(copy)
+    })
   }
 
   private updateEdit(edit: Edit, pointer: Point): void {
@@ -840,9 +912,27 @@ export class Canvas extends ViewHook {
     this.endGesture(gesture)
     if (gesture.mode === "draw") {
       this.finishDraw(gesture)
+    } else if (gesture.mode === "copy") {
+      this.finishCopy(gesture)
     } else {
       this.finishEdit(gesture)
     }
+  }
+
+  private finishCopy(copy: Copy): void {
+    if (sameShape(copy.shape, copy.origin)) {
+      this.draws.remove(copy.dragId)
+      if (copy.seq > 0) void this.pushEvent("draw_cancel", { drag_id: copy.dragId })
+      return
+    }
+    const snapshot = { ...copy.source, ...copy.shape.box, points: copy.shape.points }
+    void this.createAndRecord(snapshot, copy.dragId)
+      .then((id) => {
+        this.selectWhenPresent(id)
+      })
+      .finally(() => {
+        this.draws.remove(copy.dragId)
+      })
   }
 
   private finishEdit(edit: Edit): void {
@@ -882,10 +972,10 @@ export class Canvas extends ViewHook {
 
   private cancelGesture(gesture: Gesture): void {
     this.abandonGesture(gesture)
-    if (gesture.mode === "draw") {
-      void this.pushEvent("draw_cancel", { drag_id: gesture.dragId })
-    } else {
+    if (isEdit(gesture)) {
       void this.pushEvent("drag_cancel", { element_id: gesture.elementId, drag_id: gesture.dragId })
+    } else {
+      void this.pushEvent("draw_cancel", { drag_id: gesture.dragId })
     }
   }
 
@@ -895,6 +985,11 @@ export class Canvas extends ViewHook {
     if (zoomAction !== undefined) {
       event.preventDefault()
       this.runZoom(zoomAction)
+      return
+    }
+    const clipboardAction = clipboardActionFor(input)
+    if (clipboardAction !== undefined) {
+      this.runClipboard(event, clipboardAction)
       return
     }
     const historyAction = historyActionFor(input)
@@ -912,6 +1007,81 @@ export class Canvas extends ViewHook {
     if (deletesSelection(input)) this.eraseSelected(event)
     if (escapes(input)) this.escape()
     this.useTool(nextTool(this.tool, input))
+  }
+
+  private runClipboard(event: KeyboardEvent, action: ClipboardActionId): void {
+    if (action !== "copy" && action !== "cut") event.preventDefault()
+    if (!this.online || this.gesture !== undefined || this.erase !== undefined || this.textEditor !== undefined) return
+    if (action === "paste") {
+      void this.paste()
+      return
+    }
+    const source = this.selectedSnapshot()
+    if (source === undefined) return
+    if (action === "duplicate") {
+      void this.createGroup(duplicated([source], this.canvasSize()))
+      return
+    }
+    event.preventDefault()
+    void this.copySelected(source, action === "cut")
+  }
+
+  private selectedSnapshot(): ElementSnapshot | undefined {
+    const rect = this.selectedId === undefined ? null : this.elementFor(this.selectedId)
+    return rect === null ? undefined : snapshotOf(rect)
+  }
+
+  private async copySelected(source: ElementSnapshot, cut: boolean): Promise<void> {
+    const elementId = this.selectedId
+    if (!(await writeClipboardText(encodeElements([source])))) {
+      this.flash("Couldn't copy to the clipboard")
+      return
+    }
+    if (!cut || elementId === undefined) return
+    this.select(undefined)
+    await this.eraseAndRecord([elementId])
+  }
+
+  private async paste(): Promise<void> {
+    const text = await readClipboardText()
+    if (text === undefined) {
+      this.flash("Couldn't read the clipboard")
+      return
+    }
+    const decoded = decodeClipboard(text)
+    const target = this.pasteTarget()
+    if (decoded.status === "rejected") {
+      this.flash(decoded.reason)
+    } else if (decoded.status === "elements") {
+      await this.createGroup(placedAround(decoded.elements, target, this.canvasSize()))
+    } else {
+      await this.pasteText(decoded.text, target)
+    }
+  }
+
+  private async pasteText(text: string, at: Point): Promise<void> {
+    const layout = this.textLayout()
+    const element = pastedText(text, {
+      at,
+      measure: lineMeasurer(layout.fontSize, getComputedStyle(this.el).getPropertyValue("--sketch-text-font")),
+      lineHeight: layout.lineHeight,
+      canvas: this.canvasSize(),
+      seed: randomSeed(),
+      style: this.nextStyle,
+    })
+    if (element === undefined) {
+      this.flash("Can't paste that text")
+      return
+    }
+    await this.createGroup([element])
+  }
+
+  private pasteTarget(): Point {
+    if (this.lastPointer !== undefined) return this.lastPointer
+    const bounds = this.el.getBoundingClientRect()
+    const center = { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }
+    const canvas = this.svg().getBoundingClientRect()
+    return screenToCanvas(center, { x: canvas.left, y: canvas.top }, this.zoom)
   }
 
   private escape(): void {
@@ -1028,10 +1198,20 @@ export class Canvas extends ViewHook {
 
   private select(elementId: string | undefined): void {
     this.selectedId = elementId
+    this.selectOnArrival = undefined
+    this.syncSelection()
+  }
+
+  private selectWhenPresent(elementId: string | undefined): void {
+    this.selectOnArrival = elementId
     this.syncSelection()
   }
 
   private syncSelection(): void {
+    if (this.selectOnArrival !== undefined && this.elementFor(this.selectOnArrival) !== null) {
+      this.selectedId = this.selectOnArrival
+      this.selectOnArrival = undefined
+    }
     const rect = this.selectedId === undefined ? null : this.elementFor(this.selectedId)
     if (rect === null) {
       this.selectedId = undefined
@@ -1047,17 +1227,17 @@ export class Canvas extends ViewHook {
 
   private abandonGesture(gesture: Gesture): void {
     this.endGesture(gesture)
-    if (gesture.mode === "draw") {
-      this.draws.remove(gesture.dragId)
-    } else {
+    if (isEdit(gesture)) {
       this.revert(gesture.elementId)
+    } else {
+      this.draws.remove(gesture.dragId)
     }
   }
 
   private endGesture(gesture: Gesture): void {
     this.gesture = undefined
     window.clearTimeout(gesture.previewTimer)
-    if (gesture.mode !== "draw") releaseElement(gesture.rect)
+    if (isEdit(gesture)) releaseElement(gesture.rect)
     if (this.el.hasPointerCapture(gesture.pointerId)) this.el.releasePointerCapture(gesture.pointerId)
   }
 
@@ -1083,6 +1263,18 @@ export class Canvas extends ViewHook {
         ...gesture.style,
         ...gesture.shape.box,
         points: gesture.shape.points,
+      })
+    } else if (gesture.mode === "copy") {
+      const { kind, seed, style, text } = gesture.source
+      void this.pushEvent("draw_preview", {
+        kind,
+        drag_id: gesture.dragId,
+        seq: gesture.seq,
+        seed,
+        ...style,
+        ...gesture.shape.box,
+        points: gesture.shape.points,
+        text,
       })
     } else {
       void this.pushEvent("preview", {
@@ -1153,7 +1345,7 @@ export class Canvas extends ViewHook {
   }
 
   private editedElementId(): string | undefined {
-    return this.gesture?.mode === "draw" ? undefined : this.gesture?.elementId
+    return this.gesture !== undefined && isEdit(this.gesture) ? this.gesture.elementId : undefined
   }
 
   private elementFor(elementId: string): SVGElement | null {

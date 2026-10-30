@@ -16,6 +16,7 @@ defmodule SketchWeb.Shortcuts do
   @registries [
     SketchWeb.Tools,
     SketchWeb.HistoryActions,
+    SketchWeb.ClipboardActions,
     SketchWeb.ZoomActions,
     SketchWeb.ExportActions,
     SketchWeb.FixedShortcuts

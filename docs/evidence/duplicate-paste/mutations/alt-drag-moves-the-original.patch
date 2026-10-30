@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/tools.ts b/assets/js/hooks/tools.ts
+index 69b2456..1d69b0a 100644
+--- a/assets/js/hooks/tools.ts
++++ b/assets/js/hooks/tools.ts
+@@ -143,7 +143,7 @@ export function escapes(input: KeyInput): boolean {
+ function selectionAction(onElement: boolean, onHandle: boolean, altKey: boolean): PointerAction {
+   if (onHandle) return "resize"
+   if (!onElement) return "deselect"
+-  return altKey ? "copy" : "move"
++  return "move"
+ }
+ 
+ export function pointerAction({ button, tool, spaceHeld, onElement, onHandle, altKey = false }: PointerInput): PointerAction {
