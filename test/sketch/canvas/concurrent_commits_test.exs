@@ -93,4 +93,33 @@ defmodule Sketch.Canvas.ConcurrentCommitsTest do
     assert Map.take(stored_element, @box) == Map.take(last_of(numbered, :box), @box)
     assert Map.take(stored_element, @style) == Map.take(last_of(numbered, :style), @style)
   end
+
+  test "undo replays are ordinary commits: moves and their undos never lose a version increment (A09, ADR 0008)",
+       ctx do
+    %{board: board, rectangle: rectangle} = ctx
+
+    committed =
+      1..div(@commits, 2)
+      |> Task.async_stream(
+        fn n ->
+          Sandbox.unboxed_run(Sketch.Repo, fn ->
+            {:ok, moved} = Canvas.commit_position(rectangle.id, board.id, %{x: n, y: 2 * n})
+            {:ok, undone} = Canvas.commit_position(rectangle.id, board.id, %{x: 0, y: 0})
+            [moved, undone]
+          end)
+        end,
+        max_concurrency: 25,
+        ordered: false,
+        timeout: 30_000
+      )
+      |> Enum.flat_map(fn {:ok, pair} -> pair end)
+
+    assert committed |> Enum.map(& &1.version) |> Enum.sort() == Enum.to_list(1..@commits)
+
+    [stored_element] =
+      Sandbox.unboxed_run(Sketch.Repo, fn -> Canvas.list_elements_for_board!(board.id) end)
+
+    last_writer = Enum.find(committed, &(&1.version == @commits))
+    assert Canvas.element_event(stored_element) == Canvas.element_event(last_writer)
+  end
 end

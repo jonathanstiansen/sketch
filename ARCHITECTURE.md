@@ -42,7 +42,7 @@ the only path excluded from the A21 scan.
 | A06 | Board membership is immutable. | Enforced |
 | A07 | Queries and events, including live cursors, are scoped to the selected board. | Enforced |
 | A08 | Invalid coordinates and sizes cannot be persisted (addendum D1, D8): `x, y >= 0`, `width, height >= 1` (`>= 0` for point kinds such as lines, arrows and freehand strokes), `x + width` and `y + height` within the canvas, a line or arrow's two points, or a freehand stroke's 2 to 500 points, inside its box, text only on text and note elements, at most 2000 code points and non-blank for text (ADR 0003), a `seed` in `0..2_147_483_647` (addendum D9, ADR 0005), and style tokens from `Sketch.Canvas.Style`, with every property that does not apply to the kind at its default (addendum D10, ADR 0006). `Sketch.Canvas.Geometry` holds the bounds; the `FitsCanvas`, `PointsFitShape` and `TextFitsKind` validations (atomic, so they also check stored values during updates), the code-point `max_length` on `text` and PostgreSQL CHECK constraints all derive from it, and property tests compare Ash and raw SQL over arbitrary boxes, points, strings and seeds. | Enforced |
-| A09 | Durable movement, resizing and restyling increment `version` atomically (ADR 0001, ADR 0003, ADR 0006). `commit_position`, `commit_shape` and `commit_style` use `atomic_update(:version, expr(version + 1))` and each writes only its own attributes; a non-sandboxed test runs 50 interleaved moves, resizes and restyles across 25 concurrent connections and requires versions `1..50` with no duplicates, a stored row equal to the commit that returned version 50, and the box and style of the last box and last style commit. | Enforced |
+| A09 | Durable movement, resizing and restyling increment `version` atomically (ADR 0001, ADR 0003, ADR 0006). `commit_position`, `commit_shape` and `commit_style` use `atomic_update(:version, expr(version + 1))` and each writes only its own attributes; a non-sandboxed test runs 50 interleaved moves, resizes and restyles across 25 concurrent connections and requires versions `1..50` with no duplicates, a stored row equal to the commit that returned version 50, and the box and style of the last box and last style commit. Undo and redo are replays of these actions (ADR 0008), checked by a second interleaved test of moves and their undos. | Enforced |
 | A10 | Transient previews never trigger persistence. Previews, cancels and live cursors (addendum D11, ADR 0007) are relayed with `SketchWeb.Endpoint.broadcast_from/4`; an instrumented LiveView test asserts they cause zero Repo queries. | Enforced |
 | A11 | Durable events originate from successful Ash changes. | Enforced |
 | A12 | No custom GenServer, event broker or repository layer: no `lib` module implements GenServer, `:gen_server`, `:gen_statem`, `:gen_event` or GenStage, uses Agent, Registry or `:pg`, or is named `*Repository*`. | Enforced |
@@ -112,6 +112,11 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
   second, and the label width is estimated from the name's length. Names are random per mount,
   so a reconnecting browser appears as a new viewer. A cursor only reaches boards through the
   board topic; the A07 tests check two views of one board against a third view on another.
+- Undo and redo (ADR 0008) live in each view's canvas hook and die with it: a reload clears them.
+  An undone erase re-creates the element under a new id, so it is drawn above elements created
+  since. An undo overwrites a newer change by someone else (last writer wins). The stack logic is
+  checked by fast-check models in `assets/test/history_logic.test.ts`; the wiring in the hook only
+  by the E2E tests in `e2e/tests/undo.spec.ts`.
 - Exports clone `#elements > [data-element]` only, which is how the selection, draw-preview and
   remote-cursor layers stay out of them; there is no exclusion list to extend.
 

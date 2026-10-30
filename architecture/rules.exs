@@ -79,10 +79,11 @@
       rule: "Durable movement, resizing and restyling increment version atomically",
       status: :enforced,
       enforcement:
-        "The commit_position, commit_shape and commit_style actions use atomic_update(:version, expr(version + 1)) and each writes only its own attributes; a test runs 50 interleaved moves, resizes and restyles over real concurrent connections and asserts versions 1..50 with no duplicates, a stored row equal to the commit that returned version 50, and the box and style of the last box and last style commit, so neither overwrites the other (ADR 0001, ADR 0006)",
+        "The commit_position, commit_shape and commit_style actions use atomic_update(:version, expr(version + 1)) and each writes only its own attributes; a test runs 50 interleaved moves, resizes and restyles over real concurrent connections and asserts versions 1..50 with no duplicates, a stored row equal to the commit that returned version 50, and the box and style of the last box and last style commit, so neither overwrites the other (ADR 0001, ADR 0006). Undo and redo replay through the same actions (ADR 0008): a second concurrent test interleaves 25 moves with their undos and asserts versions 1..50, and a LiveView test asserts an undone move, resize and restyle each reach every view with the next version",
       verified_by: [
         "test/sketch/canvas/concurrent_commits_test.exs",
-        "test/sketch/properties/commit_model_test.exs"
+        "test/sketch/properties/commit_model_test.exs",
+        "test/sketch_web/live/board_live_undo_test.exs"
       ]
     },
     %{
@@ -102,7 +103,8 @@
         "test/sketch/canvas/element_test.exs",
         "e2e/tests/collaboration.spec.ts",
         "test/sketch/properties/commit_model_test.exs",
-        "e2e/tests/eraser.spec.ts"
+        "e2e/tests/eraser.spec.ts",
+        "e2e/tests/undo.spec.ts"
       ]
     },
     %{

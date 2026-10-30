@@ -151,4 +151,22 @@ defmodule Sketch.Properties.LwwMergeTest do
       assert BoardState.new(a ++ b) == BoardState.new(events)
     end
   end
+
+  property "an undone erase is a new element: under a new id it appears in every delivery order, under the erased id it never does (ADR 0008)" do
+    check all events <- events(),
+              id <- member_of(~w(a b c d)),
+              recreated <- payload(:create, "#{id}-recreated"),
+              reused <- payload(:create, id),
+              shuffled <- permutation(events ++ [%{id: id, board_id: "board"}, recreated]),
+              max_runs: @max_runs do
+      erase = %{id: id, board_id: "board"}
+      in_order = BoardState.new(events ++ [erase, recreated])
+
+      assert BoardState.new(shuffled) == in_order
+      assert Map.fetch!(in_order.elements, recreated.id) == recreated
+      refute Map.has_key?(in_order.elements, id)
+
+      assert {:unchanged, ^in_order} = BoardState.apply_event(in_order, reused)
+    end
+  end
 end

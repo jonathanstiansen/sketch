@@ -60,7 +60,13 @@ defmodule SketchWeb.BoardLive do
       |> Sketch.Canvas.board_element_count()
       |> Sketch.Canvas.default_box()
 
-    {:noreply, create_element(socket, "rectangle", box)}
+    case create_element(socket, "rectangle", box) do
+      {%{element: _element} = created, socket} ->
+        {:noreply, push_event(socket, "created", created)}
+
+      {_failed, socket} ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event(
@@ -88,9 +94,9 @@ defmodule SketchWeb.BoardLive do
         |> Map.merge(seed)
         |> Map.merge(style)
 
-      socket
-      |> create_element(kind, shape)
-      |> broadcast_preview("draw_end", %{drag_id: drag_id})
+      {reply, socket} = create_element(socket, kind, shape)
+      {:noreply, socket} = broadcast_preview(socket, "draw_end", %{drag_id: drag_id})
+      {:reply, reply, socket}
     else
       :error -> {:noreply, socket}
     end
@@ -182,15 +188,15 @@ defmodule SketchWeb.BoardLive do
   end
 
   def handle_event("erase", %{"element_ids" => element_ids}, socket) when is_list(element_ids) do
-    socket =
+    {erased, socket} =
       if Enum.all?(element_ids, &is_uuid/1),
-        do: element_ids |> Enum.uniq() |> Enum.reduce(socket, &erase_element/2),
-        else: socket
+        do: element_ids |> Enum.uniq() |> Enum.flat_map_reduce(socket, &erase_element/2),
+        else: {[], socket}
 
-    {:reply, %{}, socket}
+    {:reply, %{erased: erased}, socket}
   end
 
-  def handle_event("erase", _params, socket), do: {:reply, %{}, socket}
+  def handle_event("erase", _params, socket), do: {:reply, %{erased: []}, socket}
 
   def handle_event(
         "commit",
@@ -349,6 +355,16 @@ defmodule SketchWeb.BoardLive do
             </svg>
             <div id="text-editor-layer" phx-update="ignore" class="absolute top-0 left-0"></div>
           </div>
+          <SketchWeb.Toolbar.history_controls />
+          <p
+            id="history-status"
+            role="status"
+            aria-live="polite"
+            phx-update="ignore"
+            hidden
+            class="fixed bottom-20 left-1/2 z-30 -translate-x-1/2 rounded-lg bg-neutral px-4 py-2 text-sm text-neutral-content shadow-lg"
+          >
+          </p>
         </div>
       </div>
     </Layouts.app>
@@ -414,15 +430,19 @@ defmodule SketchWeb.BoardLive do
     case Sketch.Canvas.create_element(
            Map.merge(shape, %{board_id: socket.assigns.board_id, kind: kind})
          ) do
-      {:ok, _element} -> socket
-      {:error, _error} -> put_flash(socket, :error, "Could not add element")
+      {:ok, element} -> {%{element: Sketch.Canvas.element_event(element)}, socket}
+      {:error, _error} -> {%{}, put_flash(socket, :error, "Could not add element")}
     end
   end
 
   defp erase_element(element_id, socket) do
-    case Sketch.Canvas.erase_element(element_id, socket.assigns.board_id) do
-      :ok -> apply_erase(socket, %{id: element_id, board_id: socket.assigns.board_id})
-      {:error, _not_on_this_board} -> socket
+    case Sketch.Canvas.erase_element(element_id, socket.assigns.board_id, return_destroyed?: true) do
+      {:ok, element} ->
+        {[Sketch.Canvas.element_event(element)],
+         apply_erase(socket, %{id: element_id, board_id: socket.assigns.board_id})}
+
+      {:error, _not_on_this_board} ->
+        {[], socket}
     end
   end
 
@@ -441,23 +461,27 @@ defmodule SketchWeb.BoardLive do
 
   defp commit(socket, element_id, drag_id, message, commit_on_board) do
     if Sketch.Canvas.board_erased?(socket.assigns.board_state, element_id),
-      do: {:noreply, socket},
+      do: {:reply, %{ok: false}, socket},
       else:
         socket.assigns.board_id
         |> commit_on_board.()
         |> committed(socket, element_id, drag_id, message)
   end
 
-  defp committed({:ok, _element}, socket, _element_id, _drag_id, _message), do: {:noreply, socket}
+  defp committed({:ok, _element}, socket, _element_id, _drag_id, _message),
+    do: {:reply, %{ok: true}, socket}
 
   defp committed({:error, _error}, socket, _element_id, nil, message),
-    do: {:noreply, put_flash(socket, :error, message)}
+    do: {:reply, %{ok: false}, put_flash(socket, :error, message)}
 
   defp committed({:error, _error}, socket, element_id, drag_id, message) do
-    socket
-    |> put_flash(:error, message)
-    |> push_event("revert", %{element_id: element_id})
-    |> broadcast_preview("drag_cancel", %{element_id: element_id, drag_id: drag_id})
+    {:noreply, socket} =
+      socket
+      |> put_flash(:error, message)
+      |> push_event("revert", %{element_id: element_id})
+      |> broadcast_preview("drag_cancel", %{element_id: element_id, drag_id: drag_id})
+
+    {:reply, %{ok: false}, socket}
   end
 
   defp broadcast_preview({:noreply, socket}, event, payload),
