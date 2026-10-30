@@ -1,0 +1,28 @@
+--- a/lib/sketch_web/fixed_shortcuts.ex
++++ b/lib/sketch_web/fixed_shortcuts.ex
+@@ -11,7 +11,8 @@
+ 
+   @contexts [
+     %{id: :canvas, description: "Nothing editable has focus", overlaps: []},
+-    %{id: :editor, description: "Text entry has focus", overlaps: []}
++    %{id: :editor, description: "Text entry has focus", overlaps: []},
++    %{id: :selection, description: "An element is selected", overlaps: [:canvas]}
+   ]
+ 
+   @shortcuts [
+@@ -104,6 +105,15 @@
+     },
+     %{
+       group: :canvas,
++      action: "deselect",
++      label: "Deselect",
++      contexts: [:selection],
++      chords: [
++        %{key: ["d"], code: nil, mod: :none, shift: :any, alt: false, modifiers: :exact, keys: ["D"]}
++      ]
++    },
++    %{
++      group: :canvas,
+       action: "help",
+       label: "This help",
+       contexts: [:canvas],

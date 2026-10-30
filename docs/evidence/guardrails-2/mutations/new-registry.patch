@@ -1,0 +1,36 @@
+--- /dev/null
++++ b/lib/sketch_web/present_actions.ex
+@@ -0,0 +1,21 @@
++defmodule SketchWeb.PresentActions do
++  @moduledoc "Presentation mode: a registry added without touching any doc."
++
++  @spec shortcut_groups() :: [atom()]
++  def shortcut_groups, do: [:present]
++
++  @spec shortcuts() :: [map()]
++  def shortcuts do
++    [
++      %{
++        group: :present,
++        action: "present",
++        label: "Present",
++        contexts: [:canvas],
++        chords: [
++          %{key: ["p"], code: nil, mod: :command, shift: true, alt: false, modifiers: :exact, keys: ["Ctrl/⌘", "Shift", "P"]}
++        ]
++      }
++    ]
++  end
++end
+--- a/lib/sketch_web/shortcuts.ex
++++ b/lib/sketch_web/shortcuts.ex
+@@ -20,7 +20,8 @@
+     SketchWeb.ClipboardActions,
+     SketchWeb.ZoomActions,
+     SketchWeb.ExportActions,
+-    SketchWeb.FixedShortcuts
++    SketchWeb.FixedShortcuts,
++    SketchWeb.PresentActions
+   ]
+ 
+   @aggregate Aggregate.aggregate!(@registries)

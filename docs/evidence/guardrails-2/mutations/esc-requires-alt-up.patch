@@ -1,0 +1,33 @@
+--- a/lib/sketch_web/fixed_shortcuts.ex
++++ b/lib/sketch_web/fixed_shortcuts.ex
+@@ -80,7 +80,7 @@
+           mod: :none,
+           shift: :any,
+           alt: false,
+-          modifiers: :any,
++          modifiers: :exact,
+           keys: ["Esc"]
+         }
+       ]
+@@ -97,7 +97,7 @@
+           mod: :none,
+           shift: :any,
+           alt: false,
+-          modifiers: :any,
++          modifiers: :exact,
+           keys: ["Esc"]
+         }
+       ]
+--- a/assets/js/generated/manifest.ts
++++ b/assets/js/generated/manifest.ts
+@@ -181,8 +181,8 @@
+   { group: "export", action: "copy_png", contexts: ["canvas"], chords: [{ key: [], code: "KeyC", mod: "none", shift: true, alt: true, modifiers: "exact" }] },
+   { group: "canvas", action: "pan", contexts: ["canvas"], chords: [{ key: [" "], code: null, mod: "none", shift: null, alt: false, modifiers: "exact" }] },
+   { group: "canvas", action: "delete", contexts: ["canvas"], chords: [{ key: ["delete"], code: null, mod: "none", shift: null, alt: false, modifiers: "exact" }, { key: ["backspace"], code: null, mod: "none", shift: null, alt: false, modifiers: "exact" }] },
+-  { group: "canvas", action: "escape", contexts: ["canvas"], chords: [{ key: ["escape"], code: null, mod: "none", shift: null, alt: false, modifiers: "any" }] },
+-  { group: "editor", action: "finish_text", contexts: ["editor"], chords: [{ key: ["escape"], code: null, mod: "none", shift: null, alt: false, modifiers: "any" }] },
++  { group: "canvas", action: "escape", contexts: ["canvas"], chords: [{ key: ["escape"], code: null, mod: "none", shift: null, alt: false, modifiers: "exact" }] },
++  { group: "editor", action: "finish_text", contexts: ["editor"], chords: [{ key: ["escape"], code: null, mod: "none", shift: null, alt: false, modifiers: "exact" }] },
+   { group: "canvas", action: "help", contexts: ["canvas"], chords: [{ key: ["?"], code: null, mod: "none", shift: null, alt: false, modifiers: "exact" }] },
+ ] as const satisfies readonly ShortcutSpec[]
+ 
