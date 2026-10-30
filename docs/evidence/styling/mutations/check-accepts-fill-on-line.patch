@@ -1,0 +1,13 @@
+diff --git a/priv/repo/migrations/20261030064759_styling.exs b/priv/repo/migrations/20261030064759_styling.exs
+index 57b2473..03c5faf 100644
+--- a/priv/repo/migrations/20261030064759_styling.exs
++++ b/priv/repo/migrations/20261030064759_styling.exs
+@@ -35,7 +35,7 @@ defmodule Sketch.Repo.Migrations.Styling do
+ 
+     create constraint(:elements, :fill_color_fits_kind,
+              check: """
+-               fill_color = 'auto' OR kind IN ('rectangle', 'diamond', 'ellipse', 'note')
++               fill_color = 'auto' OR kind IN ('rectangle', 'diamond', 'ellipse', 'note', 'line')
+              """
+            )
+ 

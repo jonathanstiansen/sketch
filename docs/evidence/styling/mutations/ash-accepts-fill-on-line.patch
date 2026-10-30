@@ -1,0 +1,16 @@
+diff --git a/lib/sketch/canvas/element.ex b/lib/sketch/canvas/element.ex
+index f57b836..0d71b0d 100644
+--- a/lib/sketch/canvas/element.ex
++++ b/lib/sketch/canvas/element.ex
+@@ -175,11 +175,6 @@ defmodule Sketch.Canvas.Element do
+     validate {PointsFitShape, kinds: @kinds}
+     validate {TextFitsKind, kinds: @kinds}
+ 
+-    for {property, [_ | _] = kinds} <- @unstyled_kinds do
+-      validate attribute_equals(property, Style.default(property)),
+-        where: [attribute_in(:kind, kinds)],
+-        message: "does not apply to the element's kind"
+-    end
+   end
+ 
+   attributes do

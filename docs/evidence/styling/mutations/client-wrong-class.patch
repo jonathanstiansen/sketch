@@ -1,0 +1,13 @@
+diff --git a/assets/js/elements/style.ts b/assets/js/elements/style.ts
+index f3b0cb5..2998443 100644
+--- a/assets/js/elements/style.ts
++++ b/assets/js/elements/style.ts
+@@ -59,7 +59,7 @@ export function inkClass({ stroke_color }: ElementStyle): string {
+ }
+ 
+ export function strokeClass({ stroke_color }: ElementStyle): string {
+-  return `stroke-palette-${stroke_color}`
++  return `stroke-palette-${stroke_color === "orange" ? "red" : stroke_color}`
+ }
+ 
+ export function arrowheadId(strokeColor: StyleToken<"stroke_color">): string {
