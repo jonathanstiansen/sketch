@@ -6,12 +6,12 @@ export class StylePanel {
 
   show(kind: ElementKind | undefined, style: ElementStyle): void {
     if (this.panel === null) return
-    this.panel.hidden = kind === undefined
-    if (kind === undefined) return
+    const hint = this.panel.querySelector<HTMLElement>("[data-style-hint]")
+    if (hint !== null) hint.hidden = kind !== undefined
     for (const group of this.panel.querySelectorAll<HTMLElement>("[data-style-property]")) {
       const property = group.dataset.styleProperty
       if (!isStyleProperty(property)) continue
-      group.hidden = !appliesTo(kind, property)
+      group.hidden = kind === undefined || !appliesTo(kind, property)
       for (const button of group.querySelectorAll<HTMLElement>("[data-style-value]")) {
         button.setAttribute("aria-pressed", String(button.dataset.styleValue === style[property]))
       }

@@ -38,11 +38,14 @@ defmodule SketchWeb.BoardLiveStyleTest do
   } do
     {:ok, view, _html} = live(conn, ~p"/b/#{board.id}")
 
-    assert has_element?(view, "section#style-panel[hidden][aria-label='Element style']")
+    assert has_element?(
+             view,
+             "section#style-panel[aria-label='Element style'] p[data-style-hint]"
+           )
 
     for property <- Canvas.style_properties() do
       group = "#style-panel [role='group'][data-style-property='#{property}']"
-      assert has_element?(view, "#{group}[aria-labelledby='style-#{property}-label']")
+      assert has_element?(view, "#{group}[hidden][aria-labelledby='style-#{property}-label']")
       [default | others] = Canvas.style_tokens(property)
 
       assert has_element?(

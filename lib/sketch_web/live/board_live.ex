@@ -253,7 +253,7 @@ defmodule SketchWeb.BoardLive do
     ~H"""
     <Layouts.app flash={@flash}>
       <div class="flex h-screen flex-col">
-        <div class="relative flex flex-wrap items-center justify-center gap-4 p-4 md:grid md:grid-cols-[1fr_auto_1fr]">
+        <div class="relative flex flex-wrap items-center justify-center gap-4 px-4 py-2 md:grid md:grid-cols-[1fr_auto_1fr]">
           <button
             id="add-rectangle"
             class="btn btn-primary md:justify-self-start"
