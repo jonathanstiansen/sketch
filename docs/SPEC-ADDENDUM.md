@@ -126,3 +126,23 @@ Consequences for the earlier decisions:
   release; Esc or a cancelled pointer keeps them. With Selection, Delete or
   Backspace erases the selected element unless an editor has focus. There is
   no undo (still excluded).
+
+## D9 — Hand-drawn rendering (2026-10-30, see ADR 0005)
+
+The human approved a hand-drawn look on 2026-10-30. It is one global look,
+not per-element styling: user-chosen colours, stroke widths, fonts, roughness
+and fill styles stay excluded (D8).
+
+- Rectangles, diamonds, ellipses, notes, lines and arrows draw their outline
+  as two slightly offset, slightly bowed strokes over the unchanged fill.
+  Freehand strokes and text are drawn as before.
+- The wobble comes from a per-element `seed`, an integer in
+  `0..2_147_483_647`, stored with the element (Ash constraint and PostgreSQL
+  CHECK, like D1) and never changed after create. The drawing client chooses
+  it, so its preview, other browsers' previews and the committed element look
+  identical; a create without one gets a random seed. Resizing keeps the seed,
+  so an element keeps its character at any size.
+- D2's `draw_preview` payload gains an optional `seed`; `create_element`
+  accepts an optional `seed`. An out-of-range seed drops the event.
+- Hit-testing, selection, handles and erasing use the exact geometry, as
+  before; the hand-drawn strokes never take the pointer.

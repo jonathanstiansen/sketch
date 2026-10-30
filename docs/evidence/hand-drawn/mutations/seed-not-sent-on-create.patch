@@ -1,0 +1,13 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index 7c7d33a..2530b81 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -590,7 +590,7 @@ export class Canvas extends ViewHook {
+       this.openDrawnText(draw, draw.kind, box)
+       return
+     }
+-    void this.pushEvent("create_element", { kind: draw.kind, drag_id: draw.dragId, seed: draw.seed, ...box, points }).finally(
++    void this.pushEvent("create_element", { kind: draw.kind, drag_id: draw.dragId, ...box, points }).finally(
+       () => {
+         this.draws.remove(draw.dragId)
+       },

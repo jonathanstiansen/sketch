@@ -18,8 +18,18 @@ defmodule Sketch.Canvas.ElementMigrationTest do
                       __DIR__
                     )
 
+  @hand_drawn_seed 20_261_030_055_935
+  @hand_drawn_seed_migration Sketch.Repo.Migrations.HandDrawnSeed
+  @hand_drawn_seed_file Path.expand(
+                          "../../../priv/repo/migrations/20261030055935_hand_drawn_seed.exs",
+                          __DIR__
+                        )
+
   setup_all do
     unless Code.ensure_loaded?(@migration), do: Code.require_file(@migration_file)
+
+    unless Code.ensure_loaded?(@hand_drawn_seed_migration),
+      do: Code.require_file(@hand_drawn_seed_file)
 
     unless Code.ensure_loaded?(@line_points_migration),
       do: Code.require_file(@line_points_file)
@@ -31,6 +41,12 @@ defmodule Sketch.Canvas.ElementMigrationTest do
 
   defp migrate(:down), do: Ecto.Migrator.down(Repo, @element_model, @migration, @migrator_opts)
   defp migrate(:up), do: Ecto.Migrator.up(Repo, @element_model, @migration, @migrator_opts)
+
+  defp migrate_seed(:down),
+    do: Ecto.Migrator.down(Repo, @hand_drawn_seed, @hand_drawn_seed_migration, @migrator_opts)
+
+  defp migrate_seed(:up),
+    do: Ecto.Migrator.up(Repo, @hand_drawn_seed, @hand_drawn_seed_migration, @migrator_opts)
 
   defp insert_rectangle(board, x, y, version) do
     Repo.query!(
@@ -90,5 +106,26 @@ defmodule Sketch.Canvas.ElementMigrationTest do
 
     assert {:ok, %{version: 1}} =
              Canvas.commit_shape(id, board.id, %{x: 1, y: 2, width: 5, height: 5, points: []})
+  end
+
+  test "adding the seed gives every existing row and every insert without one a random seed in range" do
+    board = Canvas.create_board!()
+    assert :ok = migrate_seed(:down)
+
+    insert = fn ->
+      Repo.query!(
+        "INSERT INTO elements (board_id, kind, x, y, width, height) VALUES ($1, 'rectangle', 0, 0, 10, 10)",
+        [Ecto.UUID.dump!(board.id)]
+      )
+    end
+
+    for _row <- 1..20, do: insert.()
+    assert :ok = migrate_seed(:up)
+    insert.()
+
+    seeds = board.id |> Canvas.list_elements_for_board!() |> Enum.map(& &1.seed)
+    assert length(seeds) == 21
+    assert Enum.all?(seeds, &(&1 in 0..Sketch.Canvas.geometry().max_seed))
+    assert length(Enum.uniq(seeds)) > 1
   end
 end

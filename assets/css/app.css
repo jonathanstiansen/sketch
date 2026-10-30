@@ -129,6 +129,17 @@
   pointer-events: none;
 }
 
+.local-preview > :is(rect, polygon, ellipse, [data-line-hit]) {
+  stroke: none;
+}
+
+.local-preview > :is([data-sketch], [data-line-stroke]) {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-dasharray: none;
+  opacity: 0.7;
+}
+
 .selection-outline {
   fill: none;
   stroke: var(--color-secondary);
@@ -218,8 +229,13 @@
 
 .note-body {
   fill: var(--note-fill);
-  stroke: var(--note-edge);
+  stroke: transparent;
   filter: drop-shadow(0 2px 3px color-mix(in oklab, var(--color-base-content) 30%, transparent));
+}
+
+.note-sketch,
+.local-preview > .note-sketch {
+  stroke: var(--note-edge);
 }
 
 .local-preview > .note-body {

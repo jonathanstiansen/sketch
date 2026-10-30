@@ -8,7 +8,9 @@ defmodule SketchWeb.RenderFixtures do
   rendered with every fixture text in boxes 0 or 4000 tall and 0, 1, 4000 or a wrapping boundary
   wide: twice the note padding plus 0 to 3 and 14 character widths, each also one pixel narrower
   and wider, so a note's lines break around every boundary, including widths narrower than both
-  paddings together. Every map has string keys, so the JSON key order is the same on every run.
+  paddings together. A box kind without text renders every shape with each fixture seed, including
+  0 and the largest; point and text kinds, which already have many shapes per box, take the seeds
+  in turn (ADR 0005). Every map has string keys, so the JSON key order is the same on every run.
   `assets/test/render_parity.test.ts` feeds the same shapes to the client renderers and expects
   the same trees. A node's text is the unescaped
   string a browser shows as its `textContent`, and is left out when empty, as an empty element has
@@ -44,6 +46,14 @@ defmodule SketchWeb.RenderFixtures do
   @text_sizes [0, 1, 4000]
   @text_heights [0, 4000]
   @point_paths [:diagonal, :zigzag, :interior]
+  @seeds [
+    0,
+    1,
+    7,
+    1_234_567_890,
+    Sketch.Canvas.geometry().max_seed - 1,
+    Sketch.Canvas.geometry().max_seed
+  ]
   @max_fixture_points 12
 
   @spec path() :: Path.t()
@@ -66,12 +76,27 @@ defmodule SketchWeb.RenderFixtures do
     %{geometry: geometry, text: text} =
       Enum.find(Sketch.Canvas.kind_specs(), &(&1.id == kind))
 
-    for width <- widths(text),
-        height <- heights(text),
-        points <- point_sets(geometry, width, height),
-        text <- texts(text) do
-      %{width: width, height: height, points: points, text: text}
-    end
+    shapes =
+      for width <- widths(text),
+          height <- heights(text),
+          points <- point_sets(geometry, width, height),
+          text <- texts(text) do
+        %{width: width, height: height, points: points, text: text}
+      end
+
+    with_seeds(shapes, geometry, text)
+  end
+
+  defp with_seeds(shapes, :box, :none) do
+    for shape <- shapes, seed <- @seeds, do: Map.put(shape, :seed, seed)
+  end
+
+  defp with_seeds(shapes, _geometry, _text) do
+    shapes
+    |> Enum.with_index()
+    |> Enum.map(fn {shape, index} ->
+      Map.put(shape, :seed, Enum.at(@seeds, rem(index, length(@seeds))))
+    end)
   end
 
   defp widths(:none), do: @sizes
@@ -101,7 +126,8 @@ defmodule SketchWeb.RenderFixtures do
           "width" => shape.width,
           "height" => shape.height,
           "points" => Enum.map(shape.points, &%{"x" => &1.x, "y" => &1.y}),
-          "text" => shape.text
+          "text" => shape.text,
+          "seed" => shape.seed
         },
         "children" => kind |> Elements.render_children(shape) |> normalize()
       }

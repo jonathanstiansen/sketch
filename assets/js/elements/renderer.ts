@@ -5,6 +5,7 @@ export interface LocalShape {
   readonly height: number
   readonly points: readonly Point[]
   readonly text: string
+  readonly seed: number
 }
 
 export type AttributeValue = string | number

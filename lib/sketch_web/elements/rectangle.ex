@@ -1,9 +1,9 @@
 defmodule SketchWeb.Elements.Rectangle do
-  @moduledoc "Renders a rectangle as one filled `rect` covering its box."
+  @moduledoc "Renders a rectangle as one filled `rect` covering its box under its hand-drawn edges."
   @behaviour SketchWeb.ElementRenderer
 
   @impl true
-  def render(%{width: width, height: height}) do
+  def render(%{width: width, height: height, seed: seed}) do
     [
       %{
         tag: "rect",
@@ -12,10 +12,12 @@ defmodule SketchWeb.Elements.Rectangle do
           {"y", 0},
           {"width", width},
           {"height", height},
+          {"stroke", "transparent"},
           {"stroke-width", 2},
-          {"class", "fill-primary stroke-base-content"}
+          {"class", "fill-primary"}
         ]
-      }
+      },
+      SketchWeb.ElementRenderer.sketch(SketchWeb.HandDrawn.rectangle(width, height, seed))
     ]
   end
 end

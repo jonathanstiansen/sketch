@@ -28,7 +28,7 @@ import {
 } from "./canvas_logic"
 import { DrawLayer, SelectionOverlay, isCorner, isEndpoint, setShape } from "./selection"
 import { TextEditor, type TextLayout } from "./text_editor"
-import { LIVE_POINTS } from "../elements/dom"
+import { LIVE_POINTS, isSeed, randomSeed } from "../elements/dom"
 import { TEXT_KINDS, type TextKind } from "../generated/manifest"
 import {
   DEFAULT_TOOL,
@@ -90,6 +90,7 @@ type Edit = Throttled &
 interface Draw extends Throttled {
   mode: "draw"
   kind: DrawnKind
+  seed: number
   start: Point
   dragged: boolean
   shape: Shape
@@ -108,6 +109,7 @@ interface DrawPreview extends Box {
   kind: PreviewKind
   drag_id: string
   seq: number
+  seed?: number
   points: readonly Point[]
   text?: string
 }
@@ -119,6 +121,7 @@ type TextTarget =
 interface TextSession extends PreviewClock {
   target: TextTarget
   dragId: string
+  seed: number
   keepAlive: number
   text: string
   box: Box
@@ -190,6 +193,7 @@ function isDrawPreview(value: unknown): value is DrawPreview {
     isPreviewKind(value.kind) &&
     typeof value.drag_id === "string" &&
     Number.isInteger(value.seq) &&
+    (value.seed === undefined || isSeed(value.seed)) &&
     isBox(value) &&
     isPoints(value.points) &&
     isOptionalText(value.text)
@@ -437,6 +441,7 @@ export class Canvas extends ViewHook {
     this.gesture = {
       mode: "draw",
       kind,
+      seed: randomSeed(),
       start,
       dragged: false,
       shape: this.drawnShape(kind, start, start),
@@ -539,7 +544,7 @@ export class Canvas extends ViewHook {
     } else {
       draw.shape = this.drawnShape(draw.kind, draw.start, pointer)
     }
-    this.showShape(this.draws.shape(draw.dragId, draw.kind), draw.shape)
+    this.showShape(this.draws.shape(draw.dragId, draw.kind, draw.seed), draw.shape)
     this.schedulePreview(draw, () => {
       this.sendPreview(draw)
     })
@@ -585,7 +590,7 @@ export class Canvas extends ViewHook {
       this.openDrawnText(draw, draw.kind, box)
       return
     }
-    void this.pushEvent("create_element", { kind: draw.kind, drag_id: draw.dragId, ...box, points }).finally(
+    void this.pushEvent("create_element", { kind: draw.kind, drag_id: draw.dragId, seed: draw.seed, ...box, points }).finally(
       () => {
         this.draws.remove(draw.dragId)
       },
@@ -748,6 +753,7 @@ export class Canvas extends ViewHook {
         kind: gesture.kind,
         drag_id: gesture.dragId,
         seq: gesture.seq,
+        seed: gesture.seed,
         ...gesture.shape.box,
         points: gesture.shape.points,
       })
@@ -781,7 +787,7 @@ export class Canvas extends ViewHook {
     this.restartStaleTimer(preview.drag_id, () => {
       this.endRemoteDraw(preview.drag_id)
     })
-    const shape = this.draws.shape(preview.drag_id, preview.kind)
+    const shape = this.draws.shape(preview.drag_id, preview.kind, preview.seed ?? 0)
     this.showShape(shape, { box: preview, points: preview.points }, preview.text)
   }
 
@@ -874,7 +880,7 @@ export class Canvas extends ViewHook {
 
   private openDrawnText(draw: Draw, kind: DrawnKind & TextKind, box: Box): void {
     const target: TextTarget = { mode: "create", kind }
-    const shape = this.draws.shape(draw.dragId, kind)
+    const shape = this.draws.shape(draw.dragId, kind, draw.seed)
     this.showShape(shape, { box, points: [] }, "")
     this.draws.hideText(draw.dragId)
     this.startText(box, "", target, box, draw)
@@ -888,6 +894,7 @@ export class Canvas extends ViewHook {
       text,
       box: { ...at, width: 0, height: 0 },
       dragId: drawn?.dragId ?? crypto.randomUUID(),
+      seed: drawn?.seed ?? randomSeed(),
       seq: drawn?.seq ?? 0,
       lastSentAt: -Infinity,
       previewTimer: undefined,
@@ -924,7 +931,7 @@ export class Canvas extends ViewHook {
     session.lastSentAt = performance.now()
     const preview = { drag_id: session.dragId, seq: session.seq, ...session.box, points: [], text: session.text }
     if (session.target.mode === "create") {
-      void this.pushEvent("draw_preview", { kind: session.target.kind, ...preview })
+      void this.pushEvent("draw_preview", { kind: session.target.kind, seed: session.seed, ...preview })
     } else {
       void this.pushEvent("preview", {
         element_id: session.target.elementId,
@@ -955,13 +962,13 @@ export class Canvas extends ViewHook {
   }
 
   private finishCreatedText(session: TextSession, kind: TextKind, text: string, box: Box, sent: boolean): void {
-    const { dragId } = session
+    const { dragId, seed } = session
     if ((requiresText(kind) && isBlankText(text)) || !this.online) {
       this.draws.remove(dragId)
       if (sent) void this.pushEvent("draw_cancel", { drag_id: dragId })
       return
     }
-    void this.pushEvent("create_element", { kind, drag_id: dragId, ...box, points: [], text }).finally(() => {
+    void this.pushEvent("create_element", { kind, drag_id: dragId, seed, ...box, points: [], text }).finally(() => {
       this.draws.remove(dragId)
     })
   }

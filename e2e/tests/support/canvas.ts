@@ -69,3 +69,29 @@ export async function expectBox(page: Page, selector: string, { x, y, width, hei
   await expect(shape).toHaveAttribute("width", String(width))
   await expect(shape).toHaveAttribute("height", String(height))
 }
+
+export const SKETCH_END_JITTER = 2
+
+export interface Segment {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}
+
+function strokeEnds(path: string): { x1: number; y1: number; x2: number; y2: number }[] {
+  return path
+    .split("M")
+    .map((stroke) => stroke.replace("C", " ").trim().split(/\s+/).map(Number))
+    .filter((numbers) => numbers.length === 8)
+    .map((numbers) => ({ x1: numbers[0] ?? NaN, y1: numbers[1] ?? NaN, x2: numbers[6] ?? NaN, y2: numbers[7] ?? NaN }))
+}
+
+export async function sketchedStrokeDeviation(page: Page, selector: string, segment: Segment): Promise<number> {
+  const path = (await page.locator(selector).getAttribute("d")) ?? ""
+  const ends = strokeEnds(path)
+  if (ends.length !== 2) return Infinity
+  return Math.max(
+    ...ends.flatMap(({ x1, y1, x2, y2 }) => [x1 - segment.x1, y1 - segment.y1, x2 - segment.x2, y2 - segment.y2].map(Math.abs)),
+  )
+}

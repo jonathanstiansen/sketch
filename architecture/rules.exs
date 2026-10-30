@@ -62,7 +62,7 @@
       id: "A08",
       rule: "Invalid coordinates and sizes cannot be persisted",
       status: :enforced,
-      enforcement: "Ash attribute constraints (text max_length counted in code points), the atomic FitsCanvas, PointsFitShape and TextFitsKind validations and per-kind minimum sizes, plus PostgreSQL CHECK constraints on the box, on line, arrow and freehand points (2 to 500 per stroke) and on text (at most 2000 code points for text and note elements, non-blank for text elements, empty otherwise) (addendum D1, D8, ADR 0003); property tests compare Ash and raw SQL inserts over arbitrary boxes, points and strings",
+      enforcement: "Ash attribute constraints (text max_length counted in code points), the atomic FitsCanvas, PointsFitShape and TextFitsKind validations and per-kind minimum sizes, plus PostgreSQL CHECK constraints on the box, on line, arrow and freehand points (2 to 500 per stroke) and on text (at most 2000 code points for text and note elements, non-blank for text elements, empty otherwise) and on the hand-drawn seed (0 to 2147483647) (addendum D1, D8, D9, ADR 0003, ADR 0005); property tests compare Ash and raw SQL inserts over arbitrary boxes, points, strings and seeds",
       verified_by: [
         "test/sketch/canvas/element_test.exs",
         "test/sketch/properties/geometry_test.exs",
@@ -185,13 +185,14 @@
       rule: "Kind-specific branching lives only in kind modules, element renderers and generated files",
       status: :enforced,
       enforcement:
-        "lib and assets/js may not compare kind with a literal element kind (kind == :x or kind === \"x\", in either order or negated), use kind in [, match kind: :x, select data-kind=\"x\" or compare dataset.kind outside kind_branching_paths, which must be exactly the four directories ADR 0004 names; there is no per-file exception (ADR 0004). Per-kind behaviour in the canvas hook comes from spec fields in the generated manifest (geometry, text, draw_gesture, default_size). SketchWeb.Tools fails to compile if a tool creates an unknown kind, Sketch.Canvas.Kinds fails to compile if a draw gesture cannot produce its kind's geometry, and mix sketch.gen.manifest --check fails in mix ci and CI if the client manifest is stale. SketchWeb.Elements fails to compile unless its renderers cover exactly the registered kinds; the client RENDERERS table satisfies Record<ElementKind, Renderer> from the manifest, so tsc fails if either side lacks a renderer; mix sketch.gen.render_fixtures --check fails in mix ci and CI if the render or wrap parity fixture is stale, and assets/test/render_parity.test.ts and assets/test/wrap_parity.test.ts fail if a client renderer draws a different node tree or the client wraps text into different lines",
+        "lib and assets/js may not compare kind with a literal element kind (kind == :x or kind === \"x\", in either order or negated), use kind in [, match kind: :x, select data-kind=\"x\" or compare dataset.kind outside kind_branching_paths, which must be exactly the four directories ADR 0004 names; there is no per-file exception (ADR 0004). Per-kind behaviour in the canvas hook comes from spec fields in the generated manifest (geometry, text, draw_gesture, default_size). SketchWeb.Tools fails to compile if a tool creates an unknown kind, Sketch.Canvas.Kinds fails to compile if a draw gesture cannot produce its kind's geometry, and mix sketch.gen.manifest --check fails in mix ci and CI if the client manifest is stale. SketchWeb.Elements fails to compile unless its renderers cover exactly the registered kinds; the client RENDERERS table satisfies Record<ElementKind, Renderer> from the manifest, so tsc fails if either side lacks a renderer; mix sketch.gen.render_fixtures --check fails in mix ci and CI if the render, wrap or random parity fixture is stale, and assets/test/render_parity.test.ts, assets/test/wrap_parity.test.ts and assets/test/random_parity.test.ts fail if a client renderer draws a different node tree, the client wraps text into different lines, or the hand-drawn random source or number formatting differs (ADR 0005)",
       verified_by: [
         "test/architecture/source_policy_test.exs",
         "test/sketch/canvas/kind_contract_test.exs",
         "test/sketch_web/elements_test.exs",
         "assets/test/render_parity.test.ts",
-        "assets/test/wrap_parity.test.ts"
+        "assets/test/wrap_parity.test.ts",
+        "assets/test/random_parity.test.ts"
       ]
     }
   ],

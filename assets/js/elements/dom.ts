@@ -1,9 +1,11 @@
 import type { Box, Point } from "../hooks/canvas_logic.ts"
+import { GEOMETRY } from "../generated/manifest.ts"
 import { attributeString, type Renderer, type SvgNode } from "./renderer.ts"
 
 const SVG_NS = "http://www.w3.org/2000/svg"
 const LIVEVIEW_ATTRIBUTE_PREFIX = "data-phx-"
 export const LIVE_POINTS = "live-points"
+export const SEED = "data-seed"
 
 function setAttributes(element: Element, attrs: SvgNode["attrs"]): void {
   for (const [name, value] of Object.entries(attrs)) {
@@ -65,7 +67,20 @@ export function placeElement(wrapper: Element, { x, y, width, height }: Box, poi
   setLivePoints(wrapper, points)
 }
 
+export function isSeed(value: unknown): value is number {
+  return Number.isInteger(value) && typeof value === "number" && value >= 0 && value <= GEOMETRY.maxSeed
+}
+
+export function randomSeed(): number {
+  return Math.floor(Math.random() * (GEOMETRY.maxSeed + 1))
+}
+
+function seedOf(wrapper: Element): number {
+  const seed = Number(wrapper.getAttribute(SEED))
+  return isSeed(seed) ? seed : 0
+}
+
 export function renderElement(wrapper: Element, renderer: Renderer, box: Box, points: readonly Point[], text: string): void {
   placeElement(wrapper, box, points)
-  renderNodes(wrapper, renderer({ width: box.width, height: box.height, points, text }))
+  renderNodes(wrapper, renderer({ width: box.width, height: box.height, points, text, seed: seedOf(wrapper) }))
 }

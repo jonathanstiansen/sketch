@@ -1,0 +1,13 @@
+diff --git a/assets/js/elements/random.ts b/assets/js/elements/random.ts
+index 8d051c2..8eaa84f 100644
+--- a/assets/js/elements/random.ts
++++ b/assets/js/elements/random.ts
+@@ -11,7 +11,7 @@ export class Random {
+     this.state = (this.state + INCREMENT) >>> 0
+     const state = this.state
+     let t = Math.imul(state ^ (state >>> 15), state | 1) >>> 0
+-    t = ((t + Math.imul(t ^ (t >>> 7), t | 61)) ^ t) >>> 0
++    t = ((t + Math.imul(t ^ (t >>> 7), t | 63)) ^ t) >>> 0
+     return (t ^ (t >>> 14)) >>> 0
+   }
+ 

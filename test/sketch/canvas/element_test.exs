@@ -445,6 +445,74 @@ defmodule Sketch.Canvas.ElementTest do
     end
   end
 
+  describe "seed (A08, ADR 0005)" do
+    test "create stores a chosen seed and its event carries it", %{board: board} do
+      SketchWeb.Endpoint.subscribe(Canvas.board_topic(board.id))
+
+      for seed <- [0, 7, Geometry.max_seed()] do
+        element = Canvas.create_element!(rectangle(%{x: 1, y: 1, board_id: board.id, seed: seed}))
+        assert element.seed == seed
+        assert Canvas.element_event(element).seed == seed
+        assert_receive %Phoenix.Socket.Broadcast{event: "create", payload: %{seed: ^seed}}
+      end
+    end
+
+    test "a create without a seed gets a random one in range", %{board: board} do
+      seeds =
+        for _create <- 1..20 do
+          Canvas.create_element!(rectangle(%{x: 1, y: 1, board_id: board.id})).seed
+        end
+
+      assert Enum.all?(seeds, &(&1 in 0..Geometry.max_seed()))
+      assert length(Enum.uniq(seeds)) > 1
+    end
+
+    test "Ash rejects a seed outside 0..max_seed", %{board: board} do
+      for seed <- [-1, Geometry.max_seed() + 1, nil, "seven", 1.5] do
+        assert {:error, _} =
+                 Canvas.create_element(rectangle(%{x: 1, y: 1, board_id: board.id, seed: seed})),
+               inspect(seed)
+      end
+    end
+
+    test "cannot change after create", %{board: board} do
+      element = Canvas.create_element!(rectangle(%{x: 1, y: 1, board_id: board.id, seed: 5}))
+      shape = %{x: 1, y: 1, width: 5, height: 5, points: []}
+
+      assert {:error, _} = Canvas.commit_shape(element.id, board.id, Map.put(shape, :seed, 6))
+      assert {:error, _} = Canvas.commit_position(element.id, board.id, %{x: 2, y: 2, seed: 6})
+
+      assert {:ok, %{seed: 5}} = Canvas.commit_shape(element.id, board.id, shape)
+      assert {:ok, %{seed: 5}} = Canvas.commit_position(element.id, board.id, %{x: 3, y: 3})
+    end
+
+    test "the database defaults a missing seed and rejects one out of range", %{board: board} do
+      insert = fn columns, values, params ->
+        Sketch.Repo.query(
+          "INSERT INTO elements (kind, x, y, width, height, board_id#{columns}) " <>
+            "VALUES ('rectangle', 0, 0, 10, 10, $1#{values}) RETURNING seed",
+          [Ecto.UUID.dump!(board.id) | params]
+        )
+      end
+
+      assert {:ok, %{rows: [[seed]]}} = insert.("", "", [])
+      assert seed in 0..Geometry.max_seed()
+
+      for seed <- [0, Geometry.max_seed()] do
+        assert {:ok, %{rows: [[^seed]]}} = insert.(", seed", ", $2", [seed])
+      end
+
+      for seed <- [-1, Geometry.max_seed() + 1] do
+        assert {:error,
+                %Postgrex.Error{postgres: %{code: :check_violation, constraint: "seed_in_range"}}} =
+                 insert.(", seed", ", $2", [seed])
+      end
+
+      assert {:error, %Postgrex.Error{postgres: %{code: :not_null_violation}}} =
+               insert.(", seed", ", $2", [nil])
+    end
+  end
+
   describe "version" do
     test "defaults to 0", %{board: board} do
       assert Canvas.create_element!(rectangle(%{x: 1, y: 2, board_id: board.id})).version == 0
