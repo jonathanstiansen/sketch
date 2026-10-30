@@ -136,12 +136,19 @@
   stroke-width: 1.5;
   stroke-dasharray: 4 3;
   pointer-events: none;
+  vector-effect: non-scaling-stroke;
 }
 
 .selection-handle {
   fill: var(--color-base-100);
   stroke: var(--color-secondary);
   stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+[data-line-hit],
+[data-freedraw-hit] {
+  vector-effect: non-scaling-stroke;
 }
 
 .selection-handle-nw,

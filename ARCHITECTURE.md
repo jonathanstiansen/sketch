@@ -117,6 +117,17 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
   since. An undo overwrites a newer change by someone else (last writer wins). The stack logic is
   checked by fast-check models in `assets/test/history_logic.test.ts`; the wiring in the hook only
   by the E2E tests in `e2e/tests/undo.spec.ts`.
+- Zoom (10% to 400%) is local UI state of the `Canvas` hook: it is never pushed, broadcast or
+  stored, and a reload returns to 100%. The svg keeps its `viewBox` in canvas units and only its
+  rendered `width` and `height` change, so everything on the wire stays in canvas coordinates.
+  `assets/js/hooks/zoom_logic.ts` holds the pure math (clamp, levels, screen to canvas, the scroll
+  that keeps the point under the pointer fixed, fit to content, the chord matcher) and is checked
+  by fast-check in `assets/test/zoom_logic.test.ts`; the wiring is checked by
+  `e2e/tests/zoom.spec.ts`. The chords come from `SketchWeb.ZoomActions` through the manifest, like
+  undo and redo. Selection handles, the outline, line and freehand hit areas and remote cursors
+  keep their screen size; the text editor layer is scaled with a CSS transform. At zoom levels
+  where the scroll position would have to be negative (the canvas is smaller than the viewport)
+  the point under the pointer cannot stay put.
 - Exports clone `#elements > [data-element]` only, which is how the selection, draw-preview and
   remote-cursor layers stay out of them; there is no exclusion list to extend.
 

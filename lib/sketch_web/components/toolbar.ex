@@ -1,13 +1,14 @@
 defmodule SketchWeb.Toolbar do
   @moduledoc """
-  The canvas toolbar and its shortcuts help, rendered from `SketchWeb.Tools`, and the undo and redo
-  buttons, rendered from `SketchWeb.HistoryActions` (ADR 0008). The selected tool and the undo and
-  redo stacks are client-side UI state owned by the `Canvas` hook (`assets/js/hooks/tools.ts` reads
-  the keymap from the generated manifest); these components only render them.
+  The canvas toolbar and its shortcuts help, rendered from `SketchWeb.Tools`, the undo and redo
+  buttons, rendered from `SketchWeb.HistoryActions` (ADR 0008), and the zoom control, rendered from
+  `SketchWeb.ZoomActions`. The selected tool, the undo and redo stacks and the zoom level are
+  client-side UI state owned by the `Canvas` hook (`assets/js/hooks/tools.ts` and `zoom_logic.ts`
+  read the keymaps from the generated manifest); these components only render them.
   """
   use SketchWeb, :html
 
-  alias SketchWeb.HistoryActions
+  alias SketchWeb.{HistoryActions, ZoomActions}
 
   @help_button "shortcuts-help-button"
   @help_panel "shortcuts-help"
@@ -138,11 +139,76 @@ defmodule SketchWeb.Toolbar do
     """
   end
 
+  def zoom_controls(assigns) do
+    assigns =
+      assign(assigns,
+        zoom_out: ZoomActions.get!("zoom_out"),
+        zoom_in: ZoomActions.get!("zoom_in"),
+        zoom_reset: ZoomActions.get!("zoom_reset")
+      )
+
+    ~H"""
+    <div
+      id="zoom-controls"
+      role="group"
+      aria-label="Zoom"
+      phx-update="ignore"
+      class="absolute right-6 bottom-6 z-10 flex items-center gap-1 rounded-xl border border-base-300 bg-base-100 p-1 shadow-sm"
+    >
+      <.zoom_button action={@zoom_out} />
+      <button
+        id="zoom-reset"
+        type="button"
+        data-zoom-action={@zoom_reset.id}
+        aria-label={@zoom_reset.label}
+        aria-keyshortcuts={ZoomActions.aria_keyshortcuts(@zoom_reset)}
+        title={ZoomActions.title(@zoom_reset)}
+        phx-click={run_zoom_action(@zoom_reset.id)}
+        class={[button_class(), "w-14 text-sm tabular-nums"]}
+      >
+        <span id="zoom-level">100%</span>
+      </button>
+      <.zoom_button action={@zoom_in} />
+    </div>
+    """
+  end
+
+  attr :action, :map, required: true
+
+  defp zoom_button(assigns) do
+    ~H"""
+    <button
+      id={"zoom-#{String.replace_prefix(@action.id, "zoom_", "")}"}
+      type="button"
+      data-zoom-action={@action.id}
+      aria-label={@action.label}
+      aria-keyshortcuts={ZoomActions.aria_keyshortcuts(@action)}
+      title={ZoomActions.title(@action)}
+      phx-click={run_zoom_action(@action.id)}
+      class={button_class()}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        class="size-5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.75"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path :for={path <- @action.icon} d={path} />
+      </svg>
+    </button>
+    """
+  end
+
   def shortcuts_help(assigns) do
     assigns =
       assign(assigns,
         tools: SketchWeb.Tools.all(),
         history_actions: HistoryActions.all(),
+        zoom_actions: ZoomActions.all(),
         export_actions: SketchWeb.ExportActions.with_shortcuts()
       )
 
@@ -178,6 +244,17 @@ defmodule SketchWeb.Toolbar do
             <% end %>
           </dd>
         <% end %>
+        <%= for action <- @zoom_actions do %>
+          <dt>{action.label}</dt>
+          <dd id={"shortcut-#{action.id}"} class="flex flex-wrap items-center gap-1">
+            <%= for {chord, index} <- Enum.with_index(action.chords) do %>
+              <span :if={index > 0} class="text-xs">or</span>
+              <.key :for={key <- chord.keys}>{key}</.key>
+            <% end %>
+          </dd>
+        <% end %>
+        <dt>Zoom around the pointer</dt>
+        <dd class="flex items-center gap-1"><.key>Ctrl/⌘</.key>+ wheel or pinch</dd>
         <dt>Move canvas</dt>
         <dd class="flex items-center gap-1"><.key>Space</.key>+ drag</dd>
         <%= for action <- @export_actions do %>
@@ -225,6 +302,10 @@ defmodule SketchWeb.Toolbar do
 
   defp run_history_action(action_id) do
     JS.dispatch("sketch:history", to: "#canvas-viewport", detail: %{action: action_id})
+  end
+
+  defp run_zoom_action(action_id) do
+    JS.dispatch("sketch:zoom", to: "#canvas-viewport", detail: %{action: action_id})
   end
 
   defp select_tool(tool_id) do
