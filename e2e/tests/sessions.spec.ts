@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
+import { connected } from "./support/board"
 
 const recordingDir = process.env.E2E_RECORD_DIR
 const videoSize = { width: 800, height: 500 }
@@ -8,6 +9,7 @@ const rectangles = "[id^='element-'][data-kind='rectangle']"
 
 async function createBoard(page: Page): Promise<string> {
   await page.goto("/")
+  await expect(page.locator(connected)).toBeVisible()
   await page.locator("#new-board").click()
   await expect(page).toHaveURL(boardPath)
   await expect(page.locator("#add-rectangle")).toBeVisible()
