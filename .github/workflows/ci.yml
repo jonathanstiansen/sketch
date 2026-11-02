@@ -228,7 +228,7 @@ jobs:
             e2e/test-results
 
   complexity:
-    name: Complexity budget
+    name: Complexity of new TypeScript functions
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     permissions:
@@ -238,38 +238,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: erlef/setup-beam@v1
-        with:
-          elixir-version: ${{ env.ELIXIR_VERSION }}
-          otp-version: ${{ env.OTP_VERSION }}
-          version-type: strict
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Install lizard
         run: python3 -m pip install --quiet lizard==1.25.0
-      - name: Measure base and head with the same tools
+      - name: Check base and head
+        id: check
+        continue-on-error: true
         run: |
           git worktree add --detach "$RUNNER_TEMP/base" "${{ github.event.pull_request.base.sha }}"
-          python3 tools/complexity/measure.py --root "$RUNNER_TEMP/base" --out "$RUNNER_TEMP/base.json"
-          python3 tools/complexity/measure.py --root . --out "$RUNNER_TEMP/head.json"
-      - name: Apply the complexity budget
-        id: gate
-        continue-on-error: true
-        env:
-          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
-          REPORT: ${{ runner.temp }}/complexity-report.md
-        run: >-
-          python3 tools/complexity/gate.py
-          --base "$RUNNER_TEMP/base.json"
-          --head "$RUNNER_TEMP/head.json"
-          --report "$REPORT"
-          --labels "$LABELS"
+          python3 tools/complexity/check.py --base "$RUNNER_TEMP/base" --head . --report "$RUNNER_TEMP/report.md"
       - name: Post or update the PR comment
         if: always()
         uses: actions/github-script@v7
         env:
-          REPORT: ${{ runner.temp }}/complexity-report.md
+          REPORT: ${{ runner.temp }}/report.md
         with:
           script: |
             const fs = require('fs');
@@ -284,8 +268,6 @@ jobs:
             } else {
               await github.rest.issues.createComment({ owner, repo, issue_number, body });
             }
-      - name: Enforce the budget
-        if: steps.gate.outcome == 'failure'
-        run: |
-          echo "Complexity budget exceeded. See the PR comment for the rules and guidance."
-          exit 1
+      - name: Fail on new or growing complex functions
+        if: steps.check.outcome == 'failure'
+        run: exit 1
