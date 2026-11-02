@@ -1,0 +1,7 @@
+{
+  "elixir_fn_max": 9,
+  "ts_fn_max": 10,
+  "density_warn_pct": 5,
+  "density_fail_pct": 15,
+  "share_fail_pct": 5
+}
