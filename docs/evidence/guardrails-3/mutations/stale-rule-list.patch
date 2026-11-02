@@ -1,0 +1,13 @@
+diff --git a/ARCHITECTURE.md b/ARCHITECTURE.md
+index 526dbb5..ec2d355 100644
+--- a/ARCHITECTURE.md
++++ b/ARCHITECTURE.md
+@@ -16,7 +16,7 @@ All architecture checks are ExUnit tests in `test/architecture/`, run by `mix te
+ `mix ci` and CI). They use one checker, `Sketch.ArchitectureCheck` in
+ `test/support/architecture_check.ex`, which only uses OTP and the standard library:
+ 
+-- **Compiled code (A01, A02, A03, A12)**: reads the BEAM files of modules whose source is in `lib/`.
++- **Compiled code (A01, A02, A03)**: reads the BEAM files of modules whose source is in `lib/`.
+   OTP `:xref` gives remote call edges; the BEAM atom table catches references that are not calls
+   (for example passing `Sketch.Repo` around as a value); module attributes give declared behaviours.
+ - **Source files (A10, A13, A18, A20, A21, A22, A23)**: line-based scans of the relevant source trees,

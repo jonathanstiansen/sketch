@@ -1,0 +1,13 @@
+diff --git a/lib/sketch_web/selection_actions.ex b/lib/sketch_web/selection_actions.ex
+index e26f64b..2ae3f56 100644
+--- a/lib/sketch_web/selection_actions.ex
++++ b/lib/sketch_web/selection_actions.ex
+@@ -62,7 +62,7 @@ defmodule SketchWeb.SelectionActions do
+       action: "toggle",
+       target: :element,
+       shift: true,
+-      alt: false,
++      alt: :any,
+       help: %{
+         group: :selection,
+         action: "toggle_selected",

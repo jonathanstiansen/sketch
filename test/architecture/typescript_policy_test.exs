@@ -70,6 +70,16 @@ defmodule Sketch.Architecture.TypeScriptPolicyTest do
     assert output =~ "unchecked_index.ts(6,29): error TS7006"
   end
 
+  test "tsc rejects an undeclared event or a field the contract does not declare, like selection state (CI requirement 12)" do
+    {output, status} = System.cmd(@tsc, ["--noEmit", "-p", "tsconfig.json"], cd: @fixtures)
+
+    assert status != 0
+    assert output =~ ~r/client_events_selection\.ts\(6,\d+\): error/
+    assert output =~ ~r/client_events_selection\.ts\(8,\d+\): error/
+    assert output =~ ~r/client_events_selection\.ts\(10,\d+\): error/
+    refute output =~ ~r/client_events_selection\.ts\(12,\d+\): error/
+  end
+
   defp error?(nil), do: false
   defp error?([severity | _options]), do: error?(severity)
   defp error?(severity), do: severity in [2, "error"]

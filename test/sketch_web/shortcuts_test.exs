@@ -245,6 +245,139 @@ defmodule SketchWeb.ShortcutsTest do
     end
   end
 
+  describe "pointer gestures (A23)" do
+    @gesture %{
+      action: "poke",
+      motion: :click,
+      button: :primary,
+      tools: ["selection"],
+      target: :element,
+      space: false,
+      shift: true,
+      alt: false,
+      mod: :any
+    }
+
+    defp gesture_registry(name, gesture) do
+      registry(name, """
+      def shortcut_groups, do: [:#{Macro.underscore(name)}]
+      def pointer_gestures, do: [#{inspect(gesture)}]
+      def shortcuts, do: []
+      """)
+    end
+
+    test "no two gestures overlap, and every gesture belongs to its registry" do
+      gestures = Shortcuts.pointer_gestures()
+
+      for {a, i} <- Enum.with_index(gestures), {b, j} <- Enum.with_index(gestures), i < j do
+        refute Aggregate.gestures_overlap?(a, b), "#{inspect(a)} overlaps #{inspect(b)}"
+      end
+
+      for gesture <- gestures do
+        assert gesture in Enum.map(
+                 gesture.registry.pointer_gestures(),
+                 &Map.merge(&1, %{tools: gesture.tools, registry: gesture.registry})
+               )
+      end
+    end
+
+    test "a gesture that matches an input another one matches fails to compile, naming both" do
+      overlapping = gesture_registry("OverlappingGesture", @gesture)
+
+      assert_raise CompileError,
+                   ~r/"toggle" in SketchWeb.SelectionActions and "poke" in .*OverlappingGesture match the same input/,
+                   fn -> Aggregate.aggregate!([SketchWeb.SelectionActions, overlapping]) end
+    end
+
+    test "a gesture's unconstrained field overlaps either value; a differing tool, button or target does not" do
+      overlaps = &Aggregate.gestures_overlap?(@gesture, Map.merge(@gesture, &1))
+
+      assert overlaps.(%{shift: :any})
+      assert overlaps.(%{target: :any})
+      assert overlaps.(%{space: :any})
+      refute overlaps.(%{shift: false})
+      refute overlaps.(%{alt: true})
+      refute overlaps.(%{target: :empty})
+      refute overlaps.(%{button: :middle})
+      refute overlaps.(%{tools: ["hand"]})
+    end
+
+    test "a malformed gesture fails to compile" do
+      for {name, change, message} <- [
+            {"NoTarget", %{target: :nowhere}, ~r/needs a target/},
+            {"NoButton", %{button: :right}, ~r/needs a button/},
+            {"NoTool", %{tools: ["lasso"]},
+             ~r/tools SketchWeb.Tools does not declare: \["lasso"\]/},
+            {"BadShift", %{shift: :sometimes}, ~r/needs space, shift and alt/},
+            {"BadHelp", %{help: %{label: "Poke"}}, ~r/needs help with exactly the keys/}
+          ] do
+        malformed = gesture_registry(name, Map.merge(@gesture, change))
+
+        assert_raise CompileError, message, fn ->
+          Aggregate.aggregate!([malformed])
+        end
+      end
+    end
+
+    test "a help row without chords can only come from a gesture, so it cannot drift from it" do
+      chordless =
+        registry("ChordlessRow", """
+        def shortcut_groups, do: [:chordless_row]
+        def shortcuts, do: [%{group: :chordless_row, action: "c", label: "C", contexts: [:canvas], chords: []}]
+        """)
+
+      assert_raise CompileError,
+                   ~r/entry "c" has no chords; a chordless help row must come from a pointer gesture/,
+                   fn ->
+                     Aggregate.aggregate!([SketchWeb.FixedShortcuts, chordless])
+                   end
+
+      handwritten_keys =
+        registry("HandwrittenKeys", """
+        def shortcut_groups, do: [:handwritten_keys]
+        def shortcuts, do: [%{group: :handwritten_keys, action: "h", label: "H", contexts: [:canvas], chords: [], help_keys: ["Shift"]}]
+        """)
+
+      assert_raise CompileError, ~r/unknown keys \[:help_keys\]/, fn ->
+        Aggregate.aggregate!([SketchWeb.FixedShortcuts, handwritten_keys])
+      end
+    end
+
+    test "the help text is derived from the gesture's fields" do
+      shown = fn name, change ->
+        help = %{
+          group: String.to_atom(Macro.underscore(name)),
+          action: "poke_help",
+          label: "Poke",
+          contexts: [:canvas]
+        }
+
+        derived = gesture_registry(name, @gesture |> Map.merge(change) |> Map.put(:help, help))
+        aggregate = Aggregate.aggregate!([SketchWeb.FixedShortcuts, derived])
+        entry = Enum.find(aggregate.entries, &(&1.action == "poke_help"))
+        {Shortcuts.help_keys(entry), entry.suffix}
+      end
+
+      assert shown.("DerivedShift", %{}) == {[["Shift"]], "+ click"}
+      assert shown.("DerivedAlt", %{shift: false, alt: true}) == {[["Alt"]], "+ click"}
+
+      assert shown.("DerivedDrag", %{motion: :drag, target: :empty, shift: false}) ==
+               {[["Drag"]], "on empty canvas"}
+    end
+
+    test "the selection and zoom help rows read as the gestures do" do
+      for {action, keys, suffix} <- [
+            {"toggle_selected", ["Shift"], "+ click"},
+            {"select_in_box", ["Drag"], "on empty canvas"},
+            {"zoom_wheel", ["Ctrl/⌘"], "+ wheel or pinch"}
+          ] do
+        entry = Shortcuts.get(action)
+        assert Shortcuts.help_keys(entry) == [keys]
+        assert entry.suffix == suffix
+      end
+    end
+  end
+
   test "the shortcuts help renders every aggregated entry and nothing else" do
     html = render_component(&SketchWeb.Toolbar.shortcuts_help/1, %{})
     rows = html |> LazyHTML.from_fragment() |> LazyHTML.query("dd[id^=shortcut-]")

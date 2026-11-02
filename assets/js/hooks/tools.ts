@@ -3,12 +3,14 @@ import {
   DEFAULT_TOOL,
   ELEMENT_KINDS,
   KIND_SPECS,
+  POINTER_GESTURES,
   REQUIRED_TEXT_KINDS,
   TEXT_KINDS,
   TOOLS as TOOL_SPECS,
   TYPED_KINDS,
   type ElementKind,
   type KindSpec,
+  type PointerGestureSpec,
   type RequiredTextKind,
   type TextKind,
   type ToolId,
@@ -95,7 +97,7 @@ export interface KeyInput extends ShortcutInput {
   readonly editable: boolean
 }
 
-export type PointerAction = "pan" | "draw" | "text" | "erase" | "move" | "copy" | "resize" | "toggle" | "marquee" | "none"
+export type PointerAction = (typeof POINTER_GESTURES)[number]["action"] | "none"
 
 export interface PointerInput {
   button: number
@@ -107,8 +109,37 @@ export interface PointerInput {
   shiftKey?: boolean
 }
 
-const PRIMARY_BUTTON = 0
-const MIDDLE_BUTTON = 1
+interface GestureInput {
+  button: PointerGestureSpec["button"]
+  tool: ToolId
+  target: NonNullable<PointerGestureSpec["target"]>
+  space: boolean
+  shift: boolean
+  alt: boolean
+  command: boolean
+}
+
+const PRESS_BUTTONS: readonly PointerGestureSpec["button"][] = ["primary", "middle"]
+
+function allows<T>(declared: T | null, actual: T): boolean {
+  return declared === null || declared === actual
+}
+
+export function gestureMatches(gesture: PointerGestureSpec, input: GestureInput): boolean {
+  return (
+    gesture.button === input.button &&
+    gesture.tools.includes(input.tool) &&
+    allows(gesture.target, input.target) &&
+    allows(gesture.space, input.space) &&
+    allows(gesture.shift, input.shift) &&
+    allows(gesture.alt, input.alt) &&
+    (gesture.mod === null || input.command)
+  )
+}
+
+function gestureAction(input: GestureInput): PointerAction {
+  return POINTER_GESTURES.find((gesture) => gestureMatches(gesture, input))?.action ?? "none"
+}
 
 function keyShortcut(input: KeyInput): Shortcut | undefined {
   return shortcutFor(input, focusContext(input.editable))
@@ -141,22 +172,41 @@ export function escapes(input: KeyInput): boolean {
   return keyShortcut(input)?.action === "escape"
 }
 
-function selectionAction(onElement: boolean, onHandle: boolean, altKey: boolean, shiftKey: boolean): PointerAction {
-  if (onHandle) return "resize"
-  if (!onElement) return "marquee"
-  if (altKey) return "copy"
-  return shiftKey ? "toggle" : "move"
+function pressTarget(onElement: boolean, onHandle: boolean): GestureInput["target"] {
+  if (onHandle) return "handle"
+  return onElement ? "element" : "empty"
 }
 
 export function pointerAction({ button, tool, spaceHeld, onElement, onHandle, altKey = false, shiftKey = false }: PointerInput): PointerAction {
-  if (button === MIDDLE_BUTTON) return "pan"
-  if (button !== PRIMARY_BUTTON) return "none"
-  if (spaceHeld || tool === "hand") return "pan"
-  const created = createdKind(tool)
-  if (created !== undefined) return isDrawnKind(created) ? "draw" : "text"
-  if (tool === "eraser") return "erase"
-  if (tool === "selection") return selectionAction(onElement, onHandle, altKey, shiftKey)
-  return "none"
+  const pressed = PRESS_BUTTONS[button]
+  if (pressed === undefined) return "none"
+  return gestureAction({
+    button: pressed,
+    tool,
+    target: pressTarget(onElement, onHandle),
+    space: spaceHeld,
+    shift: shiftKey,
+    alt: altKey,
+    command: false,
+  })
+}
+
+export interface WheelInput {
+  tool: ToolId
+  ctrlKey: boolean
+  metaKey: boolean
+}
+
+export function wheelAction({ tool, ctrlKey, metaKey }: WheelInput): PointerAction {
+  return gestureAction({
+    button: "wheel",
+    tool,
+    target: "empty",
+    space: false,
+    shift: false,
+    alt: false,
+    command: ctrlKey || metaKey,
+  })
 }
 
 export function keepsSelection(tool: ToolId): boolean {

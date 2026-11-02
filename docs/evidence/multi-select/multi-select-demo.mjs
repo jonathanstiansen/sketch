@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs"
 import { createRequire } from "node:module"
+import { newContext } from "../../../e2e/tests/support/contexts.ts"
 
 const require = createRequire(new URL("../../../e2e/package.json", import.meta.url))
 const { chromium } = require("@playwright/test")
@@ -75,7 +76,7 @@ mkdirSync(framesDir, { recursive: true })
 const browser = await chromium.launch()
 try {
   const contexts = await Promise.all(
-    [0, 1].map(() => browser.newContext({ viewport, deviceScaleFactor: 1, permissions: ["clipboard-read", "clipboard-write"] })),
+    [0, 1].map(() => newContext(browser, { viewport, deviceScaleFactor: 1 })),
   )
   const [pageA, pageB] = await Promise.all(contexts.map((context) => context.newPage()))
   const pages = [pageA, pageB]

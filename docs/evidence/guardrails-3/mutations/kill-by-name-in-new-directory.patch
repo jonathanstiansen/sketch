@@ -1,0 +1,8 @@
+diff --git a/ops/stop-everything.sh b/ops/stop-everything.sh
+new file mode 100644
+index 0000000..d0c8bd4
+--- /dev/null
++++ b/ops/stop-everything.sh
+@@ -0,0 +1,2 @@
++#!/usr/bin/env bash
++pkill -f phoenix

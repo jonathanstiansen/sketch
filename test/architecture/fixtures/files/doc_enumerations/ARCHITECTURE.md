@@ -11,3 +11,7 @@ The drawing tools are `rectangle`, `ellipse` and `eraser`, plus Selection.
 The stroke colours are `ink`, `red` and `blue`.
 
 A rectangle and a line are kinds; plain words are not code.
+
+The relayed events are `preview`, `cursor` and `drag_cancel`.
+
+The Selection tool can `toggle`, `marquee` or `resize`.

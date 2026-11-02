@@ -1,0 +1,13 @@
+diff --git a/docs/evidence/zoom/zoom-demo.mjs b/docs/evidence/zoom/zoom-demo.mjs
+index dcc7fb1..b47ca0b 100644
+--- a/docs/evidence/zoom/zoom-demo.mjs
++++ b/docs/evidence/zoom/zoom-demo.mjs
+@@ -79,7 +79,7 @@ async function zoomIs(page, zoom) {
+ mkdirSync(framesDir, { recursive: true })
+ const browser = await chromium.launch()
+ try {
+-  const contexts = await Promise.all([0, 1].map(() => newContext(browser, { viewport, deviceScaleFactor: 1 })))
++  const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport, deviceScaleFactor: 1 })))
+   const [pageA, pageB] = await Promise.all(contexts.map((context) => context.newPage()))
+   const pages = [pageA, pageB]
+   await pageA.goto(baseURL)

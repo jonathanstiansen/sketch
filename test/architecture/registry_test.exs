@@ -57,6 +57,26 @@ defmodule Sketch.Architecture.RegistryTest do
     end
   end
 
+  test "ARCHITECTURE.md lists each check category's rule IDs as architecture/rules.exs declares them" do
+    violations = ArchitectureCheck.rule_category_violations(File.cwd!())
+
+    assert violations == [], ArchitectureCheck.format_violations(violations)
+  end
+
+  test "rejects a stale rule ID list, a list with no category and a category with no list" do
+    violations =
+      ArchitectureCheck.rule_category_violations(
+        "test/architecture/fixtures/files/rule_categories"
+      )
+
+    assert Enum.map(violations, & &1.detail) |> Enum.sort() == [
+             "Dependencies lists nil; architecture/rules.exs says [\"A03\"]",
+             "Source files lists [\"A02\"]; architecture/rules.exs says [\"A02\", \"A04\"]",
+             "Stale category lists [\"A01\"]; architecture/rules.exs says nil",
+             "unknown check category :nonsense"
+           ]
+  end
+
   defp valid_status?(:enforced), do: true
   defp valid_status?(:unverified), do: true
   defp valid_status?({:pending, gate}) when gate in 1..5, do: true

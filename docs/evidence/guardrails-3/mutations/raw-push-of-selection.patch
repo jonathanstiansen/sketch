@@ -1,0 +1,12 @@
+diff --git a/assets/js/hooks/canvas.ts b/assets/js/hooks/canvas.ts
+index f7d33cb..c1e248e 100644
+--- a/assets/js/hooks/canvas.ts
++++ b/assets/js/hooks/canvas.ts
+@@ -638,6 +638,7 @@ export class Canvas extends ViewHook {
+   }
+ 
+   private sendCursorLeave(): void {
++    void this.pushEvent("selection_changed", { element_ids: this.selected })
+     window.clearTimeout(this.cursorTimer)
+     this.cursorTimer = undefined
+     const seq = this.cursorSender.leave()

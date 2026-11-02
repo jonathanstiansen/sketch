@@ -9,14 +9,17 @@ import {
   drawGesture,
   drawnKind,
   nextTool,
+  gestureMatches,
   panScroll,
   pointerAction,
   selectionHandles,
   selectTool,
   typedKind,
+  wheelAction,
   type KeyInput,
   type ToolId,
 } from "../js/hooks/tools.ts"
+import { POINTER_GESTURES, type PointerGestureSpec } from "../js/generated/manifest.ts"
 import { anyModifiers, anyPress, press, type Modifiers } from "./key_press.ts"
 
 const settings = { seed: 1, numRuns: 500 }
@@ -174,6 +177,87 @@ void test("the middle button, Space and Hand pan; Rectangle, Diamond, Ellipse, A
       assert.equal(action === "toggle", onElement && !input.altKey && input.shiftKey)
       assert.equal(action === "move", onElement && !input.altKey && !input.shiftKey)
       assert.equal(action === "marquee", selecting && !input.onHandle && !input.onElement)
+    }),
+    settings,
+  )
+})
+
+const BOOLEANS = [false, true] as const
+const GESTURE_BUTTONS = ["primary", "middle", "wheel"] as const
+const GESTURE_TARGETS = ["element", "empty", "handle"] as const
+
+const everyGestureInput = TOOLS.flatMap(({ id: tool }) =>
+  GESTURE_BUTTONS.flatMap((button) =>
+    GESTURE_TARGETS.flatMap((target) =>
+      BOOLEANS.flatMap((space) =>
+        BOOLEANS.flatMap((shift) => BOOLEANS.flatMap((alt) => BOOLEANS.map((command) => ({ button, tool, target, space, shift, alt, command })))),
+      ),
+    ),
+  ),
+)
+
+function gestureInput(gesture: PointerGestureSpec) {
+  return fc.record({
+    tool: fc.constantFrom(...gesture.tools),
+    target: gesture.target === null ? fc.constantFrom(...GESTURE_TARGETS) : fc.constant(gesture.target),
+    space: gesture.space === null ? fc.boolean() : fc.constant(gesture.space),
+    shift: gesture.shift === null ? fc.boolean() : fc.constant(gesture.shift),
+    alt: gesture.alt === null ? fc.boolean() : fc.constant(gesture.alt),
+    ctrlKey: gesture.mod === null ? fc.boolean() : fc.constant(true),
+  })
+}
+
+void test("every declared pointer gesture maps to its action", () => {
+  for (const gesture of POINTER_GESTURES) {
+    fc.assert(
+      fc.property(gestureInput(gesture), ({ tool, target, space, shift, alt, ctrlKey }) => {
+        const action =
+          gesture.button === "wheel"
+            ? wheelAction({ tool, ctrlKey, metaKey: false })
+            : pointerAction({
+                button: gesture.button === "primary" ? 0 : 1,
+                tool,
+                spaceHeld: space,
+                onElement: target === "element",
+                onHandle: target === "handle",
+                altKey: alt,
+                shiftKey: shift,
+              })
+        assert.equal(action, gesture.action)
+      }),
+      settings,
+    )
+  }
+})
+
+void test("no input matches two pointer gestures", () => {
+  for (const input of everyGestureInput) {
+    const matching = POINTER_GESTURES.filter((gesture) => gestureMatches(gesture, input))
+    assert.ok(matching.length <= 1, `${JSON.stringify(input)} matches ${JSON.stringify(matching)}`)
+  }
+})
+
+void test("a press with the primary button does something with every tool, and any other button but the middle does nothing", () => {
+  fc.assert(
+    fc.property(pointerInput, (input) => {
+      const action = pointerAction(input)
+      if (input.button === 0) assert.notEqual(action, "none")
+      if (input.button > 1) assert.equal(action, "none")
+    }),
+    settings,
+  )
+})
+
+void test("the wheel zooms only with Ctrl or Command held, whatever the tool, and a press never zooms", () => {
+  fc.assert(
+    fc.property(startTool, fc.boolean(), fc.boolean(), (tool, ctrlKey, metaKey) => {
+      assert.equal(wheelAction({ tool, ctrlKey, metaKey }), ctrlKey || metaKey ? "zoom" : "none")
+    }),
+    settings,
+  )
+  fc.assert(
+    fc.property(pointerInput, (input) => {
+      assert.notEqual(pointerAction(input), "zoom")
     }),
     settings,
   )

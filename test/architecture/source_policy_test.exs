@@ -23,35 +23,79 @@ defmodule Sketch.Architecture.SourcePolicyTest do
 
   describe "E2E tests use the real stack without fixed sleeps (A18, A20)" do
     test "application" do
-      violations = ArchitectureCheck.e2e_violations(File.cwd!(), e2e_context_paths())
+      violations = e2e_violations(File.cwd!())
 
       assert violations == [], ArchitectureCheck.format_violations(violations)
     end
 
     test "rejects fixed sleeps (A20)" do
-      violations = ArchitectureCheck.e2e_violations(fixture("a20"), e2e_context_paths())
+      violations = e2e_violations(fixture("a20"))
 
       assert subjects(violations, "A20") == ["e2e/sleep.spec.ts:4", "e2e/sleep.spec.ts:5"]
     end
 
     test "rejects request interception and mock libraries (A18)" do
-      violations = ArchitectureCheck.e2e_violations(fixture("a18"), e2e_context_paths())
+      violations = e2e_violations(fixture("a18"))
 
       assert subjects(violations, "A18") == [
                "e2e/mock.spec.ts:2",
                "e2e/mock.spec.ts:5",
+               "e2e/mock.spec.ts:6",
+               "e2e/mock.spec.ts:7",
                "e2e/package.json"
              ]
     end
 
-    test "rejects a browser context or page created outside the shared helper (CI requirement 11)" do
-      violations = ArchitectureCheck.e2e_violations(fixture("e2e_contexts"), e2e_context_paths())
+    test "e2e/package.json must equal the allowlist, so a mock library under a new name fails (A18)" do
+      details =
+        fixture("a18")
+        |> e2e_violations()
+        |> Enum.filter(&(&1.subject == "e2e/package.json"))
+        |> Enum.map(& &1.detail)
+        |> Enum.sort()
+
+      assert details == [
+               "dependency miragejs is not in e2e_npm_deps",
+               "depends on mock library @mswjs/interceptors",
+               "depends on mock library msw",
+               "e2e_npm_deps lists @types/node, which is not a dependency",
+               "e2e_npm_deps lists eslint, which is not a dependency",
+               "e2e_npm_deps lists fast-check, which is not a dependency",
+               "e2e_npm_deps lists typescript, which is not a dependency"
+             ]
+    end
+
+    test "the mock-library denylist and the E2E dependency allowlist are registry data (A18)" do
+      refute Enum.any?(allowlist(:e2e_npm_deps), &(&1 in allowlist(:e2e_mock_packages)))
+      assert "msw" in allowlist(:e2e_mock_packages)
+      assert "@playwright/test" in allowlist(:e2e_npm_deps)
+    end
+  end
+
+  describe "every browser context comes from the shared helper (CI requirement 11)" do
+    test "application" do
+      violations =
+        ArchitectureCheck.browser_context_violations(
+          File.cwd!(),
+          e2e_context_paths(),
+          script_scan_exempt_paths()
+        )
+
+      assert violations == [], ArchitectureCheck.format_violations(violations)
+    end
+
+    test "rejects a context or page created outside the helper in any tracked script, not only e2e/" do
+      violations =
+        ArchitectureCheck.browser_context_violations(fixture("e2e_contexts"), e2e_context_paths())
 
       assert subjects(violations, "e2e_contexts") == [
+               "docs/evidence/demo/record.mjs:4",
+               "docs/evidence/demo/record.mjs:5",
                "e2e/tests/direct.spec.ts:4",
                "e2e/tests/direct.spec.ts:5",
                "e2e/tests/direct.spec.ts:7",
-               "e2e/tests/support/other.ts:4"
+               "e2e/tests/support/other.ts:4",
+               "tools/launch.mjs:3"
              ]
     end
 
@@ -195,6 +239,8 @@ defmodule Sketch.Architecture.SourcePolicyTest do
                {"ARCHITECTURE.md:7", "lists 3 element kinds"},
                {"ARCHITECTURE.md:9", "lists 3 tools"},
                {"ARCHITECTURE.md:11", "lists 3 style tokens"},
+               {"ARCHITECTURE.md:15", "lists 3 transient events"},
+               {"ARCHITECTURE.md:17", "lists 3 pointer gesture actions"},
                {"architecture/rules.exs:3", "lists 2 focus contexts"},
                {"docs/NOTES.md:3", "lists 3 shortcut groups"}
              ]
@@ -207,7 +253,8 @@ defmodule Sketch.Architecture.SourcePolicyTest do
 
   describe "scripts stop only processes they started, by PID" do
     test "application" do
-      violations = ArchitectureCheck.process_kill_violations(File.cwd!())
+      violations =
+        ArchitectureCheck.process_kill_violations(File.cwd!(), script_scan_exempt_paths())
 
       assert violations == [], ArchitectureCheck.format_violations(violations)
     end
@@ -223,10 +270,30 @@ defmodule Sketch.Architecture.SourcePolicyTest do
                "docs/evidence/demo/record.sh:6",
                "docs/evidence/demo/record.sh:7",
                "e2e/tests/restart.spec.ts:6",
-               "scripts/stop.mjs:3"
+               "ops/bin/stop-all:3",
+               "scripts/stop.mjs:3",
+               "tools/stop.py:3"
+             ]
+    end
+
+    test "only the negative fixtures and two files that name the commands are exempt" do
+      assert script_scan_exempt_paths() == [
+               "test/architecture/fixtures/",
+               "test/architecture/source_policy_test.exs",
+               "architecture/rules.exs"
              ]
     end
   end
+
+  defp e2e_violations(root) do
+    ArchitectureCheck.e2e_violations(
+      root,
+      allowlist(:e2e_mock_packages),
+      allowlist(:e2e_npm_deps)
+    )
+  end
+
+  defp script_scan_exempt_paths, do: allowlist(:script_scan_exempt_paths)
 
   defp literal_chord_paths, do: allowlist(:literal_chord_paths)
 
@@ -280,6 +347,20 @@ defmodule Sketch.Architecture.SourcePolicyTest do
         name: "shortcut groups",
         source: "SketchWeb.Shortcuts.groups/0",
         members: Enum.map(SketchWeb.Shortcuts.groups(), &Atom.to_string/1),
+        form: :code,
+        min: 3
+      },
+      %{
+        name: "transient events",
+        source: "SketchWeb.BoardEvents.transient/0",
+        members: Enum.map(SketchWeb.BoardEvents.transient(), & &1.event),
+        form: :code,
+        min: 3
+      },
+      %{
+        name: "pointer gesture actions",
+        source: "SketchWeb.Shortcuts.pointer_gestures/0",
+        members: SketchWeb.Shortcuts.pointer_gestures() |> Enum.map(& &1.action) |> Enum.uniq(),
         form: :code,
         min: 3
       }

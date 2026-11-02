@@ -1,8 +1,9 @@
 defmodule SketchWeb.FixedShortcuts do
   @moduledoc """
   The shortcuts that belong to no feature registry: deleting the selection, panning with Space,
-  Esc on the canvas and in the text editor, and the help itself, plus the Ctrl/⌘ + wheel gesture
-  the help lists. `SketchWeb.Shortcuts` aggregates them with the feature registries (A23).
+  Esc on the canvas and in the text editor, and the help itself, plus the gestures that work with
+  every tool (panning with the middle button or Space, zooming with Ctrl/⌘ + wheel).
+  `SketchWeb.Shortcuts` aggregates them with the feature registries (A23).
 
   It also declares the two base focus contexts, which are never active together: `canvas` when
   nothing editable has focus and `editor` while text entry has focus. Both Esc chords ignore held
@@ -15,15 +16,6 @@ defmodule SketchWeb.FixedShortcuts do
   ]
 
   @shortcuts [
-    %{
-      group: :canvas,
-      action: "zoom_wheel",
-      label: "Zoom around the pointer",
-      contexts: [:canvas],
-      chords: [],
-      help_keys: ["Ctrl/⌘"],
-      suffix: "+ wheel or pinch"
-    },
     %{
       group: :canvas,
       action: "pan",
@@ -121,8 +113,44 @@ defmodule SketchWeb.FixedShortcuts do
     }
   ]
 
+  @any_tool %{tools: :all, target: :any, shift: :any, alt: :any}
+
+  @pointer_gestures [
+    Map.merge(@any_tool, %{
+      action: "pan",
+      motion: :drag,
+      button: :middle,
+      space: :any,
+      mod: :any
+    }),
+    Map.merge(@any_tool, %{
+      action: "pan",
+      motion: :drag,
+      button: :primary,
+      space: true,
+      mod: :any
+    }),
+    Map.merge(@any_tool, %{
+      action: "zoom",
+      motion: :wheel,
+      button: :wheel,
+      space: :any,
+      mod: :command,
+      help: %{
+        group: :canvas,
+        action: "zoom_wheel",
+        label: "Zoom around the pointer",
+        contexts: [:canvas]
+      }
+    })
+  ]
+
   @spec shortcuts() :: [map()]
   def shortcuts, do: @shortcuts
+
+  @doc "The gestures that work with every tool (A23)."
+  @spec pointer_gestures() :: [SketchWeb.Shortcuts.Aggregate.gesture()]
+  def pointer_gestures, do: @pointer_gestures
 
   @doc "The shortcut groups this registry owns (A23)."
   @spec shortcut_groups() :: [atom()]

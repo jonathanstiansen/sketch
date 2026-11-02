@@ -3,6 +3,8 @@
 /ARCHITECTURE.md @jonathanstiansen
 /test/architecture/ @jonathanstiansen
 /test/support/architecture_check.ex @jonathanstiansen
+/lib/sketch_web/board_events/contract.ex @jonathanstiansen
+/lib/sketch_web/shortcuts/aggregate.ex @jonathanstiansen
 /mix.exs @jonathanstiansen
 /mix.lock @jonathanstiansen
 /.credo.exs @jonathanstiansen

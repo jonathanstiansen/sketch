@@ -2,12 +2,21 @@ defmodule SketchWeb.ClientManifest do
   @moduledoc """
   Renders `assets/js/generated/manifest.ts` (ADR 0004): the element kinds and their specs, the
   style registry (ADR 0006), the toolbar tools, the export, history (ADR 0008) and zoom actions, the
-  keyboard shortcuts of all of them from `SketchWeb.Shortcuts` (A23), the canvas geometry and the
-  text whitespace, so the client never keeps its own copy of them.
+  keyboard shortcuts and pointer gestures of all of them from `SketchWeb.Shortcuts` (A23), the
+  payload of every event a client may push from `SketchWeb.BoardEvents`, the canvas geometry and
+  the text whitespace, so the client never keeps its own copy of them.
   `mix sketch.gen.manifest` writes it and `mix sketch.gen.manifest --check` fails when it is stale.
   """
 
-  alias SketchWeb.{ClipboardActions, ExportActions, HistoryActions, Shortcuts, Tools, ZoomActions}
+  alias SketchWeb.{
+    BoardEvents,
+    ClipboardActions,
+    ExportActions,
+    HistoryActions,
+    Shortcuts,
+    Tools,
+    ZoomActions
+  }
 
   @path "assets/js/generated/manifest.ts"
 
@@ -53,6 +62,19 @@ defmodule SketchWeb.ClientManifest do
     readonly action: string
     readonly contexts: readonly FocusContext[]
     readonly chords: readonly ShortcutChord[]
+  }
+  """
+
+  @pointer_gesture_interface """
+  export interface PointerGestureSpec {
+    readonly action: string
+    readonly button: "primary" | "middle" | "wheel"
+    readonly tools: readonly ToolId[]
+    readonly target: "element" | "empty" | "handle" | null
+    readonly space: boolean | null
+    readonly shift: boolean | null
+    readonly alt: boolean | null
+    readonly mod: "command" | null
   }
   """
 
@@ -112,6 +134,9 @@ defmodule SketchWeb.ClientManifest do
       shortcuts(),
       "export type Shortcut = (typeof SHORTCUTS)[number]\n",
       "export type ShortcutAction = Shortcut[\"action\"]\n",
+      @pointer_gesture_interface,
+      pointer_gestures(),
+      client_events(),
       geometry(),
       "export const TEXT_WHITESPACE: readonly string[] = [#{Enum.map_join(Sketch.Canvas.text_whitespace(), ", ", &string/1)}]\n"
     ]
@@ -236,6 +261,68 @@ defmodule SketchWeb.ClientManifest do
 
     "export const SHORTCUTS = [\n#{lines}] as const satisfies readonly ShortcutSpec[]\n"
   end
+
+  defp pointer_gestures do
+    lines =
+      Enum.map_join(Shortcuts.pointer_gestures(), "", fn gesture ->
+        fields = [
+          action: string(gesture.action),
+          button: string(gesture.button),
+          tools: "[#{Enum.map_join(gesture.tools, ", ", &string/1)}]",
+          target: any_or_string(gesture.target),
+          space: any_or_boolean(gesture.space),
+          shift: any_or_boolean(gesture.shift),
+          alt: any_or_boolean(gesture.alt),
+          mod: any_or_string(gesture.mod)
+        ]
+
+        "  #{object(fields)},\n"
+      end)
+
+    "export const POINTER_GESTURES = [\n#{lines}] as const satisfies readonly PointerGestureSpec[]\n"
+  end
+
+  defp any_or_string(:any), do: "null"
+  defp any_or_string(value), do: string(value)
+
+  defp any_or_boolean(:any), do: "null"
+  defp any_or_boolean(value), do: to_string(value)
+
+  defp client_events do
+    lines =
+      Enum.map_join(BoardEvents.all(), "", fn event ->
+        "  readonly #{string(event.event)}: #{payload_type(event.payload)}\n"
+      end)
+
+    """
+    export interface ClientEventPayloads {
+    #{lines}}
+
+    export type ClientEventName = keyof ClientEventPayloads
+    """
+  end
+
+  defp payload_type(payload) when map_size(payload) == 0, do: "Record<string, never>"
+
+  defp payload_type(payload) do
+    fields =
+      payload
+      |> Enum.sort()
+      |> Enum.map_join("; ", fn
+        {field, {:optional, type}} -> "readonly #{field}?: #{field_type(type)}"
+        {field, type} -> "readonly #{field}: #{field_type(type)}"
+      end)
+
+    "{ #{fields} }"
+  end
+
+  defp field_type(:integer), do: "number"
+  defp field_type(:string), do: "string"
+  defp field_type(:kind), do: "ElementKind"
+  defp field_type(:points), do: "readonly { readonly x: number; readonly y: number }[]"
+  defp field_type({:style_token, property}), do: "StyleToken<#{string(property)}>"
+  defp field_type({:list, type}), do: "readonly #{field_type(type)}[]"
+  defp field_type(payload) when is_map(payload), do: payload_type(payload)
 
   defp context_overlaps do
     pairs =

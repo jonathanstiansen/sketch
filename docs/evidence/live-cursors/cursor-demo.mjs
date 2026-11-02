@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs"
 import { createRequire } from "node:module"
+import { newContext } from "../../../e2e/tests/support/contexts.ts"
 
 const require = createRequire(new URL("../../../e2e/package.json", import.meta.url))
 const { chromium } = require("@playwright/test")
@@ -37,7 +38,7 @@ async function seesOthersAt(page, expected) {
 mkdirSync(framesDir, { recursive: true })
 const browser = await chromium.launch()
 try {
-  const contexts = await Promise.all(names.map(() => browser.newContext({ viewport, deviceScaleFactor: 1 })))
+  const contexts = await Promise.all(names.map(() => newContext(browser, { viewport, deviceScaleFactor: 1 })))
   const pages = await Promise.all(contexts.map((context) => context.newPage()))
   await pages[0].goto(baseURL)
   await pages[0].locator(".phx-connected").first().waitFor()

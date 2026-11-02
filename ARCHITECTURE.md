@@ -19,20 +19,28 @@ All architecture checks are ExUnit tests in `test/architecture/`, run by `mix te
 - **Compiled code (A01, A02, A03, A12)**: reads the BEAM files of modules whose source is in `lib/`.
   OTP `:xref` gives remote call edges; the BEAM atom table catches references that are not calls
   (for example passing `Sketch.Repo` around as a value); module attributes give declared behaviours.
-- **Source files (A13, A18, A20, A21, A22, A23)**: line-based scans of the relevant source trees.
+- **Source files (A10, A13, A18, A20, A21, A22, A23)**: line-based scans of the relevant source trees,
+  and for A10 a parse of `SketchWeb.BoardLive` against `SketchWeb.BoardEvents`.
 - **Docs (CI requirement 10)**: no line of a living doc (every Markdown file at the root and directly
   in `docs/`, and `architecture/rules.exs`; the specification is exempt) names two or more shortcut
   registries, both focus contexts, or three or more element kinds, tools, style tokens or shortcut
   groups in code form. A doc refers to the registry instead, so adding a registry, kind or token
   never leaves a stale list behind.
-- **E2E browser contexts (CI requirement 11)**: every browser context comes from
-  `e2e/tests/support/contexts.ts`, which adds the shared options (the clipboard permissions) that
-  `playwright.config.ts` also uses; a scan of `e2e/` rejects `.newContext(` and `browser.newPage(`
-  anywhere else.
-- **Processes (CI requirement 9)**: a line-based scan of scripts under `docs/evidence/`, `e2e/` and
-  `scripts/` and of the exec blocks of every `DEMO.md`: no `pkill`, no `killall` and no `kill` whose
-  target is not a PID variable (`kill "$pid"`, `kill -9 $server`, `kill $!`). A script stops only
-  the processes it started.
+- **Browser contexts (CI requirement 11)**: every Playwright browser context, in E2E tests and
+  evidence scripts alike, comes from `e2e/tests/support/contexts.ts`, which adds the shared options
+  (the clipboard permissions) that `playwright.config.ts` also uses; a scan of every tracked script
+  rejects `.newContext(`, `.launchPersistentContext(` and `browser.newPage(` anywhere else.
+- **Processes (CI requirement 9)**: a line-based scan of every tracked script (`git ls-files` plus
+  files not yet added, by extension or a `#!` first line, except `deps`, `_build`, `node_modules` and
+  `script_scan_exempt_paths`) and of the exec blocks of every tracked `DEMO.md`: no `pkill`, no
+  `killall` and no `kill` whose target is not a PID variable (`kill "$pid"`, `kill -9 $server`,
+  `kill $!`). A script stops only the processes it started.
+- **Board events (CI requirement 12)**: every event a board client pushes is declared in
+  `SketchWeb.BoardEvents` and goes through `pushClientEvent`, typed from the generated
+  `ClientEventPayloads`, so `tsc` rejects an undeclared event or field. The contract refuses a field
+  naming selection state at compile time; a scan rejects a raw `pushEvent` outside
+  `client_push_paths`, and a parse of `SketchWeb.BoardLive` rejects selection names in its event code
+  (addendum D8).
 - **Dependencies (A15)**: the production deps from `mix.exs` and the `dependencies` of
   `assets/package.json` and `e2e/package.json` must equal the allowlist exactly.
 - **TypeScript (A14)**: `tsc` and ESLint run in CI; a test asserts the resolved compiler and ESLint
@@ -56,7 +64,7 @@ the only path excluded from the A21 scan.
 | A07 | Queries and events, including live cursors, are scoped to the selected board. | Enforced |
 | A08 | Invalid coordinates and sizes cannot be persisted (addendum D1, D8): `x, y >= 0`, `width, height >= 1` (`>= 0` for point kinds such as lines, arrows and freehand strokes), `x + width` and `y + height` within the canvas, a line or arrow's two points, or a freehand stroke's 2 to 500 points, inside its box, text only on text and note elements, at most 2000 code points and non-blank for text (ADR 0003), a `seed` in `0..2_147_483_647` (addendum D9, ADR 0005), and style tokens from `Sketch.Canvas.Style`, with every property that does not apply to the kind at its default (addendum D10, ADR 0006). `Sketch.Canvas.Geometry` holds the bounds; the `FitsCanvas`, `PointsFitShape` and `TextFitsKind` validations (atomic, so they also check stored values during updates), the code-point `max_length` on `text` and PostgreSQL CHECK constraints all derive from it, and property tests compare Ash and raw SQL over arbitrary boxes, points, strings and seeds. | Enforced |
 | A09 | Durable movement, resizing and restyling increment `version` atomically (ADR 0001, ADR 0003, ADR 0006). `commit_position`, `commit_shape` and `commit_style` use `atomic_update(:version, expr(version + 1))` and each writes only its own attributes; a non-sandboxed test runs 50 interleaved moves, resizes and restyles across 25 concurrent connections and requires versions `1..50` with no duplicates, a stored row equal to the commit that returned version 50, and the box and style of the last box and last style commit. Undo and redo are replays of these actions (ADR 0008), checked by a second interleaved test of moves and their undos. | Enforced |
-| A10 | Transient previews never trigger persistence. Previews, cancels and live cursors (addendum D11, ADR 0007) are relayed with `SketchWeb.Endpoint.broadcast_from/4`; an instrumented LiveView test asserts they cause zero Repo queries. | Enforced |
+| A10 | Transient previews never trigger persistence. Previews, cancels and live cursors (addendum D11, ADR 0007) are relayed with `SketchWeb.Endpoint.broadcast_from/4`. `SketchWeb.BoardEvents.transient/0` declares every relay-only event with a valid example; `SketchWeb.BoardLive` forwards only what it declares, and an instrumented LiveView test sends every example and asserts it reaches the other view with zero Repo queries. A parse of `BoardLive` fails if it relays, forwards or handles an undeclared event, if a durable event never reaches the `Sketch.Canvas` action it names, or if anything but `broadcast_preview` broadcasts (ADR 0011). | Enforced |
 | A11 | Durable events originate from successful Ash changes. | Enforced |
 | A12 | No custom GenServer, event broker or repository layer: no `lib` module implements GenServer, `:gen_server`, `:gen_statem`, `:gen_event` or GenStage, uses Agent, Registry or `:pg`, or is named `*Repository*`. | Enforced |
 | A13 | Pointer, mouse and touch event names appear only in `assets/js/hooks/canvas.ts`, the `Canvas` LiveView hook. The scan covers `assets/js` and `lib` (colocated hooks and templates). | Enforced |
@@ -64,12 +72,12 @@ the only path excluded from the A21 scan.
 | A15 | Production runtime deps equal the allowlist (addendum D4). | Enforced |
 | A16 | Enforcement code and CI changes need review. | Unverified (addendum D6) |
 | A17 | Resource definitions match generated migrations (`mix ash.codegen --check`). | Enforced |
-| A18 | E2E tests use no request interception or mock libraries. | Enforced |
-| A19 | Accepted rules stay active until explicitly changed. The registry test requires A01-A23 exactly once with valid statuses and existing verification files. | Unverified (addendum D6) |
+| A18 | E2E tests use no request interception or mock libraries. Names of mock libraries are data (`e2e_mock_packages`), and `e2e/package.json` must equal `e2e_npm_deps`, so a mock library under a new name fails too. | Enforced |
+| A19 | Accepted rules stay active until explicitly changed. The registry test requires A01-A23 exactly once with valid statuses and existing verification files, and that the rule IDs listed above per check category equal the `check:` fields in the registry. | Unverified (addendum D6) |
 | A20 | E2E tests contain no fixed sleeps (`waitForTimeout`, `setTimeout`, `sleep(`). | Enforced |
 | A21 | No suppression directives for ESLint, TypeScript, Credo or Dialyzer and no Dialyzer ignore file (addendum D5). | Enforced |
 | A22 | Kind-specific branching lives only in kind modules (`lib/sketch/canvas/kinds/`), element renderers (`lib/sketch_web/elements/`, `assets/js/elements/`) and generated files (`assets/js/generated/`) (ADR 0004). The scan of `lib` and `assets/js` rejects `kind == :x` and `kind === "x"` (either order, negated), `kind in [`, `kind: :x`, `data-kind="x"` and `dataset.kind` comparisons for any element kind. There is no per-file exception: a test requires the allowed paths to be exactly those four directories. The canvas hook reads per-kind behaviour (geometry, text, `draw_gesture`, default size, style properties) from the specs in the generated manifest, never from kind ids. Element kinds are declared once in `Sketch.Canvas.Kinds`, which fails to compile if a draw gesture cannot produce its kind's geometry or a spec's `style` names an unknown property (ADR 0006); `SketchWeb.Tools` fails to compile if a tool creates an unknown kind, and `mix sketch.gen.manifest --check` fails `mix ci` and CI if `assets/js/generated/manifest.ts` is stale. Renderers are forced equal: `SketchWeb.Elements` fails to compile unless its renderers cover exactly the registered kinds, the client `RENDERERS` table `satisfies Record<ElementKind, Renderer>` (so `tsc` fails if either side lacks one), `mix sketch.gen.render_fixtures --check` fails `mix ci` and CI if `assets/test/fixtures/render_parity.json`, `wrap_parity.json` or `random_parity.json` is stale, and `assets/test/render_parity.test.ts`, `wrap_parity.test.ts` and `random_parity.test.ts` fail if a client renderer draws a different node tree from the server for any fixture shape, seed and sampled style, the client wraps a fixture text into different lines, or the hand-drawn random source or number formatting differs (ADR 0005). | Enforced |
-| A23 | Every keyboard shortcut is declared in a registry aggregated by `SketchWeb.Shortcuts` (the registries are `SketchWeb.Shortcuts.registries/0`); chords are unique across focus contexts that can be active at once (ADR 0009, ADR 0010). Each registry declares the shortcut groups it owns and may declare focus contexts, each naming the contexts it can be active with; every chord declares a modifier policy. `SketchWeb.Shortcuts.Aggregate` fails compilation when two actions share a chord in the same or overlapping contexts, comparing the characters a key press can produce (keys without case, `KeyE` as `e`, `Digit1` as `1` and, with Shift, as `!`), Ctrl/⌘ as overlapping Ctrl, Shift "any" as overlapping either and a chord that ignores Alt (or every modifier) as overlapping both states; it also rejects a repeated action id, group or context, an entry whose group its registry does not declare, a context no registry declares, a malformed entry and a modifier policy that contradicts its chord. `mix sketch.gen.render_fixtures` writes the conflict model's verdict for every pair of a fixed chord set, and `assets/test/shortcut_parity.test.ts` requires the client matcher to match some key press with both chords of a pair exactly when the server says they collide. The shortcuts help renders from the aggregate only, buttons take `aria-keyshortcuts` and titles from it, `mix sketch.gen.manifest` emits it as `SHORTCUTS` and `assets/js/hooks/shortcuts.ts` is the one client matcher. The scan of `lib` and `assets/js` rejects a `key`/`code` compared with a string literal, a `switch` on them, a literal array's `.includes(key)`, `phx-key`/`phx-keydown`/`phx-window-keydown` bindings and literal `aria-keyshortcuts` outside `literal_chord_paths`. | Enforced |
+| A23 | Every keyboard shortcut is declared in a registry aggregated by `SketchWeb.Shortcuts` (the registries are `SketchWeb.Shortcuts.registries/0`); chords are unique across focus contexts that can be active at once (ADR 0009, ADR 0010). Each registry declares the shortcut groups it owns and may declare focus contexts, each naming the contexts it can be active with; every chord declares a modifier policy. `SketchWeb.Shortcuts.Aggregate` fails compilation when two actions share a chord in the same or overlapping contexts, comparing the characters a key press can produce (keys without case, `KeyE` as `e`, `Digit1` as `1` and, with Shift, as `!`), Ctrl/⌘ as overlapping Ctrl, Shift "any" as overlapping either and a chord that ignores Alt (or every modifier) as overlapping both states; it also rejects a repeated action id, group or context, an entry whose group its registry does not declare, a context no registry declares, a malformed entry and a modifier policy that contradicts its chord. `mix sketch.gen.render_fixtures` writes the conflict model's verdict for every pair of a fixed chord set, and `assets/test/shortcut_parity.test.ts` requires the client matcher to match some key press with both chords of a pair exactly when the server says they collide. The shortcuts help renders from the aggregate only, buttons take `aria-keyshortcuts` and titles from it, `mix sketch.gen.manifest` emits it as `SHORTCUTS` and `assets/js/hooks/shortcuts.ts` is the one client matcher. The scan of `lib` and `assets/js` rejects a `key`/`code` compared with a string literal, a `switch` on them, a literal array's `.includes(key)`, `phx-key`/`phx-keydown`/`phx-window-keydown` bindings and literal `aria-keyshortcuts` outside `literal_chord_paths`. Pointer gestures are data too (ADR 0011): registries declare `pointer_gestures/0`, the aggregate fails compilation when two can match one input or a chordless help row is written by hand, the help text is derived from the gesture's fields, and `pointerAction` reads only the generated `POINTER_GESTURES`. | Enforced |
 
 ## Keyboard shortcuts
 
@@ -94,6 +102,29 @@ A chord already used in the same or an overlapping focus context fails compilati
 actions and their contexts named; pick another chord or a context that cannot be active at the
 same time. The help panel, `aria-keyshortcuts` and titles follow without further work. Docs refer
 to `SketchWeb.Shortcuts.registries/0` instead of listing the registries (CI requirement 10).
+
+A pointer gesture is one row in a registry's `pointer_gestures/0` (format in the
+`SketchWeb.Shortcuts.Aggregate` moduledoc): button, tools, target, modifiers and the action. It
+reaches `pointerAction` through `mix sketch.gen.manifest`, and its optional `help` gives the help
+row, whose keys and wording come from those fields. Two gestures that can match one input fail
+compilation. A help row without chords cannot be written by hand. A new action name fails `tsc`
+until the canvas hook's `Record<PointerAction, …>` of handlers has it.
+
+## Board events
+
+ADR 0011 keeps every event a board client pushes in `SketchWeb.BoardEvents`. Adding one takes:
+
+1. An entry in `@transient` (relay-only: `relays_as`, `payload` and a valid `example`) or `@durable`
+   (`writes`, the `Sketch.Canvas` action it reaches, and `payload`). `BoardLive` forwards what
+   `relayed_events/0` returns, so a transient event not listed there never reaches another view.
+2. Its `handle_event` clause in `SketchWeb.BoardLive`, requiring exactly the payload's non-optional
+   fields, and a relay through `broadcast_preview`.
+3. `mix sketch.gen.manifest`, so `ClientEventPayloads` has it, then `pushClientEvent(this, event,
+   payload)` on the client. A raw `pushEvent` fails a source scan, and `tsc` rejects an undeclared
+   event or field, including through a spread or a variable.
+
+The A10 test sends every `example` without further work. Selection state is never declared (addendum
+D8): the contract refuses a field or event named after it.
 
 ## Element kinds
 
@@ -126,8 +157,23 @@ Leaving out step 1, 2, 3 or 4 fails compilation or `tsc`; a stale step 5 fails `
 - The docs check (CI requirement 10) matches registry module names as words and kinds, tools,
   tokens, contexts and groups only in code form (`` `x` ``, `:x`, `"x"`), one line at a time. A list
   written in plain words ("text and note elements") or spread over several lines is not seen.
-- The E2E context scan (CI requirement 11) is line-based: a browser held under a name without
-  `browser` that calls `newPage(` is not seen; `.newContext(` is rejected on any receiver.
+- The browser context scan (CI requirement 11) is line-based: a browser held under a name without
+  `browser` that calls `newPage(` is not seen; `.newContext(` is rejected on any receiver. It reads
+  scripts, not `DEMO.md` exec blocks, where a `grep` for the pattern is the normal use.
+- The script scans (CI requirements 9 and 11) identify a script by extension or `#!` first line, and
+  run `git ls-files`, so they need a git checkout.
+- The board event parse (A10, CI requirement 12) reads `SketchWeb.BoardLive` only and sees literal
+  event names; an event name built at runtime is not seen, though it would not reach another view
+  unless `relayed_events/0` lists it. The "durable event reaches its action" check follows local
+  calls and captures by name, not arity.
+- Typed pushes (CI requirement 12) close the field names, not what a field means. A declared id list
+  such as `erase`'s `element_ids` may hold selected ids, because erasing a selection is an action on
+  those elements (addendum D13). A new event carrying ids to show a selection would pass unless its
+  name says so; a reviewer has to catch that. The scan of selection names reads `BoardLive`'s event
+  code, and the E2E tests still check that another browser shows no selection.
+- Pointer gestures describe the press that starts an interaction. What happens during it (Shift adds
+  to a marquee, a click on a group member collapses the selection) stays in the canvas hook and its
+  E2E tests. Space + drag keeps a hand-written `suffix` on its chord, since it has a chord.
 - The layout spec (CI requirement 8) checks a fresh board and the style bar with a drawing tool
   selected, at 860, 1024, 1280 and 1600 px wide and 800 px high, in Chromium. Open menus, the help
   panel and widths outside that set are not checked.

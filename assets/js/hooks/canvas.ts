@@ -1,4 +1,5 @@
 import { ViewHook } from "phoenix_live_view"
+import { pushClientEvent } from "./client_events.ts"
 import {
   RemotePreviews,
   clamp,
@@ -62,7 +63,9 @@ import {
 import { StylePanel } from "./style_panel"
 import { History, type Change, type Direction, type Entry, type Recorded, type Replay } from "./history_logic"
 import {
-  changePayload,
+  positionPayload,
+  shapePayload,
+  stylePayload,
   createPayload,
   historyActionFor,
   isHistoryAction,
@@ -106,6 +109,8 @@ import {
   nextTool,
   panScroll,
   pointerAction,
+  wheelAction,
+  type PointerAction,
   requiresText,
   selectTool,
   selectionHandles,
@@ -471,6 +476,8 @@ function editedShape(edit: Edit, pointer: Point, canvas: Size): Shape {
   return { box: movedBox(box, pointer, edit.grab, canvas), points }
 }
 
+const NOTHING = (): void => undefined
+
 export class Canvas extends ViewHook {
   private gesture: Gesture | undefined
   private erase: Erase | undefined
@@ -618,7 +625,7 @@ export class Canvas extends ViewHook {
     this.cursorTimer = window.setTimeout(() => {
       this.cursorTimer = undefined
       const message = this.cursorSender.flush(performance.now())
-      if (message !== undefined && this.online) void this.pushEvent("cursor", message)
+      if (message !== undefined && this.online) void pushClientEvent(this, "cursor", message)
     }, delay)
   }
 
@@ -634,7 +641,7 @@ export class Canvas extends ViewHook {
     window.clearTimeout(this.cursorTimer)
     this.cursorTimer = undefined
     const seq = this.cursorSender.leave()
-    if (seq !== undefined && this.online) void this.pushEvent("cursor_leave", { seq })
+    if (seq !== undefined && this.online) void pushClientEvent(this, "cursor_leave", { seq })
   }
 
   private applyRemoteCursor(cursor: RemoteCursor): void {
@@ -678,17 +685,40 @@ export class Canvas extends ViewHook {
       altKey: event.altKey,
       shiftKey: event.shiftKey,
     })
-    if (action === "pan") this.startPan(event)
     const kind = drawnKind(this.tool)
-    if (action === "draw" && kind !== undefined) this.startDraw(event, kind)
-    if (action === "text") this.openText(event, rect)
-    if (action === "erase") this.startErase(event)
-    if (action === "marquee") this.startMarquee(event)
-    if (action === "toggle" && rect !== null) this.toggleSelected(event, rect)
-    if (action === "move" && rect !== null) this.startMove(event, rect)
-    if (action === "copy" && rect !== null) this.startCopy(event, rect)
-    if (action === "resize" && isCorner(handle)) this.editSelected(event, { mode: "resize", corner: handle })
-    if (action === "resize" && isEndpoint(handle)) this.editSelected(event, { mode: "endpoint", endpoint: handle })
+    const handlers: Record<PointerAction, () => void> = {
+      pan: () => {
+        this.startPan(event)
+      },
+      draw: () => {
+        if (kind !== undefined) this.startDraw(event, kind)
+      },
+      text: () => {
+        this.openText(event, rect)
+      },
+      erase: () => {
+        this.startErase(event)
+      },
+      marquee: () => {
+        this.startMarquee(event)
+      },
+      toggle: () => {
+        if (rect !== null) this.toggleSelected(event, rect)
+      },
+      move: () => {
+        if (rect !== null) this.startMove(event, rect)
+      },
+      copy: () => {
+        if (rect !== null) this.startCopy(event, rect)
+      },
+      resize: () => {
+        if (isCorner(handle)) this.editSelected(event, { mode: "resize", corner: handle })
+        if (isEndpoint(handle)) this.editSelected(event, { mode: "endpoint", endpoint: handle })
+      },
+      zoom: NOTHING,
+      none: NOTHING,
+    }
+    handlers[action]()
   }
 
   private editSelected(event: PointerEvent, grip: Grip): void {
@@ -896,18 +926,24 @@ export class Canvas extends ViewHook {
   }
 
   private async pushErase(elementIds: readonly string[]): Promise<Recorded<ElementSnapshot>[]> {
-    const reply: unknown = await this.pushEvent("erase", { element_ids: elementIds })
+    const reply: unknown = await pushClientEvent(this, "erase", { element_ids: elementIds })
     return isRecord(reply) ? recordedElements(reply.erased) : []
   }
 
   private async pushCreate(snapshot: ElementSnapshot, dragId: string): Promise<Recorded<ElementSnapshot> | undefined> {
-    const reply: unknown = await this.pushEvent("create_element", createPayload(snapshot, dragId))
+    const reply: unknown = await pushClientEvent(this, "create_element", createPayload(snapshot, dragId))
     return isRecord(reply) ? recordedElement(reply.element) : undefined
   }
 
   private async pushChange(elementId: string, change: ElementChange, dragId: string): Promise<boolean> {
-    const reply: unknown = await this.pushEvent(change.event, changePayload(elementId, change, dragId))
+    const reply = await this.pushElementChange(elementId, change, dragId)
     return isOk(reply)
+  }
+
+  private pushElementChange(elementId: string, change: ElementChange, dragId: string): Promise<unknown> {
+    if (change.event === "commit") return pushClientEvent(this, "commit", positionPayload(elementId, change, dragId))
+    if (change.event === "commit_shape") return pushClientEvent(this, "commit_shape", shapePayload(elementId, change, dragId))
+    return pushClientEvent(this, "commit_style", stylePayload(elementId, change))
   }
 
   private async commitAndRecord(elementId: string, before: ElementChange, after: ElementChange, dragId: string, coalesce?: string): Promise<void> {
@@ -1141,7 +1177,7 @@ export class Canvas extends ViewHook {
   private finishCopy(copy: Copy): void {
     if (sameShape(copy.shape, copy.origin)) {
       this.draws.remove(copy.dragId)
-      if (copy.seq > 0) void this.pushEvent("draw_cancel", { drag_id: copy.dragId })
+      if (copy.seq > 0) void pushClientEvent(this, "draw_cancel", { drag_id: copy.dragId })
       return
     }
     const snapshot = { ...copy.source, ...copy.shape.box, points: copy.shape.points }
@@ -1175,7 +1211,7 @@ export class Canvas extends ViewHook {
   }
 
   private pushGroupCancel(group: GroupDrag): void {
-    void this.pushEvent("group_cancel", { drag_id: group.dragId, element_ids: group.members.map(({ elementId }) => elementId) })
+    void pushClientEvent(this, "group_cancel", { drag_id: group.dragId, element_ids: group.members.map(({ elementId }) => elementId) })
   }
 
   private finishEdit(edit: Edit): void {
@@ -1219,9 +1255,9 @@ export class Canvas extends ViewHook {
     if (gesture.mode === "group") {
       this.pushGroupCancel(gesture)
     } else if (isEdit(gesture)) {
-      void this.pushEvent("drag_cancel", { element_id: gesture.elementId, drag_id: gesture.dragId })
+      void pushClientEvent(this, "drag_cancel", { element_id: gesture.elementId, drag_id: gesture.dragId })
     } else {
-      void this.pushEvent("draw_cancel", { drag_id: gesture.dragId })
+      void pushClientEvent(this, "draw_cancel", { drag_id: gesture.dragId })
     }
   }
 
@@ -1525,7 +1561,7 @@ export class Canvas extends ViewHook {
     gesture.seq += 1
     gesture.lastSentAt = performance.now()
     if (gesture.mode === "draw") {
-      void this.pushEvent("draw_preview", {
+      void pushClientEvent(this, "draw_preview", {
         kind: gesture.kind,
         drag_id: gesture.dragId,
         seq: gesture.seq,
@@ -1539,10 +1575,10 @@ export class Canvas extends ViewHook {
         const shape = gesture.shapes[index]
         return shape === undefined || !rect.isConnected ? [] : [{ elementId, baseVersion, shape }]
       })
-      if (members.length > 0) void this.pushEvent("group_preview", groupPreview(gesture.dragId, gesture.seq, members))
+      if (members.length > 0) void pushClientEvent(this, "group_preview", groupPreview(gesture.dragId, gesture.seq, members))
     } else if (gesture.mode === "copy") {
       const { kind, seed, style, text } = gesture.source
-      void this.pushEvent("draw_preview", {
+      void pushClientEvent(this, "draw_preview", {
         kind,
         drag_id: gesture.dragId,
         seq: gesture.seq,
@@ -1553,7 +1589,7 @@ export class Canvas extends ViewHook {
         text,
       })
     } else {
-      void this.pushEvent("preview", {
+      void pushClientEvent(this, "preview", {
         element_id: gesture.elementId,
         drag_id: gesture.dragId,
         seq: gesture.seq,
@@ -1744,9 +1780,9 @@ export class Canvas extends ViewHook {
     session.lastSentAt = performance.now()
     const preview = { drag_id: session.dragId, seq: session.seq, ...session.box, points: [], text: session.text }
     if (session.target.mode === "create") {
-      void this.pushEvent("draw_preview", { kind: session.target.kind, seed: session.seed, ...session.style, ...preview })
+      void pushClientEvent(this, "draw_preview", { kind: session.target.kind, seed: session.seed, ...session.style, ...preview })
     } else {
-      void this.pushEvent("preview", {
+      void pushClientEvent(this, "preview", {
         element_id: session.target.elementId,
         base_version: session.target.baseVersion,
         ...preview,
@@ -1766,7 +1802,7 @@ export class Canvas extends ViewHook {
     const ref = { element_id: target.elementId, drag_id: session.dragId }
     if ((requiresText(target.kind) && isBlankText(text)) || text === target.text || !this.online) {
       this.revert(target.elementId)
-      if (sent) void this.pushEvent("drag_cancel", ref)
+      if (sent) void pushClientEvent(this, "drag_cancel", ref)
     } else {
       this.showShape(target.element, { box, points: [] }, text)
       const before: ElementChange = { event: "commit_shape", box: target.committed, points: [], text: target.text }
@@ -1779,7 +1815,7 @@ export class Canvas extends ViewHook {
     const { dragId, seed, style } = session
     if ((requiresText(kind) && isBlankText(text)) || !this.online) {
       this.draws.remove(dragId)
-      if (sent) void this.pushEvent("draw_cancel", { drag_id: dragId })
+      if (sent) void pushClientEvent(this, "draw_cancel", { drag_id: dragId })
       return
     }
     void this.createAndRecord({ kind, ...box, points: [], text, seed, style }, dragId).finally(() => {
@@ -1846,7 +1882,7 @@ export class Canvas extends ViewHook {
   }
 
   private onWheel = (event: WheelEvent): void => {
-    if (!event.ctrlKey && !event.metaKey) return
+    if (wheelAction({ tool: this.tool, ctrlKey: event.ctrlKey, metaKey: event.metaKey }) !== "zoom") return
     event.preventDefault()
     const bounds = this.el.getBoundingClientRect()
     const anchor = { x: event.clientX - bounds.left - this.el.clientLeft, y: event.clientY - bounds.top - this.el.clientTop }
