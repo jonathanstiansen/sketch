@@ -16,7 +16,16 @@ import {
 import type { ElementSnapshot } from "../js/hooks/element_history.ts"
 import { pointerAction } from "../js/hooks/tools.ts"
 import { DEFAULT_STYLE, styleForKind } from "../js/elements/style.ts"
-import { ELEMENT_KINDS, GEOMETRY, KIND_SPECS, STYLE_TOKENS, type ElementKind } from "../js/generated/manifest.ts"
+import {
+  ELEMENT_KINDS,
+  GEOMETRY,
+  KIND_SPECS,
+  STYLE_PROPERTIES,
+  STYLE_TOKENS,
+  type ElementKind,
+  type StyleProperty,
+  type StyleToken,
+} from "../js/generated/manifest.ts"
 import { press } from "./key_press.ts"
 
 const settings = { seed: 1, numRuns: 1000 }
@@ -24,12 +33,11 @@ const canvas = { width: GEOMETRY.canvasWidth, height: GEOMETRY.canvasHeight }
 const anyKind = fc.constantFrom<ElementKind>(...ELEMENT_KINDS)
 const anySeed = fc.integer({ min: 0, max: GEOMETRY.maxSeed })
 
-const anyStyle = fc.record({
-  stroke_color: fc.constantFrom(...STYLE_TOKENS.stroke_color),
-  fill_color: fc.constantFrom(...STYLE_TOKENS.fill_color),
-  stroke_width: fc.constantFrom(...STYLE_TOKENS.stroke_width),
-  stroke_style: fc.constantFrom(...STYLE_TOKENS.stroke_style),
-})
+const anyStyle = fc.record(
+  Object.fromEntries(STYLE_PROPERTIES.map((property) => [property, fc.constantFrom(...STYLE_TOKENS[property])])) as {
+    [P in StyleProperty]: fc.Arbitrary<StyleToken<P>>
+  },
+)
 
 const visibleText = fc.string({ minLength: 1, maxLength: 40 }).filter((text) => text.trim() !== "" && !text.includes("\0"))
 
@@ -89,7 +97,7 @@ const rectangle: ElementSnapshot = {
   style: { ...DEFAULT_STYLE, stroke_color: "red" },
 }
 
-void test("decode(encode(x)) is x for every valid group of elements", () => {
+void test("decode(encode(x)) is x for every valid group of elements, with any registry style (A24)", () => {
   fc.assert(
     fc.property(anyGroup, (group) => {
       assert.deepEqual(decodeClipboard(encodeElements(group)), { status: "elements", elements: group })
@@ -190,7 +198,7 @@ void test("each rule the server enforces is checked before paste", () => {
     { seed: GEOMETRY.maxSeed + 1 },
     { stroke_color: "magenta" },
     { fill_color: 1 },
-    { stroke_width: undefined },
+    { stroke_width: null },
     { text: "not allowed on a rectangle" },
     { points: [{ x: 0, y: 0 }] },
     { kind: "arrow", points: [{ x: 0, y: 0 }] },
@@ -344,4 +352,33 @@ void test("Alt on an element with Selection copies it; without Alt it moves; Alt
   assert.equal(pointerAction({ ...base, altKey: true, onHandle: true }), "resize")
   assert.equal(pointerAction({ ...base, altKey: true, onElement: false }), "marquee")
   assert.equal(pointerAction({ ...base, altKey: true, tool: "rectangle" }), "draw")
+})
+
+void test("an element copied before a style property existed pastes with that property's default (A24)", () => {
+  fc.assert(
+    fc.property(anyGroup, fc.subarray([...STYLE_PROPERTIES], { minLength: 1 }), (elements, missing) => {
+      const envelope = JSON.parse(encodeElements(elements)) as { elements: Record<string, unknown>[] }
+      for (const element of envelope.elements) for (const property of missing) Reflect.deleteProperty(element, property)
+      const decoded = decodeClipboard(JSON.stringify(envelope))
+      assert.equal(decoded.status, "elements")
+      decoded.elements.forEach((element, index) => {
+        const original = elements[index]
+        assert.ok(original !== undefined)
+        for (const property of STYLE_PROPERTIES) {
+          const expected: string = missing.includes(property) ? DEFAULT_STYLE[property] : original.style[property]
+          assert.equal(element.style[property], expected)
+        }
+      })
+    }),
+  )
+})
+
+void test("an element whose style names a token outside the registry is still rejected (A24)", () => {
+  fc.assert(
+    fc.property(anyGroup, fc.constantFrom(...STYLE_PROPERTIES), (elements, property) => {
+      const envelope = JSON.parse(encodeElements(elements)) as { elements: Record<string, unknown>[] }
+      for (const element of envelope.elements) element[property] = "not-a-token"
+      assert.notEqual(decodeClipboard(JSON.stringify(envelope)).status, "elements")
+    }),
+  )
 })

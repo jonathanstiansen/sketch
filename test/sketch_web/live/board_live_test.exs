@@ -176,7 +176,7 @@ defmodule SketchWeb.BoardLiveTest do
     render_hook(creator, "create_element", Map.put(create_params(10, 20, 120, 80), "seed", seed))
 
     assert [%{id: id, seed: ^seed}] = Canvas.list_elements_for_board!(board.id)
-    path = SketchWeb.HandDrawn.rectangle(120, 80, seed)
+    path = SketchWeb.HandDrawn.rectangle(120, 80, SketchWeb.HandDrawn.pen(%{seed: seed}))
 
     {:ok, reloaded, _html} = live(conn, ~p"/b/#{board.id}")
 
@@ -367,7 +367,8 @@ defmodule SketchWeb.BoardLiveTest do
       assert [%{kind: :arrow, id: id} = arrow] = Canvas.list_elements_for_board!(board.id)
       assert Enum.map(arrow.points, &{&1.x, &1.y}) == [{200, 80}, {0, 0}]
 
-      stroke = SketchWeb.HandDrawn.line(%{x: 200, y: 80}, %{x: 0, y: 0}, arrow.seed)
+      stroke =
+        SketchWeb.HandDrawn.line(%{x: 200, y: 80}, %{x: 0, y: 0}, SketchWeb.HandDrawn.pen(arrow))
 
       assert has_element?(
                view,

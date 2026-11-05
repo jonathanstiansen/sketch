@@ -129,6 +129,31 @@ defmodule Sketch.Architecture.SourcePolicyTest do
     end
   end
 
+  describe "style properties are listed only by the style registry (A24)" do
+    test "application" do
+      violations =
+        ArchitectureCheck.style_enumeration_violations(
+          File.cwd!(),
+          Sketch.Canvas.style_properties(),
+          style_property_paths()
+        )
+
+      assert violations == [], ArchitectureCheck.format_violations(violations)
+    end
+
+    test "rejects a hand-written list of three or more properties, in code or as data attributes" do
+      violations =
+        ArchitectureCheck.style_enumeration_violations(
+          fixture("a24"),
+          Sketch.Canvas.style_properties(),
+          style_property_paths()
+        )
+
+      assert subjects(violations, "A24") ==
+               Enum.sort(["assets/js/hooks/flat.ts", "lib/element_wrapper.heex"])
+    end
+  end
+
   describe "kind-specific branching lives in kind modules, renderers and generated files (A22)" do
     test "application" do
       violations =
@@ -370,6 +395,8 @@ defmodule Sketch.Architecture.SourcePolicyTest do
   defp element_kinds, do: Enum.map(Sketch.Canvas.element_kinds(), &Atom.to_string/1)
 
   defp kind_branching_paths, do: allowlist(:kind_branching_paths)
+
+  defp style_property_paths, do: allowlist(:style_property_paths)
 
   defp allowlist(name),
     do: Enum.map(Map.fetch!(ArchitectureCheck.registry()[:allowlists], name), &elem(&1, 0))

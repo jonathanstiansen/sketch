@@ -14,7 +14,7 @@ defmodule SketchWeb.Properties.HandDrawnTest do
 
   defp box_paths(width, height, seed) do
     for draw <- [&HandDrawn.rectangle/3, &HandDrawn.diamond/3, &HandDrawn.ellipse/3],
-        do: draw.(width, height, seed)
+        do: draw.(width, height, HandDrawn.pen(%{seed: seed}))
   end
 
   defp hundredths(text) do
@@ -71,8 +71,8 @@ defmodule SketchWeb.Properties.HandDrawnTest do
 
   property "a line's strokes are the same for the same seed and stay within its points' box plus the jitter cap" do
     check all start <- point(), finish <- point(), seed <- seed(), max_runs: 500 do
-      path = HandDrawn.line(start, finish, seed)
-      assert path == HandDrawn.line(start, finish, seed)
+      path = HandDrawn.line(start, finish, HandDrawn.pen(%{seed: seed}))
+      assert path == HandDrawn.line(start, finish, HandDrawn.pen(%{seed: seed}))
       assert well_formed?(path, 2, 1)
 
       assert within?(
@@ -91,13 +91,15 @@ defmodule SketchWeb.Properties.HandDrawnTest do
   end
 
   test "a zero-size shape is a valid path at the origin" do
-    for path <- box_paths(0, 0, 0) ++ [HandDrawn.line(%{x: 0, y: 0}, %{x: 0, y: 0}, 0)] do
+    for path <-
+          box_paths(0, 0, 0) ++
+            [HandDrawn.line(%{x: 0, y: 0}, %{x: 0, y: 0}, HandDrawn.pen(%{seed: 0}))] do
       assert path |> coordinates() |> Enum.uniq() == [[0, 0]]
     end
   end
 
   test "different seeds draw the same shape differently" do
-    paths = for seed <- 0..9, do: HandDrawn.rectangle(120, 80, seed)
+    paths = for seed <- 0..9, do: HandDrawn.rectangle(120, 80, HandDrawn.pen(%{seed: seed}))
     assert length(Enum.uniq(paths)) == 10
   end
 end

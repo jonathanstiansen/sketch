@@ -8,7 +8,7 @@ defmodule SketchWeb.Elements.Diamond do
   import SketchWeb.ElementRenderer, only: [half: 1]
 
   @impl true
-  def render(%{width: width, height: height, seed: seed, style: style}) do
+  def render(%{width: width, height: height, style: style} = shape) do
     mid_x = half(width)
     mid_y = half(height)
 
@@ -22,7 +22,10 @@ defmodule SketchWeb.Elements.Diamond do
           {"class", SketchWeb.ElementRenderer.fill_class(style)}
         ]
       },
-      SketchWeb.ElementRenderer.sketch(SketchWeb.HandDrawn.diamond(width, height, seed), style)
+      SketchWeb.ElementRenderer.sketch(
+        SketchWeb.HandDrawn.diamond(width, height, SketchWeb.HandDrawn.pen(shape)),
+        style
+      )
     ]
   end
 end

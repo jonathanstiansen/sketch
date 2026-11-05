@@ -265,6 +265,40 @@ defmodule Sketch.ArchitectureCheck do
     |> Regex.compile!()
   end
 
+  @doc """
+  Files in `lib/` and `assets/js/` that name more than `max_named` of the style `properties`
+  (A24), as `snake_case` or as a `data-kebab-case` attribute: a hand-written list of style
+  properties, which goes stale when the registry gains one. Files equal to or under an
+  `allowed_paths` entry are skipped.
+  """
+  @spec style_enumeration_violations(Path.t(), [atom()], [String.t()], pos_integer()) ::
+          [violation()]
+  def style_enumeration_violations(root, properties, allowed_paths, max_named \\ 2) do
+    root
+    |> source_files(~w(lib assets/js), ~w(.ex .exs .heex .ts .tsx .js .mjs))
+    |> Enum.reject(&allowed_path?(&1, allowed_paths))
+    |> Enum.flat_map(fn file ->
+      source = root |> Path.expand() |> Path.join(file) |> File.read!()
+      named = Enum.filter(properties, &names_property?(source, &1))
+
+      if length(named) > max_named,
+        do: [
+          violation(
+            "A24",
+            file,
+            "names #{length(named)} style properties (#{Enum.join(named, ", ")}); derive them from Sketch.Canvas.style_properties/0"
+          )
+        ],
+        else: []
+    end)
+  end
+
+  defp names_property?(source, property) do
+    snake = Atom.to_string(property)
+    kebab = String.replace(snake, "_", "-")
+    Regex.match?(~r/\b(?:#{Regex.escape(snake)}|#{Regex.escape(kebab)})\b/, source)
+  end
+
   defp allowed_path?(file, allowed_paths),
     do: Enum.any?(allowed_paths, &(file == &1 or String.starts_with?(file, &1)))
 

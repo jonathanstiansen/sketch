@@ -104,10 +104,11 @@ defmodule SketchWeb.ElementRenderer do
   The two nodes of a segment kind: a wide transparent `line` that takes the pointer and the
   hand-drawn `path` of the segment in the style's stroke on top, which also carries `extra_attrs`.
   """
-  @spec segments([point()], non_neg_integer(), style(), [{String.t(), attribute_value()}]) :: [
-          svg_node()
-        ]
-  def segments([start, finish], seed, style, extra_attrs \\ []) do
+  @spec segments([point()], SketchWeb.HandDrawn.pen(), style(), [{String.t(), attribute_value()}]) ::
+          [
+            svg_node()
+          ]
+  def segments([start, finish], pen, style, extra_attrs \\ []) do
     [
       segment(start, finish, [
         {"data-line-hit", ""},
@@ -119,7 +120,7 @@ defmodule SketchWeb.ElementRenderer do
         attrs:
           [
             {"data-line-stroke", ""},
-            {"d", SketchWeb.HandDrawn.line(start, finish, seed)},
+            {"d", SketchWeb.HandDrawn.line(start, finish, pen)},
             {"fill", "none"},
             {"stroke-linecap", "round"},
             {"pointer-events", "none"},

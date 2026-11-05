@@ -105,6 +105,17 @@ defmodule Sketch.Canvas.Style do
   def dash_array(:solid, _width), do: nil
   def dash_array(style, width), do: @dash_arrays |> Map.fetch!(style) |> Map.fetch!(width)
 
+  @doc "The token of `property` that `value` names, as a client sends it, or `:error`."
+  @spec cast_token(property(), term()) :: {:ok, atom()} | :error
+  def cast_token(property, value) when is_binary(value) do
+    case Enum.find(tokens(property), &(Atom.to_string(&1) == value)) do
+      nil -> :error
+      token -> {:ok, token}
+    end
+  end
+
+  def cast_token(_property, _value), do: :error
+
   @doc "The style of an element: its value for every property."
   @spec of(map()) :: t()
   def of(element), do: Map.new(@names, &{&1, Map.fetch!(element, &1)})

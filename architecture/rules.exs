@@ -237,6 +237,19 @@
         "assets/test/shortcut_parity.test.ts",
         "assets/test/tools.test.ts"
       ]
+    },
+    %{
+      id: "A24",
+      check: :source_scan,
+      rule: "Style properties are listed only by the style registry: a new property needs no edit to code that handles every property",
+      status: :enforced,
+      enforcement:
+        "No file in lib or assets/js outside style_property_paths names more than two of Sketch.Canvas.style_properties/0, as snake_case or as a data-kebab-case attribute, so code that handles every property derives the list from the registry (ADR 0006, ADR 0014). The Ash attributes and their one_of constraints, BoardLive's token check (Sketch.Canvas.style_token/2), the elements' data attributes, the client's STYLE_DEFAULTS and the clipboard envelope all derive from the registry. Property tests at the boundaries hold every property to the same contract: any registry style round-trips through create_element and commit_style and is refused outside the registry (test/sketch/properties/style_registry_test.exs), and any registry style round-trips through the clipboard envelope (assets/test/clipboard_logic.test.ts)",
+      verified_by: [
+        "test/architecture/source_policy_test.exs",
+        "test/sketch/properties/style_registry_test.exs",
+        "assets/test/clipboard_logic.test.ts"
+      ]
     }
   ],
   ci_requirements: [
@@ -294,6 +307,14 @@
     process_behaviour_exceptions: [],
     pointer_event_files: [
       {"assets/js/hooks/canvas.ts", "The designated canvas hook (A13)"}
+    ],
+    style_property_paths: [
+      {"lib/sketch/canvas/style.ex", "The style registry itself (ADR 0006, A24)"},
+      {"lib/sketch/canvas/kinds/", "Kind specs declare which properties style each kind (ADR 0006, A24)"},
+      {"lib/sketch_web/element_renderer.ex", "Server helpers that turn each property into SVG (ADR 0006, A24)"},
+      {"assets/js/elements/style.ts", "Client twin of the element renderer's style helpers (ADR 0006, A24)"},
+      {"lib/sketch_web/components/style_panel.ex", "One icon per property in the properties panel (ADR 0006, A24)"},
+      {"assets/js/generated/", "Files written by mix tasks, never edited by hand (A24)"}
     ],
     kind_branching_paths: [
       {"lib/sketch/canvas/kinds/", "Kind modules (A22, ADR 0004)"},

@@ -15,7 +15,7 @@ defmodule SketchWeb.Elements.Note do
   @padding Sketch.Canvas.geometry().note_padding
 
   @impl true
-  def render(%{width: width, height: height, text: text, seed: seed, style: style}) do
+  def render(%{width: width, height: height, text: text, style: style} = shape) do
     [
       %{
         tag: "rect",
@@ -31,7 +31,7 @@ defmodule SketchWeb.Elements.Note do
         ]
       },
       SketchWeb.ElementRenderer.sketch(
-        SketchWeb.HandDrawn.rectangle(width, height, seed),
+        SketchWeb.HandDrawn.rectangle(width, height, SketchWeb.HandDrawn.pen(shape)),
         style,
         "note-sketch note-edge-#{style.fill_color}"
       ),

@@ -29,12 +29,6 @@ defmodule Sketch.Canvas.Element do
   @style_properties Style.properties()
   @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :text, :seed] ++
                   @style_properties ++ [:version]
-  @style_types %{
-    stroke_color: Style.StrokeColor,
-    fill_color: Style.FillColor,
-    stroke_width: Style.StrokeWidth,
-    stroke_style: Style.StrokeStyle
-  }
   @unstyled_kinds Map.new(@style_properties, &{&1, @kinds -- Kinds.styled_by(&1)})
 
   # The CHECK constraints were generated with the point kinds in this order; listing them in
@@ -228,7 +222,8 @@ defmodule Sketch.Canvas.Element do
       constraints: [min: 0, max: @max_seed]
 
     for property <- @style_properties do
-      attribute property, Map.fetch!(@style_types, property),
+      attribute property, :atom,
+        constraints: [one_of: Style.tokens(property)],
         allow_nil?: false,
         default: Style.default(property),
         public?: true
