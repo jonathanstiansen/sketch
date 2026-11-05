@@ -292,8 +292,8 @@
       item: 13,
       check: "Every pull request description includes a screenshot or recording (image, GIF or video) of the change",
       status: :enforced,
-      verified_by: [".github/workflows/ci.yml", ".github/scripts/check_pr_evidence.sh", "test/scripts/check_pr_evidence_test.exs", ".github/pull_request_template.md"],
-      note: "Runs only in the pr-evidence CI job on pull_request events, which also re-runs when the description is edited; the other jobs skip the edited action. The body reaches the script through the BODY environment variable, never interpolated into the shell"
+      verified_by: [".github/workflows/pr-evidence.yml", ".github/scripts/check_pr_evidence.sh", "test/scripts/check_pr_evidence_test.exs", ".github/pull_request_template.md"],
+      note: "Runs in its own workflow (pr-evidence.yml) on pull_request events, including description edits, so editing a description never re-runs or skips the ci.yml jobs. The body reaches the script through the BODY environment variable, never interpolated into the shell"
     }
   ],
   allowlists: %{

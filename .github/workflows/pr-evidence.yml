@@ -1,0 +1,19 @@
+name: PR evidence
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-evidence:
+    name: PR description has a screenshot or recording
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Description contains an image, GIF or video
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: .github/scripts/check_pr_evidence.sh
