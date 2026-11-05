@@ -5,8 +5,9 @@ defmodule SketchWeb.HandDrawn do
   Each straight edge is two cubic Bézier strokes with jittered ends and control points bowed
   along the edge's normal; an ellipse is two jittered closed curves of four Bézier segments.
   The jitter comes from `SketchWeb.HandDrawn.Random` seeded with the element's seed, grows with
-  the edge's larger axis span and is capped, so no point lies more than `max_jitter/0` hundredths
-  of a pixel outside the exact shape's box on either axis.
+  the edge's larger axis span and is capped, then scaled by the pen's roughness (addendum D16), so
+  no point lies more than `max_jitter/1` hundredths of a pixel outside the exact shape's box on
+  either axis.
 
   Every value is an integer number of hundredths of a pixel and only integer arithmetic is used
   (truncating `div/2`), so `assets/js/elements/hand_drawn.ts` produces the same strings.
@@ -22,22 +23,33 @@ defmodule SketchWeb.HandDrawn do
   @max_bow 300
   @kappa 5523
   @kappa_scale 10_000
-  @max_jitter @max_end + @max_bow + div(@max_bow, 2)
 
   @type point :: %{x: integer(), y: integer()}
-  @type pen :: %{seed: non_neg_integer()}
+  @type pen :: %{seed: non_neg_integer(), roughness: non_neg_integer()}
 
   @doc """
   The pen a shape's strokes are drawn with: everything besides the geometry that the strokes
   depend on. Renderers pass it through unchanged, so a new stroke parameter changes this function
   and the stroke code, never the renderers.
   """
-  @spec pen(%{required(:seed) => non_neg_integer(), optional(atom()) => term()}) :: pen()
-  def pen(%{seed: seed}), do: %{seed: seed}
+  @spec pen(%{
+          required(:seed) => non_neg_integer(),
+          required(:style) => map(),
+          optional(atom()) => term()
+        }) ::
+          pen()
+  def pen(%{seed: seed, style: %{sloppiness: sloppiness}}),
+    do: %{seed: seed, roughness: Sketch.Canvas.style_roughness(sloppiness)}
 
-  @doc "The furthest any path point lies outside the exact shape's box, in hundredths of a pixel."
-  @spec max_jitter() :: pos_integer()
-  def max_jitter, do: @max_jitter
+  @doc """
+  The furthest any point of a path drawn with `pen` lies outside the exact shape's box, in
+  hundredths of a pixel.
+  """
+  @spec max_jitter(pen()) :: non_neg_integer()
+  def max_jitter(pen) do
+    bow = rough(@max_bow, pen)
+    rough(@max_end, pen) + bow + div(bow, 2)
+  end
 
   @doc "The four edges of the box `[0, width] × [0, height]`."
   @spec rectangle(non_neg_integer(), non_neg_integer(), pen()) :: String.t()
@@ -64,6 +76,7 @@ defmodule SketchWeb.HandDrawn do
       edge(
         {start.x * @scale, start.y * @scale},
         {finish.x * @scale, finish.y * @scale},
+        pen,
         Random.new(pen.seed)
       )
 
@@ -77,7 +90,7 @@ defmodule SketchWeb.HandDrawn do
     ry = height * @half_scale
     kx = div(rx * @kappa, @kappa_scale)
     ky = div(ry * @kappa, @kappa_scale)
-    amplitude = min(div(max(rx, ry), @bow_divisor), @max_bow)
+    amplitude = rough(min(div(max(rx, ry), @bow_divisor), @max_bow), pen)
 
     curve = %{
       anchors: [{2 * rx, ry}, {rx, 2 * ry}, {0, ry}, {rx, 0}, {2 * rx, ry}],
@@ -110,21 +123,21 @@ defmodule SketchWeb.HandDrawn do
 
     {strokes, _rng} =
       Enum.flat_map_reduce(edges, Random.new(pen.seed), fn {start, finish}, rng ->
-        edge(start, finish, rng)
+        edge(start, finish, pen, rng)
       end)
 
     Enum.join(strokes, " ")
   end
 
-  defp edge({x0, y0} = start, {x1, y1} = finish, rng) do
+  defp edge({x0, y0} = start, {x1, y1} = finish, pen, rng) do
     dx = x1 - x0
     dy = y1 - y0
     span = max(abs(dx), abs(dy))
 
     shape = %{
       direction: {dx, dy, span},
-      end_amplitude: min(div(span, @end_divisor), @max_end),
-      bow_amplitude: min(div(span, @bow_divisor), @max_bow)
+      end_amplitude: rough(min(div(span, @end_divisor), @max_end), pen),
+      bow_amplitude: rough(min(div(span, @bow_divisor), @max_bow), pen)
     }
 
     {first, rng} = stroke(start, finish, shape, rng)
@@ -167,6 +180,8 @@ defmodule SketchWeb.HandDrawn do
 
     {"M #{pair(hd(anchors))} #{segments}", rng}
   end
+
+  defp rough(amplitude, %{roughness: roughness}), do: div(amplitude * roughness, 100)
 
   defp jitter(value, amplitude, rng) do
     {offset, rng} = Random.offset(rng, amplitude)

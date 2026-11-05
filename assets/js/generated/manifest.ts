@@ -4,7 +4,7 @@ export const ELEMENT_KINDS = ["rectangle", "diamond", "ellipse", "arrow", "freed
 
 export type ElementKind = (typeof ELEMENT_KINDS)[number]
 
-export const STYLE_PROPERTIES = ["stroke_color", "fill_color", "stroke_width", "stroke_style"] as const
+export const STYLE_PROPERTIES = ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] as const
 
 export type StyleProperty = (typeof STYLE_PROPERTIES)[number]
 
@@ -13,6 +13,7 @@ export const STYLE_TOKENS = {
   fill_color: ["auto", "none", "red", "green", "blue", "yellow"],
   stroke_width: ["thin", "bold", "extra_bold"],
   stroke_style: ["solid", "dashed", "dotted"],
+  sloppiness: ["architect", "artist", "cartoonist"],
 } as const satisfies Record<StyleProperty, readonly string[]>
 
 export type StyleToken<P extends StyleProperty> = (typeof STYLE_TOKENS)[P][number]
@@ -22,13 +23,14 @@ export const STYLE_DEFAULTS: { readonly [P in StyleProperty]: StyleToken<P> } = 
   fill_color: "auto",
   stroke_width: "thin",
   stroke_style: "solid",
+  sloppiness: "artist",
 }
 
-export const STROKE_WIDTHS = {
-  thin: { stroke: 2, sketch: "1.5" },
-  bold: { stroke: 4, sketch: "3" },
-  extra_bold: { stroke: 6, sketch: "4.5" },
-} as const satisfies Record<StyleToken<"stroke_width">, { readonly stroke: number; readonly sketch: string }>
+export const STYLE_TOKEN_DATA = {
+  stroke_width: { thin: { sketch: "1.5", stroke: 2 }, bold: { sketch: "3", stroke: 4 }, extra_bold: { sketch: "4.5", stroke: 6 } },
+  sloppiness: { architect: { roughness: 0 }, artist: { roughness: 100 }, cartoonist: { roughness: 200 } },
+} as const
+
 
 export const DASH_ARRAYS = {
   solid: { thin: null, bold: null, extra_bold: null },
@@ -46,14 +48,14 @@ export interface KindSpec {
 }
 
 export const KIND_SPECS = {
-  rectangle: { id: "rectangle", geometry: "box", text: "none", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style"] },
-  diamond: { id: "diamond", geometry: "box", text: "none", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style"] },
-  ellipse: { id: "ellipse", geometry: "box", text: "none", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style"] },
-  arrow: { id: "arrow", geometry: { points: { min: 2, max: 2 } }, text: "none", drawGesture: "two_point", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "stroke_width", "stroke_style"] },
+  rectangle: { id: "rectangle", geometry: "box", text: "none", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] },
+  diamond: { id: "diamond", geometry: "box", text: "none", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] },
+  ellipse: { id: "ellipse", geometry: "box", text: "none", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] },
+  arrow: { id: "arrow", geometry: { points: { min: 2, max: 2 } }, text: "none", drawGesture: "two_point", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "stroke_width", "stroke_style", "sloppiness"] },
   freedraw: { id: "freedraw", geometry: { points: { min: 2, max: 500 } }, text: "none", drawGesture: "path", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "stroke_width", "stroke_style"] },
-  line: { id: "line", geometry: { points: { min: 2, max: 2 } }, text: "none", drawGesture: "two_point", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "stroke_width", "stroke_style"] },
+  line: { id: "line", geometry: { points: { min: 2, max: 2 } }, text: "none", drawGesture: "two_point", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "stroke_width", "stroke_style", "sloppiness"] },
   text: { id: "text", geometry: "box", text: "required", drawGesture: "click_to_type", defaultSize: { width: 1, height: 25 }, style: ["stroke_color"] },
-  note: { id: "note", geometry: "box", text: "optional", drawGesture: "box", defaultSize: { width: 200, height: 160 }, style: ["stroke_color", "fill_color"] },
+  note: { id: "note", geometry: "box", text: "optional", drawGesture: "box", defaultSize: { width: 200, height: 160 }, style: ["stroke_color", "fill_color", "sloppiness"] },
 } as const satisfies Record<ElementKind, KindSpec>
 
 export const POINT_KINDS = ["arrow", "freedraw", "line"] as const
@@ -229,16 +231,16 @@ export interface ClientEventPayloads {
   readonly "drag_cancel": { readonly drag_id: string; readonly element_id: string }
   readonly "group_preview": { readonly drag_id: string; readonly elements: readonly { readonly base_version: number; readonly element_id: string; readonly height: number; readonly points: readonly { readonly x: number; readonly y: number }[]; readonly width: number; readonly x: number; readonly y: number }[]; readonly seq: number }
   readonly "group_cancel": { readonly drag_id: string; readonly element_ids: readonly string[] }
-  readonly "draw_preview": { readonly drag_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly seq: number; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
+  readonly "draw_preview": { readonly drag_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly seq: number; readonly sloppiness?: StyleToken<"sloppiness">; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
   readonly "draw_cancel": { readonly drag_id: string }
   readonly "cursor": { readonly seq: number; readonly x: number; readonly y: number }
   readonly "cursor_leave": { readonly seq: number }
   readonly "add-rectangle": Record<string, never>
-  readonly "create_element": { readonly drag_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
+  readonly "create_element": { readonly drag_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly sloppiness?: StyleToken<"sloppiness">; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
   readonly "erase": { readonly element_ids: readonly string[] }
   readonly "commit": { readonly drag_id: string; readonly element_id: string; readonly x: number; readonly y: number }
   readonly "commit_shape": { readonly drag_id: string; readonly element_id: string; readonly height: number; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
-  readonly "commit_style": { readonly element_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width"> }
+  readonly "commit_style": { readonly element_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly sloppiness?: StyleToken<"sloppiness">; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width"> }
 }
 
 export type ClientEventName = keyof ClientEventPayloads

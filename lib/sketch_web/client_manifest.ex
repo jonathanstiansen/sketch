@@ -90,7 +90,7 @@ defmodule SketchWeb.ClientManifest do
       literal_list("ELEMENT_KINDS", "ElementKind", Sketch.Canvas.element_kinds()),
       literal_list("STYLE_PROPERTIES", "StyleProperty", Sketch.Canvas.style_properties()),
       style_tokens(),
-      stroke_widths(),
+      style_token_data(),
       dash_arrays(),
       @kind_spec_interface,
       record(
@@ -187,19 +187,31 @@ defmodule SketchWeb.ClientManifest do
     |> IO.iodata_to_binary()
   end
 
-  defp stroke_widths do
-    record(
-      "STROKE_WIDTHS",
-      "Record<StyleToken<\"stroke_width\">, { readonly stroke: number; readonly sketch: string }>",
-      Enum.map(Sketch.Canvas.style_tokens(:stroke_width), fn width ->
-        {width,
-         object(
-           stroke: Sketch.Canvas.style_stroke_px(width),
-           sketch: string(Sketch.Canvas.style_sketch_px(width))
-         )}
-      end)
-    )
+  defp style_token_data do
+    data = Sketch.Canvas.style_token_data()
+
+    entries =
+      for property <- Sketch.Canvas.style_properties(), Map.has_key?(data, property) do
+        tokens =
+          Enum.map_join(Sketch.Canvas.style_tokens(property), ", ", fn token ->
+            "#{token}: #{token_fields(Map.fetch!(data[property], token))}"
+          end)
+
+        "  #{property}: { #{tokens} },\n"
+      end
+
+    ["export const STYLE_TOKEN_DATA = {\n", entries, "} as const\n\n"]
   end
+
+  defp token_fields(fields) do
+    fields
+    |> Enum.sort()
+    |> Enum.map(fn {key, value} -> {key, token_value(value)} end)
+    |> object()
+  end
+
+  defp token_value(value) when is_integer(value), do: Integer.to_string(value)
+  defp token_value(value), do: string(value)
 
   defp dash_arrays do
     widths = Sketch.Canvas.style_tokens(:stroke_width)

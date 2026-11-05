@@ -3,7 +3,7 @@ import { clickAt, closeSession, moveTo, openSharedBoard, pressAt } from "./suppo
 
 const evidenceDir = process.env.E2E_EVIDENCE_DIR
 const panel = "#style-panel"
-const PROPERTIES = ["stroke_color", "fill_color", "stroke_width", "stroke_style"] as const
+const PROPERTIES = ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] as const
 
 type Property = (typeof PROPERTIES)[number]
 type Style = Partial<Record<Property, string>>
@@ -133,7 +133,7 @@ test("the next element is drawn in the panel's current style, previewed in it in
     }
 
     await pageA.keyboard.press("l")
-    await expectOffered(pageA, ["stroke_color", "stroke_width", "stroke_style"])
+    await expectOffered(pageA, ["stroke_color", "stroke_width", "stroke_style", "sloppiness"])
     await expect(pageA.locator(swatch("stroke_color", "green"))).toHaveAttribute("aria-pressed", "true")
     await draw(pageA, { x: 100, y: 300 }, { x: 300, y: 380 })
     await pageA.mouse.up()
@@ -169,6 +169,49 @@ test("text only offers a stroke colour, which colours its glyphs", async ({ brow
     await expectOffered(pageA, ["stroke_color"])
     await pick(pageA, "stroke_color", "orange")
     for (const page of [pageA, pageB]) await expectStyle(page, text, { stroke_color: "orange" })
+  } finally {
+    await closeSession(session)
+  }
+})
+
+test("sloppiness makes strokes cleaner or rougher for both viewers, and a reload keeps it (addendum D16)", async ({ browser }) => {
+  const session = await openSharedBoard(browser, "styling-sloppiness")
+  const { pageA, pageB } = session
+  const rectangles = '[data-element][data-kind="rectangle"]'
+  const levels = ["architect", "artist", "cartoonist"] as const
+  try {
+    await pageA.keyboard.press("r")
+    await expectOffered(pageA, PROPERTIES)
+    await expect(pageA.locator(swatch("sloppiness", "artist"))).toHaveAttribute("aria-pressed", "true")
+
+    for (const [index, level] of levels.entries()) {
+      await pageA.keyboard.press("r")
+      await pick(pageA, "sloppiness", level)
+      await draw(pageA, { x: 80 + index * 220, y: 120 }, { x: 260 + index * 220, y: 260 })
+      await pageA.mouse.up()
+    }
+    for (const page of [pageA, pageB]) await expect(page.locator(rectangles)).toHaveCount(3)
+
+    const outlines = async (page: Page): Promise<Record<string, string>> =>
+      Object.fromEntries(
+        await page.locator(rectangles).evaluateAll((nodes) =>
+          nodes.map((node) => [node.getAttribute("data-sloppiness") ?? "", node.querySelector("path[data-sketch]")?.getAttribute("d") ?? ""]),
+        ),
+      )
+    const seenByA = await outlines(pageA)
+    expect(Object.keys(seenByA).sort()).toEqual([...levels].sort())
+    expect(new Set(Object.values(seenByA)).size).toBe(3)
+    await expect.poll(() => outlines(pageB)).toEqual(seenByA)
+    if (evidenceDir !== undefined) await pageB.screenshot({ path: `${evidenceDir}/sloppiness-levels.png` })
+
+    await pageA.keyboard.press("v")
+    await clickAt(pageA, 170, 125)
+    await expect(pageA.locator(swatch("sloppiness", "architect"))).toHaveAttribute("aria-pressed", "true")
+    await pick(pageA, "sloppiness", "cartoonist")
+    for (const page of [pageA, pageB]) await expect(page.locator(rectangles).first()).toHaveAttribute("data-sloppiness", "cartoonist")
+
+    await pageB.reload()
+    await expect(pageB.locator(rectangles).first()).toHaveAttribute("data-sloppiness", "cartoonist")
   } finally {
     await closeSession(session)
   }

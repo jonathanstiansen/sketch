@@ -46,7 +46,8 @@ defmodule SketchWeb.BoardLiveStyleTest do
     for property <- Canvas.style_properties() do
       group = "#style-panel [role='group'][data-style-property='#{property}']"
       assert has_element?(view, "#{group}[hidden][aria-labelledby='style-#{property}-label']")
-      [default | others] = Canvas.style_tokens(property)
+      default = Canvas.style_defaults()[property]
+      others = Canvas.style_tokens(property) -- [default]
 
       assert has_element?(
                view,

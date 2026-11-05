@@ -14,12 +14,7 @@ defmodule SketchWeb.ElementRenderer do
 
   @type point :: %{x: integer(), y: integer()}
 
-  @type style :: %{
-          stroke_color: atom(),
-          fill_color: atom(),
-          stroke_width: atom(),
-          stroke_style: atom()
-        }
+  @type style :: Sketch.Canvas.Style.t()
 
   @type local_shape :: %{
           width: non_neg_integer(),

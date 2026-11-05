@@ -1,4 +1,5 @@
 import type { Point } from "../hooks/canvas_logic.ts"
+import { STYLE_TOKEN_DATA } from "../generated/manifest.ts"
 import { Random } from "./random.ts"
 import type { LocalShape } from "./renderer.ts"
 
@@ -10,7 +11,6 @@ const BOW_DIVISOR = 25
 const MAX_BOW = 300
 const KAPPA = 5523
 const KAPPA_SCALE = 10_000
-export const MAX_JITTER = MAX_END + MAX_BOW + div(MAX_BOW, 2)
 
 type Pair = readonly [number, number]
 
@@ -33,10 +33,11 @@ function div(a: number, b: number): number {
 
 export interface Pen {
   readonly seed: number
+  readonly roughness: number
 }
 
-export function pen({ seed }: Pick<LocalShape, "seed">): Pen {
-  return { seed }
+export function pen({ seed, style }: Pick<LocalShape, "seed" | "style">): Pen {
+  return { seed, roughness: STYLE_TOKEN_DATA.sloppiness[style.sloppiness].roughness }
 }
 
 export function format(value: number): string {
@@ -72,13 +73,22 @@ function stroke([x0, y0]: Pair, [x1, y1]: Pair, direction: Direction, endAmplitu
   return `M ${pair([sx, sy])} C ${pair(c1)} ${pair(c2)} ${pair([ex, ey])}`
 }
 
-function edge(start: Pair, finish: Pair, random: Random): string[] {
+function rough(amplitude: number, { roughness }: Pen): number {
+  return div(amplitude * roughness, 100)
+}
+
+export function maxJitter(pen: Pen): number {
+  const bow = rough(MAX_BOW, pen)
+  return rough(MAX_END, pen) + bow + div(bow, 2)
+}
+
+function edge(start: Pair, finish: Pair, pen: Pen, random: Random): string[] {
   const dx = finish[0] - start[0]
   const dy = finish[1] - start[1]
   const span = Math.max(Math.abs(dx), Math.abs(dy))
   const direction = { dx, dy, span }
-  const endAmplitude = Math.min(div(span, END_DIVISOR), MAX_END)
-  const bowAmplitude = Math.min(div(span, BOW_DIVISOR), MAX_BOW)
+  const endAmplitude = rough(Math.min(div(span, END_DIVISOR), MAX_END), pen)
+  const bowAmplitude = rough(Math.min(div(span, BOW_DIVISOR), MAX_BOW), pen)
   const first = stroke(start, finish, direction, endAmplitude, bowAmplitude, random)
   const second = stroke(start, finish, direction, endAmplitude, bowAmplitude, random)
   return [first, second]
@@ -89,7 +99,7 @@ function outline(vertices: readonly Pair[], pen: Pen): string {
   return vertices
     .flatMap((start, index) => {
       const finish = vertices[(index + 1) % vertices.length] ?? start
-      return edge(start, finish, random)
+      return edge(start, finish, pen, random)
     })
     .join(" ")
 }
@@ -109,7 +119,7 @@ export function diamond(width: number, height: number, pen: Pen): string {
 }
 
 export function line(start: Point, finish: Point, pen: Pen): string {
-  return edge([start.x * SCALE, start.y * SCALE], [finish.x * SCALE, finish.y * SCALE], new Random(pen.seed)).join(" ")
+  return edge([start.x * SCALE, start.y * SCALE], [finish.x * SCALE, finish.y * SCALE], pen, new Random(pen.seed)).join(" ")
 }
 
 function closedCurve({ anchors, leaving, arriving, amplitude }: Curve, random: Random): string {
@@ -136,7 +146,7 @@ export function ellipse(width: number, height: number, pen: Pen): string {
     anchors: [[2 * rx, ry], [rx, 2 * ry], [0, ry], [rx, 0], [2 * rx, ry]],
     leaving: [[0, ky], [-kx, 0], [0, -ky], [kx, 0]],
     arriving: [[kx, 0], [0, ky], [-kx, 0], [0, -ky]],
-    amplitude: Math.min(div(Math.max(rx, ry), BOW_DIVISOR), MAX_BOW),
+    amplitude: rough(Math.min(div(Math.max(rx, ry), BOW_DIVISOR), MAX_BOW), pen),
   }
   const random = new Random(pen.seed)
   const first = closedCurve(curve, random)

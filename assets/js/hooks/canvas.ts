@@ -1461,9 +1461,12 @@ export class Canvas extends ViewHook {
   }
 
   private useTool(tool: ToolId): void {
-    if (tool === this.tool) return
-    this.tool = tool
     if (!keepsSelection(tool)) this.select(EMPTY_SELECTION)
+    if (tool === this.tool) {
+      this.syncStylePanel()
+      return
+    }
+    this.tool = tool
     this.syncStylePanel()
     this.js().setAttribute(this.el, "data-tool", tool)
     for (const button of document.querySelectorAll<HTMLElement>("[data-tool-button]")) {

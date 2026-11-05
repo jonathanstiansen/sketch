@@ -5,16 +5,24 @@ defmodule SketchWeb.Properties.HandDrawnTest do
   alias Sketch.Canvas.Geometry
   alias SketchWeb.HandDrawn
 
-  @max_jitter HandDrawn.max_jitter()
   @number ~r/^-?\d+(\.\d\d)?$/
 
   defp size, do: one_of([member_of([0, 1, 2, 3, 59, 60, 61, 4000]), integer(0..4000)])
   defp seed, do: one_of([member_of([0, 1, Geometry.max_seed()]), integer(0..Geometry.max_seed())])
   defp point, do: fixed_map(%{x: size(), y: size()})
 
-  defp box_paths(width, height, seed) do
+  defp pen(seed, sloppiness \\ Sketch.Canvas.style_defaults().sloppiness),
+    do: HandDrawn.pen(%{seed: seed, style: %{sloppiness: sloppiness}})
+
+  defp any_pen,
+    do:
+      map(tuple({seed(), member_of(Sketch.Canvas.style_tokens(:sloppiness))}), fn {seed, s} ->
+        pen(seed, s)
+      end)
+
+  defp box_paths(width, height, pen) do
     for draw <- [&HandDrawn.rectangle/3, &HandDrawn.diamond/3, &HandDrawn.ellipse/3],
-        do: draw.(width, height, HandDrawn.pen(%{seed: seed}))
+        do: draw.(width, height, pen)
   end
 
   defp hundredths(text) do
@@ -35,12 +43,14 @@ defmodule SketchWeb.Properties.HandDrawnTest do
     |> Enum.chunk_every(2)
   end
 
-  defp within?(path, {min_x, min_y}, {max_x, max_y}) do
+  defp within?(path, pen, {min_x, min_y}, {max_x, max_y}) do
+    jitter = HandDrawn.max_jitter(pen)
+
     path
     |> coordinates()
     |> Enum.all?(fn [x, y] ->
-      x in (min_x * 100 - @max_jitter)..(max_x * 100 + @max_jitter) and
-        y in (min_y * 100 - @max_jitter)..(max_y * 100 + @max_jitter)
+      x in (min_x * 100 - jitter)..(max_x * 100 + jitter) and
+        y in (min_y * 100 - jitter)..(max_y * 100 + jitter)
     end)
   end
 
@@ -53,13 +63,13 @@ defmodule SketchWeb.Properties.HandDrawnTest do
       length(tokens) == subpaths * (3 + 7 * segments_per_subpath)
   end
 
-  property "a box shape's strokes are the same for the same seed and stay within the box plus the jitter cap" do
-    check all width <- size(), height <- size(), seed <- seed(), max_runs: 500 do
-      paths = box_paths(width, height, seed)
-      assert paths == box_paths(width, height, seed)
+  property "a box shape's strokes are the same for the same pen and stay within the box plus the pen's jitter cap" do
+    check all width <- size(), height <- size(), pen <- any_pen(), max_runs: 500 do
+      paths = box_paths(width, height, pen)
+      assert paths == box_paths(width, height, pen)
 
       for path <- paths do
-        assert within?(path, {0, 0}, {width, height}), path
+        assert within?(path, pen, {0, 0}, {width, height}), path
       end
 
       [rectangle, diamond, ellipse] = paths
@@ -69,14 +79,15 @@ defmodule SketchWeb.Properties.HandDrawnTest do
     end
   end
 
-  property "a line's strokes are the same for the same seed and stay within its points' box plus the jitter cap" do
-    check all start <- point(), finish <- point(), seed <- seed(), max_runs: 500 do
-      path = HandDrawn.line(start, finish, HandDrawn.pen(%{seed: seed}))
-      assert path == HandDrawn.line(start, finish, HandDrawn.pen(%{seed: seed}))
+  property "a line's strokes are the same for the same pen and stay within its points' box plus the pen's jitter cap" do
+    check all start <- point(), finish <- point(), pen <- any_pen(), max_runs: 500 do
+      path = HandDrawn.line(start, finish, pen)
+      assert path == HandDrawn.line(start, finish, pen)
       assert well_formed?(path, 2, 1)
 
       assert within?(
                path,
+               pen,
                {min(start.x, finish.x), min(start.y, finish.y)},
                {max(start.x, finish.x), max(start.y, finish.y)}
              ),
@@ -92,14 +103,28 @@ defmodule SketchWeb.Properties.HandDrawnTest do
 
   test "a zero-size shape is a valid path at the origin" do
     for path <-
-          box_paths(0, 0, 0) ++
-            [HandDrawn.line(%{x: 0, y: 0}, %{x: 0, y: 0}, HandDrawn.pen(%{seed: 0}))] do
+          box_paths(0, 0, pen(0)) ++ [HandDrawn.line(%{x: 0, y: 0}, %{x: 0, y: 0}, pen(0))] do
       assert path |> coordinates() |> Enum.uniq() == [[0, 0]]
     end
   end
 
   test "different seeds draw the same shape differently" do
-    paths = for seed <- 0..9, do: HandDrawn.rectangle(120, 80, HandDrawn.pen(%{seed: seed}))
+    paths = for seed <- 0..9, do: HandDrawn.rectangle(120, 80, pen(seed))
     assert length(Enum.uniq(paths)) == 10
+  end
+
+  property "the architect draws clean lines; rougher levels allow more jitter (addendum D16)" do
+    check all width <- size(), height <- size(), seed <- seed(), max_runs: 200 do
+      for path <- box_paths(width, height, pen(seed, :architect)) do
+        assert within?(path, pen(seed, :architect), {0, 0}, {width, height}), path
+      end
+    end
+
+    jitters =
+      Enum.map(Sketch.Canvas.style_tokens(:sloppiness), &HandDrawn.max_jitter(pen(0, &1)))
+
+    assert hd(jitters) == 0
+    assert jitters == Enum.sort(jitters)
+    assert jitters == Enum.uniq(jitters)
   end
 end

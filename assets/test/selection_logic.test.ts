@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import fc from "fast-check"
+import { anyStyle } from "./style_arbitrary.ts"
 import { RemotePreviews, type Box, type Point, type Shape } from "../js/hooks/canvas_logic.ts"
 import {
   EMPTY_SELECTION,
@@ -19,7 +20,7 @@ import {
   united,
   type GroupPreview,
 } from "../js/hooks/selection_logic.ts"
-import { DEFAULT_STYLE, appliesTo, isStyleToken, styleForKind, type ElementStyle } from "../js/elements/style.ts"
+import { DEFAULT_STYLE, appliesTo, isStyleToken, styleForKind } from "../js/elements/style.ts"
 import { ELEMENT_KINDS, GEOMETRY, STYLE_PROPERTIES, STYLE_TOKENS, type ElementKind } from "../js/generated/manifest.ts"
 import { anyModifiers, press } from "./key_press.ts"
 
@@ -229,12 +230,7 @@ void test("cancelling one element of a group drag leaves the other elements' pre
   )
 })
 
-const style: fc.Arbitrary<ElementStyle> = fc.record({
-  stroke_color: fc.constantFrom(...STYLE_TOKENS.stroke_color),
-  fill_color: fc.constantFrom(...STYLE_TOKENS.fill_color),
-  stroke_width: fc.constantFrom(...STYLE_TOKENS.stroke_width),
-  stroke_style: fc.constantFrom(...STYLE_TOKENS.stroke_style),
-})
+const style = anyStyle
 
 const kind: fc.Arbitrary<ElementKind> = fc.constantFrom(...ELEMENT_KINDS)
 const styled = fc.array(fc.record({ id, kind, style }).map((element) => ({ ...element, style: styleForKind(element.kind, element.style) })), {
