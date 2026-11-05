@@ -63,6 +63,7 @@ test("A sets a stroke colour, a dashed stroke and a fill on a rectangle, B sees 
     for (const page of [pageA, pageB]) await expect(page.locator(rectangle)).toHaveAttribute("data-version", "0")
 
     await pageA.keyboard.press("v")
+    await pageA.keyboard.press("Escape")
     await expectNothingOffered(pageA)
     await clickAt(pageA, 200, 160)
     await expectOffered(pageA, PROPERTIES)

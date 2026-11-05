@@ -77,6 +77,10 @@ export function drawGesture(kind: DrawnKind): DrawGesture {
   return KIND_SPECS[kind].drawGesture
 }
 
+export function selectsWhenDrawn(kind: DrawnKind): boolean {
+  return drawGesture(kind) !== "path"
+}
+
 export function defaultSize(kind: ElementKind): Size {
   return KIND_SPECS[kind].defaultSize
 }

@@ -99,6 +99,7 @@ import {
   defaultSize,
   deletesSelection,
   drawGesture,
+  selectsWhenDrawn,
   keepsSelection,
   drawnKind,
   escapes,
@@ -500,6 +501,7 @@ export class Canvas extends ViewHook {
   private pan: Pan | undefined
   private selected: Selection = EMPTY_SELECTION
   private selectOnArrival: Selection | undefined
+  private selectionChanges = 0
   private marquee: Marquee | undefined
   private marqueeLayer!: MarqueeLayer
   private lastPointer: Point | undefined
@@ -1245,9 +1247,15 @@ export class Canvas extends ViewHook {
       this.openDrawnText(draw, draw.kind, box)
       return
     }
-    void this.createAndRecord({ kind: draw.kind, ...box, points, text: "", seed: draw.seed, style: draw.style }, draw.dragId).finally(() => {
-      this.draws.remove(draw.dragId)
-    })
+    const selectionAtRelease = this.selectionChanges
+    void this.createAndRecord({ kind: draw.kind, ...box, points, text: "", seed: draw.seed, style: draw.style }, draw.dragId)
+      .then((id) => {
+        const untouched = this.selectionChanges === selectionAtRelease
+        if (id !== undefined && untouched && selectsWhenDrawn(draw.kind)) this.selectWhenPresent([id])
+      })
+      .finally(() => {
+        this.draws.remove(draw.dragId)
+      })
   }
 
   private onPointerCancel = (event: PointerEvent): void => {
@@ -1500,6 +1508,7 @@ export class Canvas extends ViewHook {
   }
 
   private select(elementIds: Selection): void {
+    this.selectionChanges += 1
     this.selected = elementIds
     this.selectOnArrival = undefined
     this.syncSelection()
