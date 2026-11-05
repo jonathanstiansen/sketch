@@ -371,3 +371,32 @@ Consequences for the earlier decisions:
 
 - D11: the 2000 ms cursor timeout and the "who's online" roster exclusion no
   longer apply. Previews (D2, D3) keep their 2000 ms timeout.
+
+## D16 — Sloppiness (2026-11-05, see ADR 0014)
+
+The human asked on 2026-11-05 for lines and shapes to look more or less
+hand-drawn. This lifts the D9 and D10 exclusion of per-element roughness for
+one property: **sloppiness**, a style property of the registry (ADR 0006).
+
+- **Levels**: Architect (clean lines), Artist (the hand-drawn look of ADR 0005,
+  and the default, so every existing element looks as before) and Cartoonist
+  (twice the artist's jitter). Each level has a roughness in percent that
+  scales the jitter of the end points, bows and ellipse anchors, with the same
+  integer arithmetic on the server and the client.
+- **Kinds**: every kind drawn with hand-drawn strokes takes it: rectangle,
+  diamond, ellipse, line, arrow and note. Freehand strokes and text are not
+  hand-drawn and keep the default.
+- **Everything else is ordinary styling**: the properties panel offers it with
+  an icon drawn by the hand-drawn line itself, it previews live, commits with
+  `commit_style`, undoes, copies and pastes like every other property, and a
+  clipboard copied before it existed pastes as Artist.
+- **Storage**: one new column with a default and generated CHECK constraints
+  (an expand-only migration); a client that does not send it gets Artist.
+
+Consequences for the earlier decisions:
+
+- D9 and D10: roughness is now per element, through this property only. Fill
+  styles such as hachure stay excluded.
+- Re-choosing the active drawing tool clears the selection, as choosing another
+  drawing tool already did, so a style picked for the next shape never
+  restyles the one just drawn and selected.

@@ -27,7 +27,7 @@ defmodule SketchWeb.StylePanel do
       id="style-panel"
       phx-update="ignore"
       aria-label="Element style"
-      class="flex h-9 shrink-0 items-center gap-4 overflow-x-auto border-t border-base-300 px-4 text-xs"
+      class="flex h-9 shrink-0 items-center gap-3 overflow-x-auto border-t border-base-300 px-4 text-xs"
     >
       <p data-style-hint class="text-base-content/60">
         Select an element or a drawing tool to change its colours and stroke
@@ -44,7 +44,7 @@ defmodule SketchWeb.StylePanel do
         <div class="flex items-center gap-1">
           <span
             id={"style-#{property}-label"}
-            class="mr-1 font-medium text-base-content/70 max-lg:sr-only"
+            class="mr-1 font-medium text-base-content/70 max-xl:sr-only"
           >
             {Sketch.Canvas.style_label(property)}
           </span>
@@ -114,6 +114,17 @@ defmodule SketchWeb.StylePanel do
         stroke-linecap="round"
         stroke-dasharray={@dash_array}
       />
+    </svg>
+    """
+  end
+
+  defp token_icon(%{property: :sloppiness} = assigns) do
+    pen = SketchWeb.HandDrawn.pen(%{seed: 7, style: %{sloppiness: assigns.token}})
+    assigns = assign(assigns, :path, SketchWeb.HandDrawn.rectangle(28, 16, pen))
+
+    ~H"""
+    <svg viewBox="-4 -4 36 24" class="h-5 w-7" aria-hidden="true">
+      <path d={@path} fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
     </svg>
     """
   end

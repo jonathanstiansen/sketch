@@ -1,7 +1,8 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import fc from "fast-check"
-import { ELEMENT_KINDS, KIND_SPECS, STYLE_PROPERTIES, STYLE_TOKENS, type StyleProperty } from "../js/generated/manifest.ts"
+import { anyStyle } from "./style_arbitrary.ts"
+import { ELEMENT_KINDS, KIND_SPECS, STYLE_DEFAULTS, STYLE_PROPERTIES, type StyleProperty } from "../js/generated/manifest.ts"
 import {
   DEFAULT_STYLE,
   appliesTo,
@@ -9,23 +10,16 @@ import {
   styleForKind,
   styleFrom,
   strokeAttrs,
-  type ElementStyle,
 } from "../js/elements/style.ts"
 
 const settings = { seed: 1, numRuns: 500 }
 
-const anyStyle: fc.Arbitrary<ElementStyle> = fc.record(
-  {
-    stroke_color: fc.constantFrom(...STYLE_TOKENS.stroke_color),
-    fill_color: fc.constantFrom(...STYLE_TOKENS.fill_color),
-    stroke_width: fc.constantFrom(...STYLE_TOKENS.stroke_width),
-    stroke_style: fc.constantFrom(...STYLE_TOKENS.stroke_style),
-  },
-  { noNullPrototype: true },
-)
 
-void test("the default style is the first token of every property (mix sketch.gen.manifest)", () => {
-  for (const property of STYLE_PROPERTIES) assert.equal(DEFAULT_STYLE[property], STYLE_TOKENS[property][0])
+void test("the default style is the registry's default for every property, and a token of it (mix sketch.gen.manifest)", () => {
+  for (const property of STYLE_PROPERTIES) {
+    assert.equal(DEFAULT_STYLE[property], STYLE_DEFAULTS[property])
+    assert.equal(isStyleToken(property, DEFAULT_STYLE[property]), true)
+  }
 })
 
 void test("a kind's style properties come from its generated spec, and every property applies to some kind", () => {

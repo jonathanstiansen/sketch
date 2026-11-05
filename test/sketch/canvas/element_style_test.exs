@@ -66,7 +66,7 @@ defmodule Sketch.Canvas.ElementStyleTest do
 
       for kind <- Canvas.element_kinds(),
           property <- inapplicable(kind),
-          token <- tl(Canvas.style_tokens(property)) do
+          token <- Canvas.style_tokens(property) -- [Canvas.style_defaults()[property]] do
         attrs = element_attrs(kind, %{:board_id => board.id, property => token})
         changeset = Ash.Changeset.for_create(Element, :create, attrs)
 
@@ -76,7 +76,7 @@ defmodule Sketch.Canvas.ElementStyleTest do
       end
 
       for kind <- Canvas.element_kinds(), property <- inapplicable(kind) do
-        default = Canvas.style_tokens(property) |> hd()
+        default = Canvas.style_defaults()[property]
         assert %{^property => ^default} = create!(board, kind, %{property => default})
       end
     end
@@ -136,7 +136,7 @@ defmodule Sketch.Canvas.ElementStyleTest do
                Sketch.Repo.query(
                  "INSERT INTO elements (kind, x, y, width, height, board_id) " <>
                    "VALUES ('note', 0, 0, 10, 10, $1) " <>
-                   "RETURNING stroke_color, fill_color, stroke_width, stroke_style",
+                   "RETURNING #{Enum.join(@properties, ", ")}",
                  [Ecto.UUID.dump!(board.id)]
                )
 

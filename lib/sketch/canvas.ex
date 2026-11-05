@@ -64,6 +64,12 @@ defmodule Sketch.Canvas do
 
   defdelegate style_dash_array(style, width), to: Sketch.Canvas.Style, as: :dash_array
 
+  @doc "The roughness of a sloppiness level, in percent of the artist's jitter."
+  defdelegate style_roughness(sloppiness), to: Sketch.Canvas.Style, as: :roughness
+
+  @doc "Every token's client data, by property."
+  defdelegate style_token_data, to: Sketch.Canvas.Style, as: :token_data
+
   defdelegate default_box(element_count), to: Sketch.Canvas.Geometry
 
   defdelegate fit_shape(kind, box, points), to: Sketch.Canvas.Geometry

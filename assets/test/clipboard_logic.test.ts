@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import fc from "fast-check"
+import { anyStyle } from "./style_arbitrary.ts"
 import {
   DUPLICATE_OFFSET,
   ENVELOPE_TYPE,
@@ -21,10 +22,7 @@ import {
   GEOMETRY,
   KIND_SPECS,
   STYLE_PROPERTIES,
-  STYLE_TOKENS,
   type ElementKind,
-  type StyleProperty,
-  type StyleToken,
 } from "../js/generated/manifest.ts"
 import { press } from "./key_press.ts"
 
@@ -33,11 +31,6 @@ const canvas = { width: GEOMETRY.canvasWidth, height: GEOMETRY.canvasHeight }
 const anyKind = fc.constantFrom<ElementKind>(...ELEMENT_KINDS)
 const anySeed = fc.integer({ min: 0, max: GEOMETRY.maxSeed })
 
-const anyStyle = fc.record(
-  Object.fromEntries(STYLE_PROPERTIES.map((property) => [property, fc.constantFrom(...STYLE_TOKENS[property])])) as {
-    [P in StyleProperty]: fc.Arbitrary<StyleToken<P>>
-  },
-)
 
 const visibleText = fc.string({ minLength: 1, maxLength: 40 }).filter((text) => text.trim() !== "" && !text.includes("\0"))
 
@@ -124,6 +117,7 @@ void test("the envelope is versioned JSON with the flat element fields", () => {
         fill_color: "auto",
         stroke_width: "thin",
         stroke_style: "solid",
+        sloppiness: "artist",
         seed: 7,
       },
     ],

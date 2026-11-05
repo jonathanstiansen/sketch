@@ -1,8 +1,8 @@
 import {
   DASH_ARRAYS,
   KIND_SPECS,
-  STROKE_WIDTHS,
   STYLE_DEFAULTS,
+  STYLE_TOKEN_DATA,
   STYLE_PROPERTIES,
   STYLE_TOKENS,
   type ElementKind,
@@ -63,7 +63,7 @@ export function arrowheadId(strokeColor: StyleToken<"stroke_color">): string {
 }
 
 export function strokeAttrs({ stroke_width, stroke_style }: ElementStyle, passes: StylePasses): Record<string, AttributeValue> {
-  const width = passes === "sketch" ? STROKE_WIDTHS[stroke_width].sketch : STROKE_WIDTHS[stroke_width].stroke
+  const width = passes === "sketch" ? STYLE_TOKEN_DATA.stroke_width[stroke_width].sketch : STYLE_TOKEN_DATA.stroke_width[stroke_width].stroke
   const dashArray = DASH_ARRAYS[stroke_style][stroke_width]
   return dashArray === null ? { "stroke-width": width } : { "stroke-width": width, "stroke-dasharray": dashArray }
 }
