@@ -7,6 +7,8 @@ import {
   defaultSize,
   deletesSelection,
   drawGesture,
+  selectsWhenDrawn,
+  DRAWN_KINDS,
   drawnKind,
   nextTool,
   gestureMatches,
@@ -307,4 +309,10 @@ void test("lines and arrows get endpoint handles, text gets none and every other
     ["line", "arrow", "text", "rectangle", "diamond", "ellipse", "freedraw", undefined].map(selectionHandles),
     ["endpoints", "endpoints", "none", "corners", "corners", "corners", "corners", "corners"],
   )
+})
+
+void test("a drawn shape, line or arrow is selected when it lands, a freehand stroke is not", () => {
+  for (const kind of DRAWN_KINDS) assert.equal(selectsWhenDrawn(kind), drawGesture(kind) !== "path")
+  assert.equal(DRAWN_KINDS.some(selectsWhenDrawn), true)
+  assert.equal(DRAWN_KINDS.every(selectsWhenDrawn), false)
 })

@@ -264,6 +264,7 @@ test("Only selected exports just the selected element, and is disabled without a
   const page = await context.newPage()
   try {
     await sampleBoard(page)
+    await page.keyboard.press("Escape")
     await openExportMenu(page)
     const only = page.locator(menu).getByLabel("Only selected")
     await expect(only).toBeDisabled()
