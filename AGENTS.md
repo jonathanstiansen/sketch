@@ -23,6 +23,7 @@ Sketch is a small collaborative canvas built with Ash, Phoenix LiveView and Post
 - Board events: declare every event a board client pushes in `SketchWeb.BoardEvents`, a relay-only one in `@transient` with a valid `example` (the A10 test sends every example and asserts zero Repo queries) and a writing one in `@durable` with the `Sketch.Canvas` action it reaches. Push with `pushClientEvent`, never `pushEvent` (CI requirement 12). Selection state is never pushed, relayed or stored (addendum D8); the contract refuses a field named after it.
 - Playwright: create every browser context, in E2E tests and evidence scripts alike, with `newContext(browser, options)` from `e2e/tests/support/contexts.ts`, never `browser.newContext` or `browser.newPage` (CI requirement 11). An evidence script imports it from `../../../e2e/tests/support/contexts.ts`.
 - A new `e2e/package.json` dependency needs an entry in `e2e_npm_deps` in `architecture/rules.exs`, which a human reviews; a mock library is denied by name in `e2e_mock_packages` (A18).
+- Pull requests: every PR description includes a screenshot or recording (image, GIF or video) of the change; CI requirement 13 enforces it with `.github/scripts/check_pr_evidence.sh`, and `.github/pull_request_template.md` has the Evidence section.
 - Layout: `e2e/tests/layout.spec.ts` must pass at 860, 1024, 1280 and 1600 px; fix an overlap in the layout, never in the test.
 
 ### Processes
