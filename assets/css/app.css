@@ -296,6 +296,47 @@
   background: var(--cursor-color);
 }
 
+.viewer-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  border: 2px solid var(--color-base-100);
+  background: var(--cursor-color);
+  color: var(--color-base-100);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 120ms ease-out, opacity 120ms ease-out, box-shadow 120ms ease-out;
+}
+
+.viewer-avatar:hover:not(:disabled),
+.viewer-avatar:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 2px var(--cursor-color);
+  position: relative;
+  z-index: 1;
+}
+
+.viewer-avatar:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@keyframes remote-cursor-found {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.6); }
+  100% { transform: scale(1); }
+}
+
+.remote-cursor-found .remote-cursor-arrow {
+  transform-box: fill-box;
+  transform-origin: 0 0;
+  animation: remote-cursor-found 600ms ease-out 2;
+}
+
 .remote-cursor-arrow { fill: var(--cursor-color); stroke: var(--color-base-100); stroke-width: 1.5; stroke-linejoin: round; }
 .remote-cursor-tag { fill: var(--cursor-color); }
 .remote-cursor-name { fill: var(--color-base-100); font-size: 12px; font-family: ui-sans-serif, system-ui, sans-serif; }

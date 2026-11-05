@@ -14,6 +14,10 @@ interface Spot {
   y: number
 }
 
+function avatarOf(name: string): string {
+  return `#viewer-roster button[aria-label*="${name}"]`
+}
+
 async function viewerName(page: Page): Promise<string> {
   return (await page.locator(ownName).innerText()).trim()
 }
@@ -147,41 +151,85 @@ test("A's tab becoming hidden removes A's cursor on B", async ({ browser }) => {
   }
 })
 
-test("a cursor disappears after two seconds of silence", async ({ browser }) => {
-  const session = await openSharedBoard(browser, "cursors-stale", (page) => page.clock.install())
+test("a cursor that stops moving stays on the canvas", async ({ browser }) => {
+  const session = await openSharedBoard(browser, "cursors-still", (page) => page.clock.install())
   const { pageA, pageB } = session
   try {
     await pageB.clock.pauseAt(Date.now() + 1000)
     await moveTo(pageA, 300, 200)
     await expectCursorNear(pageB, await viewerName(pageA), { x: 300, y: 200 })
 
-    await pageB.clock.runFor(1900)
+    await pageB.clock.runFor(60_000)
     await expect(pageB.locator(remoteCursor)).toHaveCount(1)
-    await pageB.clock.runFor(200)
-    await expect(pageB.locator(remoteCursor)).toHaveCount(0)
-
-    await moveTo(pageA, 500, 300)
-    await expect(pageB.locator(remoteCursor)).toHaveCount(1)
+    await expectCursorNear(pageB, await viewerName(pageA), { x: 300, y: 200 })
   } finally {
     await closeSession(session)
   }
 })
 
-test("each message from A restarts B's two second timer", async ({ browser }) => {
-  const session = await openSharedBoard(browser, "cursors-restart", (page) => page.clock.install())
+test("closing A's tab removes A's cursor and avatar on B", async ({ browser }) => {
+  const session = await newViewer(browser)
   const { pageA, pageB } = session
   try {
-    await pageB.clock.pauseAt(Date.now() + 1000)
+    const nameA = await viewerName(pageA)
     await moveTo(pageA, 300, 200)
-    await expectCursorNear(pageB, await viewerName(pageA), { x: 300, y: 200 })
-
-    await pageB.clock.runFor(1500)
-    await moveTo(pageA, 700, 400)
-    await expectCursorNear(pageB, await viewerName(pageA), { x: 700, y: 400 })
-    await pageB.clock.runFor(1500)
     await expect(pageB.locator(remoteCursor)).toHaveCount(1)
-    await pageB.clock.runFor(600)
+    await expect(pageB.locator(avatarOf(nameA))).toHaveCount(1)
+
+    await pageA.close()
     await expect(pageB.locator(remoteCursor)).toHaveCount(0)
+    await expect(pageB.locator(avatarOf(nameA))).toHaveCount(0)
+    await expect(pageB.locator("#viewer-roster-empty")).toBeVisible()
+  } finally {
+    await closeSession(session)
+  }
+})
+
+test("a viewer who opens the board later sees a cursor that is already resting", async ({ browser }) => {
+  const session = await newViewer(browser)
+  const { pageA } = session
+  const contextC = await newContext(browser)
+  try {
+    await moveTo(pageA, 640, 360)
+    const pageC = await contextC.newPage()
+    await pageC.goto(pageA.url())
+    await expect(pageC.locator("[data-phx-main].phx-connected")).toBeVisible()
+    await expectCursorNear(pageC, await viewerName(pageA), { x: 640, y: 360 })
+  } finally {
+    await contextC.close()
+    await closeSession(session)
+  }
+})
+
+test("B sees everyone in the header and jumps to A's cursor while A is on the canvas", async ({ browser }) => {
+  const session = await newViewer(browser)
+  const { pageA, pageB } = session
+  try {
+    const nameA = await viewerName(pageA)
+    const avatarA = pageB.locator(avatarOf(nameA))
+    await expect(avatarA).toBeDisabled()
+
+    await scrollViewport(pageA, 2000, 2200)
+    await moveTo(pageA, 2400, 2500)
+    await expect(avatarA).toBeEnabled()
+    await expect(pageB.locator(`${remoteCursor}[data-name="${nameA}"]`)).not.toBeInViewport()
+
+    await avatarA.click()
+    await expect(pageB.locator(`${remoteCursor}[data-name="${nameA}"] .remote-cursor-arrow`)).toBeInViewport()
+    await expect
+      .poll(() =>
+        pageB.locator("#canvas-viewport").evaluate((viewport) =>
+          Math.max(
+            Math.abs(viewport.scrollLeft + viewport.clientWidth / 2 - 2400),
+            Math.abs(viewport.scrollTop + viewport.clientHeight / 2 - 2500),
+          ),
+        ),
+      )
+      .toBeLessThanOrEqual(TOLERANCE)
+    if (evidenceDir !== undefined) await pageB.screenshot({ path: `${evidenceDir}/jump-to-viewer.png` })
+
+    await leaveCanvas(pageA)
+    await expect(avatarA).toBeDisabled()
   } finally {
     await closeSession(session)
   }

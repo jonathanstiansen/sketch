@@ -65,6 +65,11 @@ export function clampScroll(scroll: Point, canvas: Size, zoom: number, viewport:
   }
 }
 
+export function centeredOn(point: Point, canvas: Size, zoom: number, viewport: Size): Point {
+  const centered = { x: point.x * zoom - viewport.width / 2, y: point.y * zoom - viewport.height / 2 }
+  return clampScroll(centered, canvas, zoom, viewport)
+}
+
 export function visibleCanvas(view: View, viewport: Size): Box {
   return {
     x: view.scroll.x / view.zoom,

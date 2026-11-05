@@ -18,7 +18,7 @@ const headerItems = [
 ].join(", ")
 
 const styleBarItems = "[data-style-hint], [data-style-property] button"
-const canvasControls = ["#history-controls", "#zoom-controls"] as const
+const canvasControls = ["#history-controls", "#zoom-controls", "#viewer-roster-card"] as const
 
 interface Rect {
   label: string

@@ -338,3 +338,36 @@ per-element actions; there is no new durable action and no new merge rule.
 Still excluded: group resize and rotation, Alt+drag of a group (Alt+drag
 copies the pressed element only), grouping as a stored object, and selection
 shared between viewers.
+
+## D14 — Who's on the board, and cursors that stay (2026-11-05, see ADR 0012)
+
+The human asked on 2026-11-05 for two changes to D11: a remote cursor stays
+visible the whole time it is over the canvas, and the header shows everyone on
+the board with a way to go to them. This lifts the D11 exclusion of a "who's
+online" roster.
+
+- **Cursors stay while on the canvas**: the 2000 ms silence timeout of D11 is
+  removed. A cursor is removed when its viewer's pointer leaves the canvas or
+  its tab is hidden (`cursor_leave`, as before) or when the viewer leaves the
+  board (its LiveView process ends). A cursor resting on the canvas is shown to
+  a viewer who opens the board later: every view that has a cursor on the
+  canvas re-sends its last `cursor` message when a new viewer arrives. A
+  reconnecting view clears the cursors it shows and rebuilds them the same way.
+- **Roster**: the header lists every other viewer on the board as an avatar
+  with their initials in their cursor colour, next to the viewer's own name. An
+  avatar is a button that scrolls the canvas so that viewer's cursor is in the
+  middle of the viewport (zoom unchanged) and briefly highlights it. It is
+  disabled, and says so, while that viewer's pointer is not on the canvas. A
+  viewer alone on the board sees "Just you here".
+- **Transport**: Phoenix.Presence tracks each view on the board topic with its
+  name, colour and whether its pointer is on the canvas. That flag changes only
+  when a cursor enters or leaves, never per move, so cursor traffic is the same
+  as in D11. Nothing is stored (A10).
+
+Still excluded: user accounts, editable or persistent names, follow mode (a jump
+is one scroll, not a camera that keeps tracking), chat and cursor history.
+
+Consequences for the earlier decisions:
+
+- D11: the 2000 ms cursor timeout and the "who's online" roster exclusion no
+  longer apply. Previews (D2, D3) keep their 2000 ms timeout.

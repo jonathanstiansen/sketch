@@ -79,6 +79,7 @@ import { STYLE_PROPERTIES, TEXT_KINDS, type ClipboardActionId, type ElementKind,
 import {
   DEFAULT_ZOOM,
   anchoredScroll,
+  centeredOn,
   clampScroll,
   clampZoom,
   fitView,
@@ -131,6 +132,8 @@ const SELECT_TOOL_EVENT = "sketch:select-tool"
 const SET_STYLE_EVENT = "sketch:set-style"
 const HISTORY_EVENT = "sketch:history"
 const ZOOM_EVENT = "sketch:zoom"
+const JUMP_TO_VIEWER_EVENT = "sketch:jump-to-viewer"
+const FOUND_CURSOR_CLASS = "remote-cursor-found"
 const ZOOM_ATTRIBUTE = "data-zoom"
 const LINE_HEIGHT_PX = 16
 const HISTORY_STATUS_MS = 3000
@@ -489,7 +492,6 @@ export class Canvas extends ViewHook {
   private cursorSender = new CursorSender()
   private cursorTimer: number | undefined
   private remoteCursors = new RemoteCursors()
-  private cursorSweep: number | undefined
   private cursorLayer!: CursorLayer
   private online = true
   private tool: ToolId = DEFAULT_TOOL
@@ -535,6 +537,7 @@ export class Canvas extends ViewHook {
     window.addEventListener("blur", this.releaseSpace)
     this.el.addEventListener("wheel", this.onWheel, { passive: false })
     this.el.addEventListener(ZOOM_EVENT, this.onZoomEvent)
+    this.el.addEventListener(JUMP_TO_VIEWER_EVENT, this.onJumpToViewer)
     this.el.addEventListener(SELECT_TOOL_EVENT, this.onSelectTool)
     this.el.addEventListener(SET_STYLE_EVENT, this.onSetStyle)
     this.el.addEventListener(HISTORY_EVENT, this.onHistoryEvent)
@@ -574,6 +577,9 @@ export class Canvas extends ViewHook {
         this.removeRemoteCursor(payload.viewer_id, payload.seq)
       }
     })
+    this.handleEvent("viewer_left", (payload: unknown) => {
+      if (isRecord(payload) && typeof payload.viewer_id === "string") this.forgetViewer(payload.viewer_id)
+    })
     this.handleEvent("created", (payload: unknown) => {
       const created = isRecord(payload) ? recordedElement(payload.element) : undefined
       if (created !== undefined) this.record({ type: "create", elements: [created] })
@@ -599,6 +605,7 @@ export class Canvas extends ViewHook {
 
   override reconnected(): void {
     this.online = true
+    for (const viewerId of this.remoteCursors.clear()) this.cursorLayer.remove(viewerId)
   }
 
   override destroyed(): void {
@@ -612,7 +619,6 @@ export class Canvas extends ViewHook {
     for (const timer of this.staleTimers.values()) window.clearTimeout(timer)
     window.clearTimeout(this.historyStatusTimer)
     window.clearTimeout(this.cursorTimer)
-    window.clearTimeout(this.cursorSweep)
     document.removeEventListener("visibilitychange", this.onVisibilityChange)
   }
 
@@ -645,23 +651,24 @@ export class Canvas extends ViewHook {
   }
 
   private applyRemoteCursor(cursor: RemoteCursor): void {
-    if (!this.remoteCursors.accept(cursor, performance.now())) return
-    this.cursorLayer.show(cursor)
-    this.scheduleCursorSweep()
+    if (this.remoteCursors.accept(cursor)) this.cursorLayer.show(cursor)
   }
 
   private removeRemoteCursor(viewerId: string, seq: number): void {
     if (this.remoteCursors.leave(viewerId, seq)) this.cursorLayer.remove(viewerId)
   }
 
-  private scheduleCursorSweep(): void {
-    window.clearTimeout(this.cursorSweep)
-    const due = this.remoteCursors.nextExpiry()
-    if (due === undefined) return
-    this.cursorSweep = window.setTimeout(() => {
-      for (const viewerId of this.remoteCursors.expire(performance.now())) this.cursorLayer.remove(viewerId)
-      this.scheduleCursorSweep()
-    }, Math.max(0, due - performance.now()))
+  private forgetViewer(viewerId: string): void {
+    if (this.remoteCursors.forget(viewerId)) this.cursorLayer.remove(viewerId)
+  }
+
+  private onJumpToViewer = (event: Event): void => {
+    if (!(event instanceof CustomEvent) || !isRecord(event.detail) || typeof event.detail.viewer_id !== "string") return
+    const cursor = this.remoteCursors.find(event.detail.viewer_id)
+    if (cursor === undefined) return
+    const scroll = centeredOn(cursor, this.canvasSize(), this.zoom, this.viewportSize())
+    this.el.scrollTo({ left: scroll.x, top: scroll.y, behavior: "smooth" })
+    this.cursorLayer.highlight(cursor.viewer_id, FOUND_CURSOR_CLASS)
   }
 
   private onPointerDown = (event: PointerEvent): void => {
