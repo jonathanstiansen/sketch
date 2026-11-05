@@ -41,6 +41,12 @@ All architecture checks are ExUnit tests in `test/architecture/`, run by `mix te
   naming selection state at compile time; a scan rejects a raw `pushEvent` outside
   `client_push_paths`, and a parse of `SketchWeb.BoardLive` rejects selection names in its event code
   (addendum D8).
+- **Pull request evidence (CI requirement 13)**: the `pr-evidence` workflow passes the pull request
+  description to `.github/scripts/check_pr_evidence.sh` through the `BODY` environment variable and
+  fails unless it holds a Markdown image, an `<img>` or `<video>` tag, a GitHub attachment URL or a
+  link to an image or video file. It is its own workflow so that it re-runs when the description is
+  edited without touching the `ci.yml` jobs; `.github/pull_request_template.md` prompts for the
+  evidence.
 - **Dependencies (A15)**: the production deps from `mix.exs` and the `dependencies` of
   `assets/package.json` and `e2e/package.json` must equal the allowlist exactly.
 - **TypeScript (A14)**: `tsc` and ESLint run in CI; a test asserts the resolved compiler and ESLint

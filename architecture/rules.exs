@@ -287,6 +287,13 @@
       status: :enforced,
       verified_by: ["test/architecture/board_events_test.exs", "test/architecture/typescript_policy_test.exs", "assets/js/hooks/client_events.ts"],
       note: "tsc rejects an undeclared event or field, the contract rejects a field naming selection state at compile time, and a source scan rejects a raw pushEvent outside client_push_paths and selection names in BoardLive's event code"
+    },
+    %{
+      item: 13,
+      check: "Every pull request description includes a screenshot or recording (image, GIF or video) of the change",
+      status: :enforced,
+      verified_by: [".github/workflows/pr-evidence.yml", ".github/scripts/check_pr_evidence.sh", "test/scripts/check_pr_evidence_test.exs", ".github/pull_request_template.md"],
+      note: "Runs in its own workflow (pr-evidence.yml) on pull_request events, including description edits, so editing a description never re-runs or skips the ci.yml jobs. The body reaches the script through the BODY environment variable, never interpolated into the shell"
     }
   ],
   allowlists: %{
