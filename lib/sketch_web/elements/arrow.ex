@@ -6,8 +6,8 @@ defmodule SketchWeb.Elements.Arrow do
   @behaviour SketchWeb.ElementRenderer
 
   @impl true
-  def render(%{points: points, seed: seed, style: style}) do
-    SketchWeb.ElementRenderer.segments(points, seed, style, [
+  def render(%{points: points, style: style} = shape) do
+    SketchWeb.ElementRenderer.segments(points, SketchWeb.HandDrawn.pen(shape), style, [
       {"marker-end", "url(##{SketchWeb.ElementRenderer.arrowhead_id(style.stroke_color)})"}
     ])
   end

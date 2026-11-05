@@ -177,7 +177,12 @@ defmodule SketchWeb.ClientManifest do
       "export const STYLE_TOKENS = {\n",
       Enum.map_join(entries, "", fn {key, value} -> "  #{key}: #{value},\n" end),
       "} as const satisfies Record<StyleProperty, readonly string[]>\n\n",
-      "export type StyleToken<P extends StyleProperty> = (typeof STYLE_TOKENS)[P][number]\n"
+      "export type StyleToken<P extends StyleProperty> = (typeof STYLE_TOKENS)[P][number]\n\n",
+      "export const STYLE_DEFAULTS: { readonly [P in StyleProperty]: StyleToken<P> } = {\n",
+      Enum.map_join(Sketch.Canvas.style_properties(), "", fn property ->
+        "  #{property}: #{string(Map.fetch!(Sketch.Canvas.style_defaults(), property))},\n"
+      end),
+      "}\n"
     ]
     |> IO.iodata_to_binary()
   end

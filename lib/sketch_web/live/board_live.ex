@@ -15,10 +15,6 @@ defmodule SketchWeb.BoardLive do
                             ~w(add-rectangle erase)
   @style_properties Sketch.Canvas.style_properties()
   @style_params Enum.map(@style_properties, &{Atom.to_string(&1), &1})
-  @stroke_colors Enum.map(Sketch.Canvas.style_tokens(:stroke_color), &Atom.to_string/1)
-  @fill_colors Enum.map(Sketch.Canvas.style_tokens(:fill_color), &Atom.to_string/1)
-  @stroke_widths Enum.map(Sketch.Canvas.style_tokens(:stroke_width), &Atom.to_string/1)
-  @stroke_styles Enum.map(Sketch.Canvas.style_tokens(:stroke_style), &Atom.to_string/1)
 
   defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
 
@@ -31,12 +27,6 @@ defmodule SketchWeb.BoardLive do
                    y <= @canvas_height
 
   defguardp is_seed(value) when is_integer(value) and value >= 0 and value <= @max_seed
-
-  defguardp is_style_token(property, value)
-            when (property == :stroke_color and value in @stroke_colors) or
-                   (property == :fill_color and value in @fill_colors) or
-                   (property == :stroke_width and value in @stroke_widths) or
-                   (property == :stroke_style and value in @stroke_styles)
 
   defguardp is_box(x, y, width, height)
             when is_integer(x) and is_integer(y) and is_integer(width) and is_integer(height) and
@@ -496,17 +486,18 @@ defmodule SketchWeb.BoardLive do
 
   defp style(params) do
     Enum.reduce_while(@style_params, {:ok, %{}}, fn {param, property}, {:ok, style} ->
-      case params do
-        %{^param => value} when is_style_token(property, value) ->
-          {:cont, {:ok, Map.put(style, property, String.to_existing_atom(value))}}
-
-        %{^param => _invalid} ->
-          {:halt, :error}
-
-        _without_property ->
-          {:cont, {:ok, style}}
+      case Map.fetch(params, param) do
+        {:ok, value} -> put_style_token(style, property, value)
+        :error -> {:cont, {:ok, style}}
       end
     end)
+  end
+
+  defp put_style_token(style, property, value) do
+    case Sketch.Canvas.style_token(property, value) do
+      {:ok, token} -> {:cont, {:ok, Map.put(style, property, token)}}
+      :error -> {:halt, :error}
+    end
   end
 
   defp group_entries(elements) do

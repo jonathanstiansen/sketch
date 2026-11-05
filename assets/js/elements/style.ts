@@ -2,6 +2,7 @@ import {
   DASH_ARRAYS,
   KIND_SPECS,
   STROKE_WIDTHS,
+  STYLE_DEFAULTS,
   STYLE_PROPERTIES,
   STYLE_TOKENS,
   type ElementKind,
@@ -14,12 +15,7 @@ export type ElementStyle = { readonly [P in StyleProperty]: StyleToken<P> }
 
 export type StylePasses = "sketch" | "single"
 
-export const DEFAULT_STYLE: ElementStyle = {
-  stroke_color: STYLE_TOKENS.stroke_color[0],
-  fill_color: STYLE_TOKENS.fill_color[0],
-  stroke_width: STYLE_TOKENS.stroke_width[0],
-  stroke_style: STYLE_TOKENS.stroke_style[0],
-}
+export const DEFAULT_STYLE: ElementStyle = STYLE_DEFAULTS
 
 export function isStyleProperty(value: unknown): value is StyleProperty {
   return STYLE_PROPERTIES.some((property) => property === value)

@@ -5,7 +5,7 @@ import { focusContext, shortcutFor, type ShortcutInput } from "./shortcuts.ts"
 import { isElementKind } from "./tools.ts"
 import { isSeed } from "../elements/dom.ts"
 import { isStyleToken, styleForKind, styleFrom, type ElementStyle } from "../elements/style.ts"
-import { CLIPBOARD_ACTIONS, GEOMETRY, KIND_SPECS, STYLE_PROPERTIES, type ClipboardActionId } from "../generated/manifest.ts"
+import { CLIPBOARD_ACTIONS, GEOMETRY, KIND_SPECS, STYLE_PROPERTIES, type ClipboardActionId, type StyleProperty } from "../generated/manifest.ts"
 
 export const ENVELOPE_TYPE = "sketch/elements"
 export const ENVELOPE_VERSION = 1
@@ -72,7 +72,8 @@ function textOf(value: unknown, kind: keyof typeof KIND_SPECS): string | undefin
 }
 
 function styleOf(value: Record<string, unknown>, kind: keyof typeof KIND_SPECS): ElementStyle | undefined {
-  if (!STYLE_PROPERTIES.every((property) => isStyleToken(property, value[property]))) return undefined
+  const absentOrValid = (property: StyleProperty): boolean => !(property in value) || isStyleToken(property, value[property])
+  if (!STYLE_PROPERTIES.every(absentOrValid)) return undefined
   return styleForKind(kind, styleFrom((property) => value[property]))
 }
 
@@ -90,8 +91,7 @@ export function validElement(value: unknown): ElementSnapshot | undefined {
 }
 
 function flat({ kind, x, y, width, height, points, text, seed, style }: ElementSnapshot): Record<string, unknown> {
-  const { stroke_color, fill_color, stroke_width, stroke_style } = style
-  return { kind, x, y, width, height, points, text, stroke_color, fill_color, stroke_width, stroke_style, seed }
+  return { kind, x, y, width, height, points, text, ...style, seed }
 }
 
 export function encodeElements(elements: readonly ElementSnapshot[]): string {

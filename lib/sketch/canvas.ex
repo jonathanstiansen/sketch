@@ -53,6 +53,9 @@ defmodule Sketch.Canvas do
 
   defdelegate style_defaults, to: Sketch.Canvas.Style, as: :defaults
 
+  @doc "The style token a client's value names for a property, or `:error`."
+  defdelegate style_token(property, value), to: Sketch.Canvas.Style, as: :cast_token
+
   defdelegate style_label(name), to: Sketch.Canvas.Style, as: :label
 
   defdelegate style_stroke_px(width), to: Sketch.Canvas.Style, as: :stroke_px

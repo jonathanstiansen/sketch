@@ -25,45 +25,54 @@ defmodule SketchWeb.HandDrawn do
   @max_jitter @max_end + @max_bow + div(@max_bow, 2)
 
   @type point :: %{x: integer(), y: integer()}
+  @type pen :: %{seed: non_neg_integer()}
+
+  @doc """
+  The pen a shape's strokes are drawn with: everything besides the geometry that the strokes
+  depend on. Renderers pass it through unchanged, so a new stroke parameter changes this function
+  and the stroke code, never the renderers.
+  """
+  @spec pen(%{required(:seed) => non_neg_integer(), optional(atom()) => term()}) :: pen()
+  def pen(%{seed: seed}), do: %{seed: seed}
 
   @doc "The furthest any path point lies outside the exact shape's box, in hundredths of a pixel."
   @spec max_jitter() :: pos_integer()
   def max_jitter, do: @max_jitter
 
   @doc "The four edges of the box `[0, width] × [0, height]`."
-  @spec rectangle(non_neg_integer(), non_neg_integer(), non_neg_integer()) :: String.t()
-  def rectangle(width, height, seed) do
+  @spec rectangle(non_neg_integer(), non_neg_integer(), pen()) :: String.t()
+  def rectangle(width, height, pen) do
     w = width * @scale
     h = height * @scale
-    outline([{0, 0}, {w, 0}, {w, h}, {0, h}], seed)
+    outline([{0, 0}, {w, 0}, {w, h}, {0, h}], pen)
   end
 
   @doc "The four edges through the midpoints of the box's sides."
-  @spec diamond(non_neg_integer(), non_neg_integer(), non_neg_integer()) :: String.t()
-  def diamond(width, height, seed) do
+  @spec diamond(non_neg_integer(), non_neg_integer(), pen()) :: String.t()
+  def diamond(width, height, pen) do
     w = width * @scale
     h = height * @scale
     mid_x = width * @half_scale
     mid_y = height * @half_scale
-    outline([{mid_x, 0}, {w, mid_y}, {mid_x, h}, {0, mid_y}], seed)
+    outline([{mid_x, 0}, {w, mid_y}, {mid_x, h}, {0, mid_y}], pen)
   end
 
   @doc "One edge from `start` to `finish`, in whole pixels."
-  @spec line(point(), point(), non_neg_integer()) :: String.t()
-  def line(start, finish, seed) do
+  @spec line(point(), point(), pen()) :: String.t()
+  def line(start, finish, pen) do
     {strokes, _rng} =
       edge(
         {start.x * @scale, start.y * @scale},
         {finish.x * @scale, finish.y * @scale},
-        Random.new(seed)
+        Random.new(pen.seed)
       )
 
     Enum.join(strokes, " ")
   end
 
   @doc "Two closed curves around the ellipse inscribed in the box."
-  @spec ellipse(non_neg_integer(), non_neg_integer(), non_neg_integer()) :: String.t()
-  def ellipse(width, height, seed) do
+  @spec ellipse(non_neg_integer(), non_neg_integer(), pen()) :: String.t()
+  def ellipse(width, height, pen) do
     rx = width * @half_scale
     ry = height * @half_scale
     kx = div(rx * @kappa, @kappa_scale)
@@ -77,7 +86,7 @@ defmodule SketchWeb.HandDrawn do
       amplitude: amplitude
     }
 
-    rng = Random.new(seed)
+    rng = Random.new(pen.seed)
     {first, rng} = closed_curve(curve, rng)
     {second, _rng} = closed_curve(curve, rng)
     first <> " " <> second
@@ -96,11 +105,11 @@ defmodule SketchWeb.HandDrawn do
     "#{div(value, @scale)}.#{fraction}"
   end
 
-  defp outline(vertices, seed) do
+  defp outline(vertices, pen) do
     edges = Enum.zip(vertices, tl(vertices) ++ [hd(vertices)])
 
     {strokes, _rng} =
-      Enum.flat_map_reduce(edges, Random.new(seed), fn {start, finish}, rng ->
+      Enum.flat_map_reduce(edges, Random.new(pen.seed), fn {start, finish}, rng ->
         edge(start, finish, rng)
       end)
 

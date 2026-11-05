@@ -17,6 +17,13 @@ export const STYLE_TOKENS = {
 
 export type StyleToken<P extends StyleProperty> = (typeof STYLE_TOKENS)[P][number]
 
+export const STYLE_DEFAULTS: { readonly [P in StyleProperty]: StyleToken<P> } = {
+  stroke_color: "ink",
+  fill_color: "auto",
+  stroke_width: "thin",
+  stroke_style: "solid",
+}
+
 export const STROKE_WIDTHS = {
   thin: { stroke: 2, sketch: "1.5" },
   bold: { stroke: 4, sketch: "3" },

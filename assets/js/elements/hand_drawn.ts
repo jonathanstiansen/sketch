@@ -1,5 +1,6 @@
 import type { Point } from "../hooks/canvas_logic.ts"
 import { Random } from "./random.ts"
+import type { LocalShape } from "./renderer.ts"
 
 const SCALE = 100
 const HALF_SCALE = SCALE / 2
@@ -28,6 +29,14 @@ interface Curve {
 
 function div(a: number, b: number): number {
   return Math.trunc(a / b)
+}
+
+export interface Pen {
+  readonly seed: number
+}
+
+export function pen({ seed }: Pick<LocalShape, "seed">): Pen {
+  return { seed }
 }
 
 export function format(value: number): string {
@@ -75,8 +84,8 @@ function edge(start: Pair, finish: Pair, random: Random): string[] {
   return [first, second]
 }
 
-function outline(vertices: readonly Pair[], seed: number): string {
-  const random = new Random(seed)
+function outline(vertices: readonly Pair[], pen: Pen): string {
+  const random = new Random(pen.seed)
   return vertices
     .flatMap((start, index) => {
       const finish = vertices[(index + 1) % vertices.length] ?? start
@@ -85,22 +94,22 @@ function outline(vertices: readonly Pair[], seed: number): string {
     .join(" ")
 }
 
-export function rectangle(width: number, height: number, seed: number): string {
+export function rectangle(width: number, height: number, pen: Pen): string {
   const w = width * SCALE
   const h = height * SCALE
-  return outline([[0, 0], [w, 0], [w, h], [0, h]], seed)
+  return outline([[0, 0], [w, 0], [w, h], [0, h]], pen)
 }
 
-export function diamond(width: number, height: number, seed: number): string {
+export function diamond(width: number, height: number, pen: Pen): string {
   const w = width * SCALE
   const h = height * SCALE
   const midX = width * HALF_SCALE
   const midY = height * HALF_SCALE
-  return outline([[midX, 0], [w, midY], [midX, h], [0, midY]], seed)
+  return outline([[midX, 0], [w, midY], [midX, h], [0, midY]], pen)
 }
 
-export function line(start: Point, finish: Point, seed: number): string {
-  return edge([start.x * SCALE, start.y * SCALE], [finish.x * SCALE, finish.y * SCALE], new Random(seed)).join(" ")
+export function line(start: Point, finish: Point, pen: Pen): string {
+  return edge([start.x * SCALE, start.y * SCALE], [finish.x * SCALE, finish.y * SCALE], new Random(pen.seed)).join(" ")
 }
 
 function closedCurve({ anchors, leaving, arriving, amplitude }: Curve, random: Random): string {
@@ -118,7 +127,7 @@ function closedCurve({ anchors, leaving, arriving, amplitude }: Curve, random: R
   return `M ${pair(jittered[0] ?? [0, 0])} ${segments.join(" ")}`
 }
 
-export function ellipse(width: number, height: number, seed: number): string {
+export function ellipse(width: number, height: number, pen: Pen): string {
   const rx = width * HALF_SCALE
   const ry = height * HALF_SCALE
   const kx = div(rx * KAPPA, KAPPA_SCALE)
@@ -129,7 +138,7 @@ export function ellipse(width: number, height: number, seed: number): string {
     arriving: [[kx, 0], [0, ky], [-kx, 0], [0, -ky]],
     amplitude: Math.min(div(Math.max(rx, ry), BOW_DIVISOR), MAX_BOW),
   }
-  const random = new Random(seed)
+  const random = new Random(pen.seed)
   const first = closedCurve(curve, random)
   const second = closedCurve(curve, random)
   return `${first} ${second}`

@@ -1,6 +1,6 @@
 import type { Point } from "../hooks/canvas_logic.ts"
 import { pointsAttribute } from "./dom.ts"
-import { line } from "./hand_drawn.ts"
+import { line, type Pen } from "./hand_drawn.ts"
 import type { AttributeValue, SvgNode } from "./renderer.ts"
 import { strokeAttrs, strokeClass, type ElementStyle } from "./style.ts"
 
@@ -29,7 +29,7 @@ function segment(start: Point, end: Point, attrs: Readonly<Record<string, Attrib
 
 export function segments(
   [start, end]: readonly Point[],
-  seed: number,
+  pen: Pen,
   style: ElementStyle,
   extraAttrs: Readonly<Record<string, AttributeValue>> = {},
 ): readonly SvgNode[] {
@@ -40,7 +40,7 @@ export function segments(
       tag: "path",
       attrs: {
         "data-line-stroke": "",
-        d: line(start, end, seed),
+        d: line(start, end, pen),
         fill: "none",
         "stroke-linecap": "round",
         "pointer-events": "none",

@@ -3,13 +3,13 @@ defmodule Sketch.Architecture.RegistryTest do
 
   alias Sketch.ArchitectureCheck
 
-  @rule_ids for n <- 1..23, do: "A" <> String.pad_leading(Integer.to_string(n), 2, "0")
+  @rule_ids for n <- 1..24, do: "A" <> String.pad_leading(Integer.to_string(n), 2, "0")
 
   setup_all do
     %{rules: ArchitectureCheck.registry()[:rules]}
   end
 
-  test "every rule A01-A23 is registered exactly once (A19)", %{rules: rules} do
+  test "every rule A01-A24 is registered exactly once (A19)", %{rules: rules} do
     assert Enum.map(rules, & &1.id) == @rule_ids
   end
 
