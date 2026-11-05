@@ -12,7 +12,8 @@ defmodule Sketch.Architecture.BoardEventsTest do
     %{
       transient: BoardEvents.transient(),
       durable: BoardEvents.durable(),
-      durable_broadcasts: BoardEvents.durable_broadcasts()
+      durable_broadcasts: BoardEvents.durable_broadcasts(),
+      presence_broadcasts: BoardEvents.presence_broadcasts()
     }
   end
 

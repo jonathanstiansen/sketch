@@ -482,7 +482,8 @@ defmodule Sketch.ArchitectureCheck do
   @type board_events :: %{
           transient: [map()],
           durable: [map()],
-          durable_broadcasts: [String.t()]
+          durable_broadcasts: [String.t()],
+          presence_broadcasts: [String.t()]
         }
 
   @doc """
@@ -686,7 +687,9 @@ defmodule Sketch.ArchitectureCheck do
   end
 
   defp forwarded_event_violations(functions, events, subject) do
-    known = Enum.map(events.transient, & &1.relays_as) ++ events.durable_broadcasts
+    known =
+      Enum.map(events.transient, & &1.relays_as) ++
+        events.durable_broadcasts ++ events.presence_broadcasts
 
     for %{name: :handle_info, args: [{:%, _, [_struct, {:%{}, _, fields}]} | _rest]} <- functions,
         {:event, event} <- fields,

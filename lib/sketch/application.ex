@@ -12,6 +12,7 @@ defmodule Sketch.Application do
       Sketch.Repo,
       {DNSCluster, query: Application.get_env(:sketch, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Sketch.PubSub},
+      SketchWeb.Presence,
       # Start a worker by calling: Sketch.Worker.start_link(arg)
       # {Sketch.Worker, arg},
       # Start to serve requests, typically the last entry

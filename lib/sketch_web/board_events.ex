@@ -152,6 +152,8 @@ defmodule SketchWeb.BoardEvents do
 
   @durable_broadcasts ~w(create commit_position commit_shape commit_style erase)
 
+  @presence_broadcasts ~w(presence_diff)
+
   :ok = Contract.validate!(@transient, @durable)
 
   @relayed @transient |> Enum.map(& &1.relays_as) |> Enum.uniq()
@@ -175,4 +177,11 @@ defmodule SketchWeb.BoardEvents do
   @doc "The event names `Ash.Notifier.PubSub` publishes on the board topic after a commit (A11)."
   @spec durable_broadcasts() :: [String.t()]
   def durable_broadcasts, do: @durable_broadcasts
+
+  @doc """
+  The event names `SketchWeb.Presence` publishes on the board topic when a viewer joins, leaves or
+  changes its metadata (addendum D14). `BoardLive` updates its viewer list from them.
+  """
+  @spec presence_broadcasts() :: [String.t()]
+  def presence_broadcasts, do: @presence_broadcasts
 end

@@ -207,19 +207,19 @@ defmodule SketchWeb.BoardLive do
   def handle_event("cursor", %{"x" => x, "y" => y, "seq" => seq}, socket)
       when is_canvas_point(x, y) and is_seq(seq) do
     %{id: viewer_id, name: name, color: color} = socket.assigns.viewer
+    cursor = %{viewer_id: viewer_id, name: name, color: color, x: x, y: y, seq: seq}
 
-    broadcast_preview(socket, "cursor", %{
-      viewer_id: viewer_id,
-      name: name,
-      color: color,
-      x: x,
-      y: y,
-      seq: seq
-    })
+    socket
+    |> track_on_canvas(true)
+    |> assign(:cursor, cursor)
+    |> broadcast_preview("cursor", cursor)
   end
 
   def handle_event("cursor_leave", %{"seq" => seq}, socket) when is_seq(seq) do
-    broadcast_preview(socket, "cursor_leave", %{viewer_id: socket.assigns.viewer.id, seq: seq})
+    socket
+    |> track_on_canvas(false)
+    |> assign(:cursor, nil)
+    |> broadcast_preview("cursor_leave", %{viewer_id: socket.assigns.viewer.id, seq: seq})
   end
 
   def handle_event("erase", %{"element_ids" => element_ids}, socket) when is_list(element_ids) do
@@ -304,6 +304,24 @@ defmodule SketchWeb.BoardLive do
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "erase", payload: erase}, socket) do
     {:noreply, apply_erase(socket, erase)}
+  end
+
+  def handle_info(
+        %Phoenix.Socket.Broadcast{
+          event: "presence_diff",
+          payload: %{joins: joins, leaves: leaves}
+        },
+        socket
+      ) do
+    own_id = socket.assigns.viewer.id
+    joined = Map.delete(joins, own_id)
+    left = leaves |> Map.drop([own_id | Map.keys(joins)]) |> Map.keys()
+    arrived = joined |> Map.keys() |> Enum.reject(&MapSet.member?(socket.assigns.others, &1))
+
+    socket
+    |> forget_viewers(left)
+    |> show_viewers(joined)
+    |> share_cursor_with(arrived)
   end
 
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket)
@@ -396,6 +414,47 @@ defmodule SketchWeb.BoardLive do
           </div>
           <SketchWeb.Toolbar.history_controls />
           <SketchWeb.Toolbar.zoom_controls />
+          <div
+            id="viewer-roster-card"
+            role="group"
+            aria-label="Others on this board"
+            class="absolute top-12 right-6 z-10 flex items-center rounded-xl border border-base-300 bg-base-100 px-2 py-1.5 text-xs shadow-sm"
+          >
+            <ul
+              id="viewer-roster"
+              phx-update="stream"
+              class="flex items-center"
+            >
+              <li id="viewer-roster-empty" class="hidden text-base-content/60 only:block">
+                Just you here
+              </li>
+              <li :for={{dom_id, other} <- @streams.viewers} id={dom_id} class="-ml-1.5 first:ml-0">
+                <button
+                  type="button"
+                  id={"jump-#{dom_id}"}
+                  data-viewer={other.id}
+                  data-on-canvas={to_string(other.on_canvas)}
+                  disabled={not other.on_canvas}
+                  title={
+                    if(other.on_canvas,
+                      do: "Go to #{other.name}",
+                      else: "#{other.name} is not on the canvas"
+                    )
+                  }
+                  aria-label={
+                    if(other.on_canvas,
+                      do: "Go to #{other.name}",
+                      else: "#{other.name}, not on the canvas"
+                    )
+                  }
+                  phx-click={jump_to_viewer(other.id)}
+                  class={"viewer-avatar cursor-color-#{other.color}"}
+                >
+                  {initials(other.name)}
+                </button>
+              </li>
+            </ul>
+          </div>
           <p
             id="history-status"
             role="status"
@@ -578,9 +637,72 @@ defmodule SketchWeb.BoardLive do
 
   defp element_dom_id(element_id), do: "element-#{element_id}"
 
+  defp join_board(topic, viewer) do
+    :ok = SketchWeb.Endpoint.subscribe(topic)
+    {:ok, _ref} = SketchWeb.Presence.track(self(), topic, viewer.id, viewer_meta(viewer, false))
+    topic |> SketchWeb.Presence.list() |> Map.delete(viewer.id)
+  end
+
+  defp viewer_meta(viewer, on_canvas) do
+    %{name: viewer.name, color: viewer.color, on_canvas: on_canvas, joined_at: joined_at()}
+  end
+
+  defp joined_at, do: System.monotonic_time()
+
+  defp track_on_canvas(%{assigns: %{cursor: cursor}} = socket, on_canvas)
+       when is_nil(cursor) == on_canvas do
+    %{board_id: board_id, viewer: viewer} = socket.assigns
+    topic = Sketch.Canvas.board_topic(board_id)
+
+    {:ok, _ref} =
+      SketchWeb.Presence.update(self(), topic, viewer.id, fn meta ->
+        %{meta | on_canvas: on_canvas}
+      end)
+
+    socket
+  end
+
+  defp track_on_canvas(socket, _unchanged), do: socket
+
+  defp show_viewers(socket, presences) do
+    presences
+    |> Enum.map(fn {id, %{metas: [meta | _older]}} -> Map.put(meta, :id, id) end)
+    |> Enum.sort_by(& &1.joined_at)
+    |> Enum.reduce(socket, fn viewer, socket ->
+      socket
+      |> stream_insert(:viewers, Map.take(viewer, [:id, :name, :color, :on_canvas]))
+      |> assign(:others, MapSet.put(socket.assigns.others, viewer.id))
+    end)
+  end
+
+  defp forget_viewers(socket, viewer_ids) do
+    Enum.reduce(viewer_ids, socket, fn viewer_id, socket ->
+      socket
+      |> stream_delete_by_dom_id(:viewers, viewer_dom_id(viewer_id))
+      |> assign(:others, MapSet.delete(socket.assigns.others, viewer_id))
+      |> push_event("viewer_left", %{viewer_id: viewer_id})
+    end)
+  end
+
+  defp share_cursor_with(%{assigns: %{cursor: %{} = cursor}} = socket, [_arrived | _more]),
+    do: broadcast_preview(socket, "cursor", cursor)
+
+  defp share_cursor_with(socket, _arrived), do: {:noreply, socket}
+
+  defp viewer_dom_id(viewer_id), do: "viewer-#{viewer_id}"
+
+  defp initials(name) do
+    name |> String.split() |> Enum.map_join(&String.first/1)
+  end
+
+  defp jump_to_viewer(viewer_id) do
+    JS.dispatch("sketch:jump-to-viewer", to: "#canvas-viewport", detail: %{viewer_id: viewer_id})
+  end
+
   defp load_board(socket, board_id) do
-    if connected?(socket),
-      do: :ok = SketchWeb.Endpoint.subscribe(Sketch.Canvas.board_topic(board_id))
+    topic = Sketch.Canvas.board_topic(board_id)
+    viewer = Sketch.Canvas.new_viewer()
+    others = if connected?(socket), do: join_board(topic, viewer), else: %{}
 
     elements =
       board_id
@@ -589,7 +711,12 @@ defmodule SketchWeb.BoardLive do
 
     socket
     |> assign(:board_id, board_id)
-    |> assign(:viewer, Sketch.Canvas.new_viewer())
+    |> assign(:viewer, viewer)
+    |> assign(:cursor, nil)
+    |> assign(:others, MapSet.new())
+    |> stream_configure(:viewers, dom_id: &viewer_dom_id(&1.id))
+    |> stream(:viewers, [])
+    |> show_viewers(others)
     |> assign(:geometry, Sketch.Canvas.geometry())
     |> assign(:stroke_colors, Sketch.Canvas.style_tokens(:stroke_color))
     |> assign(:board_state, Sketch.Canvas.new_board_state(elements))

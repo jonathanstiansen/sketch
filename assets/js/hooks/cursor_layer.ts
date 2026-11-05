@@ -48,6 +48,21 @@ export class CursorLayer {
     group.setAttribute("transform", `translate(${String(x)} ${String(y)}) scale(${String(1 / this.zoom)})`)
   }
 
+  highlight(viewerId: string, className: string): void {
+    const group = this.find(viewerId)
+    if (group === null) return
+    group.classList.remove(className)
+    group.getBoundingClientRect()
+    group.classList.add(className)
+    group.addEventListener(
+      "animationend",
+      () => {
+        group.classList.remove(className)
+      },
+      { once: true },
+    )
+  }
+
   remove(viewerId: string): void {
     this.positions.delete(viewerId)
     this.find(viewerId)?.remove()

@@ -1,7 +1,5 @@
 import { previewDelay, type Point } from "./canvas_logic.ts"
 
-export const CURSOR_STALE_MS = 2000
-
 export interface CursorMessage extends Point {
   seq: number
 }
@@ -48,19 +46,14 @@ export class CursorSender {
   }
 }
 
-interface Seen {
-  cursor: RemoteCursor
-  seenAt: number
-}
-
 export class RemoteCursors {
-  private readonly shown = new Map<string, Seen>()
+  private readonly shown = new Map<string, RemoteCursor>()
   private readonly latestSeq = new Map<string, number>()
 
-  accept(cursor: RemoteCursor, now: number): boolean {
+  accept(cursor: RemoteCursor): boolean {
     if (!this.isNewer(cursor.viewer_id, cursor.seq)) return false
     this.latestSeq.set(cursor.viewer_id, cursor.seq)
-    this.shown.set(cursor.viewer_id, { cursor, seenAt: now })
+    this.shown.set(cursor.viewer_id, cursor)
     return true
   }
 
@@ -70,19 +63,24 @@ export class RemoteCursors {
     return this.shown.delete(viewerId)
   }
 
-  expire(now: number): string[] {
-    const stale = [...this.shown].filter(([, { seenAt }]) => now - seenAt >= CURSOR_STALE_MS).map(([id]) => id)
-    for (const id of stale) this.shown.delete(id)
-    return stale
+  forget(viewerId: string): boolean {
+    this.latestSeq.set(viewerId, Infinity)
+    return this.shown.delete(viewerId)
   }
 
-  nextExpiry(): number | undefined {
-    const times = [...this.shown.values()].map(({ seenAt }) => seenAt + CURSOR_STALE_MS)
-    return times.length === 0 ? undefined : Math.min(...times)
+  clear(): string[] {
+    const ids = [...this.shown.keys()]
+    this.shown.clear()
+    this.latestSeq.clear()
+    return ids
+  }
+
+  find(viewerId: string): RemoteCursor | undefined {
+    return this.shown.get(viewerId)
   }
 
   visible(): RemoteCursor[] {
-    return [...this.shown.values()].map(({ cursor }) => cursor)
+    return [...this.shown.values()]
   }
 
   private isNewer(viewerId: string, seq: number): boolean {
