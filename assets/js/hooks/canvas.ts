@@ -41,6 +41,7 @@ import {
   marqueeHits,
   marqueeSelection,
   restyleTargets,
+  selectionAttribute,
   sameSelection,
   selectsAll,
   toggled,
@@ -1527,12 +1528,13 @@ export class Canvas extends ViewHook {
     const rects = this.selected.flatMap((id) => this.elementFor(id) ?? [])
     this.selected = rects.flatMap((rect) => rect.dataset.element ?? [])
     const [only] = rects
-    if (only === undefined) {
+    const published = selectionAttribute(this.selected)
+    if (only === undefined || published === undefined) {
       this.selection.hide()
       this.js().removeAttribute(this.el, SELECTED_ATTRIBUTE)
       this.js().removeAttribute(this.el, SELECTED_COUNT_ATTRIBUTE)
     } else {
-      this.js().setAttribute(this.el, SELECTED_ATTRIBUTE, this.selected.join(" "))
+      this.js().setAttribute(this.el, SELECTED_ATTRIBUTE, published)
       this.js().setAttribute(this.el, SELECTED_COUNT_ATTRIBUTE, String(rects.length))
       this.showSelection(only, rects)
     }

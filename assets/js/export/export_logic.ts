@@ -14,7 +14,7 @@ export interface Candidate {
 
 export interface Scope {
   readonly onlySelected: boolean
-  readonly selectedId: string | undefined
+  readonly selectedIds: readonly string[]
 }
 
 export interface Rgba {
@@ -62,9 +62,10 @@ export function cropViewBox(boxes: readonly Box[], padding: number = EXPORT_PADD
   }
 }
 
-export function includedCandidates(candidates: readonly Candidate[], { onlySelected, selectedId }: Scope): Candidate[] {
-  if (!onlySelected || selectedId === undefined) return [...candidates]
-  return candidates.filter(({ id }) => id === selectedId)
+export function includedCandidates(candidates: readonly Candidate[], { onlySelected, selectedIds }: Scope): Candidate[] {
+  if (!onlySelected || selectedIds.length === 0) return [...candidates]
+  const selected = new Set(selectedIds)
+  return candidates.filter(({ id }) => selected.has(id))
 }
 
 function twoDigits(value: number): string {

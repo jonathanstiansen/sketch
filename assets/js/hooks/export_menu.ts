@@ -2,6 +2,7 @@ import { ViewHook } from "phoenix_live_view"
 import { EXPORT_ACTIONS, type ExportActionId } from "../generated/manifest"
 import { buildSvg, copyPng, download, renderPng, svgBlob, type ExportOptions } from "../export/export_dom"
 import { exportActionFor, exportFilename, type ExportFormat } from "../export/export_logic"
+import { selectionFromAttribute } from "./selection_logic"
 import { focusContext, shortcutFor } from "./shortcuts"
 
 const STATUS_MS = 3000
@@ -65,14 +66,14 @@ export class ExportMenu extends ViewHook {
     return this.menu.querySelector<HTMLInputElement>(`input[data-export-option="${name}"]`)
   }
 
-  private get selectedId(): string | undefined {
-    return this.viewport.getAttribute(SELECTED_ATTRIBUTE) ?? undefined
+  private get selectedIds(): readonly string[] {
+    return selectionFromAttribute(this.viewport.getAttribute(SELECTED_ATTRIBUTE))
   }
 
   private syncSelection(): void {
     const only = this.option("selection")
     if (only === null) return
-    only.disabled = this.selectedId === undefined
+    only.disabled = this.selectedIds.length === 0
     if (only.disabled) only.checked = false
   }
 
@@ -130,10 +131,10 @@ export class ExportMenu extends ViewHook {
   }
 
   private options(): ExportOptions {
-    const selectedId = this.selectedId
+    const selectedIds = this.selectedIds
     return {
-      onlySelected: this.option("selection")?.checked === true && selectedId !== undefined,
-      selectedId,
+      onlySelected: this.option("selection")?.checked === true && selectedIds.length > 0,
+      selectedIds,
       background: this.option("background")?.checked === true,
     }
   }

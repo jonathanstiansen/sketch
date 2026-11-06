@@ -15,6 +15,8 @@ import {
   movedGroup,
   propertyState,
   restyleTargets,
+  selectionAttribute,
+  selectionFromAttribute,
   selectsAll,
   toggled,
   united,
@@ -296,5 +298,16 @@ void test("Ctrl/⌘+A selects all on the canvas only, with exactly those modifie
       assert.equal(selectsAll({ ...press("KeyA", modifiers), editable: false }), exact)
     }),
     settings,
+  )
+})
+
+void test("the selection published on the viewport reads back as the same ids (export, clipboard)", () => {
+  fc.assert(
+    fc.property(fc.uniqueArray(fc.uuid(), { maxLength: 20 }), (ids) => {
+      const published = selectionAttribute(ids)
+      assert.deepEqual(selectionFromAttribute(published ?? null), ids)
+      assert.equal(published === undefined, ids.length === 0)
+    }),
+    { seed: 1, numRuns: 500 },
   )
 })
