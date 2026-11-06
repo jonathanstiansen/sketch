@@ -62,20 +62,9 @@ import {
   type ElementStyle,
 } from "../elements/style"
 import { StylePanel } from "./style_panel"
-import { History, type Change, type Direction, type Entry, type Recorded, type Replay } from "./history_logic"
-import {
-  positionPayload,
-  shapePayload,
-  stylePayload,
-  createPayload,
-  historyActionFor,
-  isHistoryAction,
-  recordedElement,
-  recordedElements,
-  type ElementChange,
-  type ElementHistory,
-  type ElementSnapshot,
-} from "./element_history"
+import type { Change, Direction } from "./history_logic"
+import { historyActionFor, isHistoryAction, type ElementChange, type ElementSnapshot } from "./element_history"
+import { BoardMutations } from "./mutations"
 import { STYLE_PROPERTIES, TEXT_KINDS, type ClipboardActionId, type ElementKind, type TextKind, type ZoomActionId } from "../generated/manifest"
 import {
   DEFAULT_ZOOM,
@@ -278,10 +267,6 @@ function isEditable(target: EventTarget | null): boolean {
     target instanceof HTMLElement &&
     (target.isContentEditable || target.closest("input, textarea, select") !== null)
   )
-}
-
-function isOk(reply: unknown): boolean {
-  return isRecord(reply) && reply.ok === true
 }
 
 function keyInput(event: KeyboardEvent): KeyInput {
@@ -511,9 +496,16 @@ export class Canvas extends ViewHook {
   private selection!: SelectionOverlay
   private draws!: DrawLayer
   private observer: MutationObserver | undefined
-  private history: ElementHistory = new History<ElementSnapshot, ElementChange>()
+  private readonly mutations = new BoardMutations(this, {
+    canReplay: () => this.canReplay(),
+    historyChanged: () => {
+      this.syncHistoryButtons()
+    },
+    failed: (message) => {
+      this.flash(message)
+    },
+  })
   private historyStatusTimer: number | undefined
-  private queuedHistory: Direction[] = []
   private zoom = DEFAULT_ZOOM
   private svgObserver: MutationObserver | undefined
 
@@ -921,69 +913,9 @@ export class Canvas extends ViewHook {
     this.endErase(erase)
     if (erase.pending.size === 0) return
     const elementIds = [...erase.pending]
-    void this.eraseAndRecord(elementIds).finally(() => {
+    void this.mutations.erase(elementIds).finally(() => {
       this.unfade(elementIds)
     })
-  }
-
-  private async eraseAndRecord(elementIds: readonly string[]): Promise<void> {
-    const erased = await this.pushErase(elementIds)
-    if (erased.length > 0) this.record({ type: "erase", elements: erased })
-  }
-
-  private async pushErase(elementIds: readonly string[]): Promise<Recorded<ElementSnapshot>[]> {
-    const reply: unknown = await pushClientEvent(this, "erase", { element_ids: elementIds })
-    return isRecord(reply) ? recordedElements(reply.erased) : []
-  }
-
-  private async pushCreate(snapshot: ElementSnapshot, dragId: string): Promise<Recorded<ElementSnapshot> | undefined> {
-    const reply: unknown = await pushClientEvent(this, "create_element", createPayload(snapshot, dragId))
-    return isRecord(reply) ? recordedElement(reply.element) : undefined
-  }
-
-  private async pushChange(elementId: string, change: ElementChange, dragId: string): Promise<boolean> {
-    const reply = await this.pushElementChange(elementId, change, dragId)
-    return isOk(reply)
-  }
-
-  private pushElementChange(elementId: string, change: ElementChange, dragId: string): Promise<unknown> {
-    if (change.event === "commit") return pushClientEvent(this, "commit", positionPayload(elementId, change, dragId))
-    if (change.event === "commit_shape") return pushClientEvent(this, "commit_shape", shapePayload(elementId, change, dragId))
-    return pushClientEvent(this, "commit_style", stylePayload(elementId, change))
-  }
-
-  private async commitAndRecord(elementId: string, before: ElementChange, after: ElementChange, dragId: string, coalesce?: string): Promise<void> {
-    await this.commitGroupAndRecord([{ id: elementId, before, after }], dragId, coalesce)
-  }
-
-  private async commitGroupAndRecord(changes: readonly Change<ElementChange>[], dragId: string, coalesce?: string): Promise<Change<ElementChange>[]> {
-    const results = await Promise.all(changes.map(async (change) => ({ change, ok: await this.pushChange(change.id, change.after, dragId) })))
-    const committed = results.flatMap(({ change, ok }) => (ok ? [change] : []))
-    if (committed.length > 0) {
-      const entry: Entry<ElementSnapshot, ElementChange> =
-        coalesce === undefined ? { type: "commit", changes: committed } : { type: "commit", changes: committed, coalesce }
-      this.record(entry)
-    }
-    return results.flatMap(({ change, ok }) => (ok ? [] : [change]))
-  }
-
-  private async createAndRecord(snapshot: ElementSnapshot, dragId: string): Promise<string | undefined> {
-    const created = await this.pushCreate(snapshot, dragId)
-    if (created !== undefined) this.record({ type: "create", elements: [created] })
-    return created?.id
-  }
-
-  private async createGroup(snapshots: readonly ElementSnapshot[]): Promise<void> {
-    const results = await Promise.all(snapshots.map((snapshot) => this.pushCreate(snapshot, crypto.randomUUID())))
-    const created = results.flatMap((element) => element ?? [])
-    if (created.length === 0) return
-    this.record({ type: "create", elements: created })
-    this.selectWhenPresent(created.map(({ id }) => id))
-  }
-
-  private record(entry: Entry<ElementSnapshot, ElementChange>): void {
-    this.history.record(entry, performance.now())
-    this.syncHistoryButtons()
   }
 
   private onHistoryEvent = (event: Event): void => {
@@ -992,53 +924,29 @@ export class Canvas extends ViewHook {
     }
   }
 
+  private canReplay(): boolean {
+    return this.online && this.gesture === undefined && this.erase === undefined && this.textEditor === undefined
+  }
+
   private runHistory(direction: Direction): void {
-    if (!this.online || this.gesture !== undefined || this.erase !== undefined || this.textEditor !== undefined) return
-    if (this.history.busy) {
-      this.queuedHistory.push(direction)
-      return
-    }
-    const step = direction === "undo" ? this.history.undo() : this.history.redo()
-    if (step.status === "dropped") this.flash(`Can't ${direction}: erased by someone else`)
-    if (step.status === "replay") void this.replay(step.direction, step.replay)
-    this.syncHistoryButtons()
+    if (this.canReplay()) this.mutations.run(direction)
   }
 
-  private async replay(direction: Direction, replay: Replay<ElementSnapshot, ElementChange>): Promise<void> {
-    const created = await this.runReplay(replay).catch(() => undefined)
-    if (created === undefined) {
-      this.history.failed()
-      this.flash(`Couldn't ${direction}`)
-    } else {
-      this.history.replayed(created)
-    }
-    this.syncHistoryButtons()
-    const next = this.queuedHistory.shift()
-    if (next !== undefined) this.runHistory(next)
+  private async commitOne(elementId: string, before: ElementChange, after: ElementChange, dragId: string): Promise<void> {
+    await this.mutations.commit([{ id: elementId, before, after }], dragId)
   }
 
-  private async runReplay(replay: Replay<ElementSnapshot, ElementChange>): Promise<Map<string, string> | undefined> {
-    if (replay.type === "commit") {
-      const dragId = crypto.randomUUID()
-      const results = await Promise.all(replay.changes.map(({ id, change }) => this.pushChange(id, change, dragId)))
-      return results.some(Boolean) ? new Map() : undefined
-    }
-    if (replay.type === "erase") {
-      return (await this.pushErase(replay.ids)).length > 0 ? new Map() : undefined
-    }
-    const created = await Promise.all(
-      replay.elements.map(async ({ id, snapshot }) => [id, await this.pushCreate(snapshot, crypto.randomUUID())] as const),
-    )
-    const ids = new Map(created.flatMap(([id, element]) => (element === undefined ? [] : [[id, element.id] as const])))
-    return ids.size === 0 ? undefined : ids
+  private async createGroup(snapshots: readonly ElementSnapshot[]): Promise<void> {
+    const created = await this.mutations.createMany(snapshots)
+    if (created.length > 0) this.selectWhenPresent(created)
   }
 
   private syncHistoryButtons(): void {
-    const enabled = { undo: this.history.canUndo, redo: this.history.canRedo }
+    const enabled = { undo: this.mutations.canUndo, redo: this.mutations.canRedo }
     for (const button of document.querySelectorAll<HTMLElement>("[data-history-action]")) {
       const action = button.dataset.historyAction
       if (!isHistoryAction(action)) continue
-      if (enabled[action] && !this.history.busy) {
+      if (enabled[action] && !this.mutations.busy) {
         this.js().removeAttribute(button, "disabled")
       } else {
         this.js().setAttribute(button, "disabled", "")
@@ -1074,7 +982,7 @@ export class Canvas extends ViewHook {
   }
 
   private onErased(elementId: string): void {
-    this.history.noteErased(elementId)
+    this.mutations.noteErased(elementId)
     this.remotePreviews.erase(elementId)
     this.clearStaleTimer(elementId)
     this.erase?.pending.delete(elementId)
@@ -1187,7 +1095,7 @@ export class Canvas extends ViewHook {
       return
     }
     const snapshot = { ...copy.source, ...copy.shape.box, points: copy.shape.points }
-    void this.createAndRecord(snapshot, copy.dragId)
+    void this.mutations.create(snapshot, copy.dragId)
       .then((id) => {
         if (id !== undefined) this.selectWhenPresent([id])
       })
@@ -1212,7 +1120,7 @@ export class Canvas extends ViewHook {
       before: { event: "commit", x: committed.box.x, y: committed.box.y },
       after: { event: "commit", x: box.x, y: box.y },
     }))
-    const failed = await this.commitGroupAndRecord(changes, group.dragId)
+    const failed = await this.mutations.commit(changes, group.dragId)
     for (const { id } of failed) this.revert(id)
   }
 
@@ -1228,10 +1136,10 @@ export class Canvas extends ViewHook {
     const { committed, shape } = edit
     if (edit.mode === "move") {
       const before: ElementChange = { event: "commit", x: committed.box.x, y: committed.box.y }
-      void this.commitAndRecord(edit.elementId, before, { event: "commit", x: shape.box.x, y: shape.box.y }, edit.dragId)
+      void this.commitOne(edit.elementId, before, { event: "commit", x: shape.box.x, y: shape.box.y }, edit.dragId)
     } else {
       const before: ElementChange = { event: "commit_shape", box: committed.box, points: committed.points }
-      void this.commitAndRecord(edit.elementId, before, { event: "commit_shape", box: shape.box, points: shape.points }, edit.dragId)
+      void this.commitOne(edit.elementId, before, { event: "commit_shape", box: shape.box, points: shape.points }, edit.dragId)
     }
   }
 
@@ -1245,7 +1153,7 @@ export class Canvas extends ViewHook {
       return
     }
     const selectionAtRelease = this.selectionChanges
-    void this.createAndRecord({ kind: draw.kind, ...box, points, text: "", seed: draw.seed, style: draw.style }, draw.dragId)
+    void this.mutations.create({ kind: draw.kind, ...box, points, text: "", seed: draw.seed, style: draw.style }, draw.dragId)
       .then((id) => {
         const untouched = this.selectionChanges === selectionAtRelease
         if (id !== undefined && untouched && selectsWhenDrawn(draw.kind)) this.selectWhenPresent([id])
@@ -1340,7 +1248,7 @@ export class Canvas extends ViewHook {
     }
     if (cutIds.length === 0) return
     this.select(EMPTY_SELECTION)
-    await this.eraseAndRecord(cutIds)
+    await this.mutations.erase(cutIds)
   }
 
   private async paste(): Promise<void> {
@@ -1398,7 +1306,7 @@ export class Canvas extends ViewHook {
     if (elementIds.length === 0 || this.gesture !== undefined || this.textEditor !== undefined || !this.online) return
     event.preventDefault()
     this.select(EMPTY_SELECTION)
-    void this.eraseAndRecord(elementIds)
+    void this.mutations.erase(elementIds)
   }
 
   private onKeyUp = (event: KeyboardEvent): void => {
@@ -1433,7 +1341,7 @@ export class Canvas extends ViewHook {
     if (targets.length === 0) return
     const change = (token: string): ElementChange => ({ event: "commit_style", property, value: token })
     const changes = targets.map(({ id, before }) => ({ id, before: change(before), after: change(value) }))
-    void this.commitGroupAndRecord(changes, crypto.randomUUID(), property)
+    void this.mutations.commit(changes, crypto.randomUUID(), property)
   }
 
   private selectedStyles(): (Styled & { id: string })[] {
@@ -1823,7 +1731,7 @@ export class Canvas extends ViewHook {
     } else {
       this.showShape(target.element, { box, points: [] }, text)
       const before: ElementChange = { event: "commit_shape", box: target.committed, points: [], text: target.text }
-      void this.commitAndRecord(target.elementId, before, { event: "commit_shape", box, points: [], text }, ref.drag_id)
+      void this.commitOne(target.elementId, before, { event: "commit_shape", box, points: [], text }, ref.drag_id)
     }
     this.select([target.elementId])
   }
@@ -1835,7 +1743,7 @@ export class Canvas extends ViewHook {
       if (sent) void pushClientEvent(this, "draw_cancel", { drag_id: dragId })
       return
     }
-    void this.createAndRecord({ kind, ...box, points: [], text, seed, style }, dragId).finally(() => {
+    void this.mutations.create({ kind, ...box, points: [], text, seed, style }, dragId).finally(() => {
       this.draws.remove(dragId)
     })
   }

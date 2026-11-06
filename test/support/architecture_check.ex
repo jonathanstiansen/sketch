@@ -585,6 +585,34 @@ defmodule Sketch.ArchitectureCheck do
     raw_pushes ++ broadcasts
   end
 
+  @doc """
+  Calls in `assets/js/` outside `allowed_paths` that push one of `durable_events` with
+  `pushClientEvent`, which would write to the board without recording an undo entry (ADR 0015).
+  A call may span lines.
+  """
+  @spec durable_push_violations(Path.t(), [String.t()], [String.t()]) :: [violation()]
+  def durable_push_violations(root, durable_events, allowed_paths) do
+    names = Enum.map_join(durable_events, "|", &Regex.escape/1)
+    pattern = Regex.compile!(~s/\\bpushClientEvent\\(\\s*[^,()]+,\\s*"(?:#{names})"/)
+
+    root
+    |> source_files(~w(assets/js), ~w(.ts .tsx .js .mjs))
+    |> Enum.reject(&allowed_path?(&1, allowed_paths))
+    |> Enum.flat_map(fn relative_path ->
+      source = root |> Path.expand() |> Path.join(relative_path) |> File.read!()
+
+      for [{offset, _length}] <- Regex.scan(pattern, source, return: :index) do
+        line = source |> binary_part(0, offset) |> String.split("\n") |> length()
+
+        violation(
+          "durable_push",
+          "#{relative_path}:#{line}",
+          "durable push outside the mutation layer"
+        )
+      end
+    end)
+  end
+
   defp functions(source) do
     {_ast, clauses} =
       source
