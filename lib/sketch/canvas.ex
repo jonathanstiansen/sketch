@@ -94,8 +94,4 @@ defmodule Sketch.Canvas do
     as: :apply_event
 
   defdelegate board_erased?(board_state, element_id), to: Sketch.Canvas.BoardState, as: :erased?
-
-  defdelegate board_element_count(board_state),
-    to: Sketch.Canvas.BoardState,
-    as: :element_count
 end

@@ -1,6 +1,7 @@
 import fc from "fast-check"
 import { expect, test, type Page } from "@playwright/test"
 import { createBoard, grabRectangle, openBoard } from "./support/board"
+import { addRectangle } from "./support/canvas"
 import { newContext } from "./support/contexts"
 
 const rectangle = "[data-element][data-kind='rectangle']"
@@ -61,7 +62,7 @@ test("any drag path converges in the other browser to its clamped end, one versi
     const [pageA, pageB] = await Promise.all([contextA.newPage(), contextB.newPage()])
     const board = await createBoard(pageA)
     await openBoard(pageB, board)
-    await pageA.locator("#add-rectangle").click()
+    await addRectangle(pageA)
     await expect(pageB.locator(rectangle)).toHaveCount(1)
 
     const max = {

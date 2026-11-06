@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
-import { closeSession, moveTo, openSharedBoard, type Session } from "./support/canvas"
+import { addRectangle, closeSession, moveTo, openSharedBoard, type Session } from "./support/canvas"
 import { createBoard } from "./support/board"
 import { newContext } from "./support/contexts"
 
@@ -266,7 +266,7 @@ test("an export made while cursors are shown contains no cursors", async ({ brow
   const session = await newViewer(browser)
   const { pageA, pageB } = session
   try {
-    await pageA.locator("#add-rectangle").click()
+    await addRectangle(pageA)
     await expect(pageB.locator("#elements > [data-element]")).toHaveCount(1)
     await moveTo(pageA, 300, 200)
     await expect(pageB.locator(remoteCursor)).toHaveCount(1)

@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs"
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test"
+import { addRectangle } from "./support/canvas"
 import { newContext } from "./support/contexts"
 
 const recordingDir = process.env.E2E_RECORD_DIR
@@ -41,7 +42,7 @@ async function openSharedBoard(
   await expect(pageA.locator(connected)).toBeVisible()
   await expect(pageB.locator(connected)).toBeVisible()
 
-  await pageA.locator("#add-rectangle").click()
+  await addRectangle(pageA)
   await expect(pageA.locator(rectangle)).toHaveAttribute("x", origin.x)
   await expect(pageB.locator(rectangle)).toHaveAttribute("x", origin.x)
   return { pageA, pageB, contextA, contextB }

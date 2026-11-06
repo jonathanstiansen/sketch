@@ -19,7 +19,7 @@ Evidence: `docs/evidence/gate-5/latency.png`.
 
 Both browsers are Chromium contexts of one Playwright browser on the same machine, so they share one clock. Timestamps are `performance.timeOrigin + performance.now()` taken inside the pages. Chrome rounds that clock to 0.1 ms, so the minimums are coarse.
 
-- Create: A's page records the time immediately before it calls `click()` on `#add-rectangle`. A `MutationObserver` in B's page records when a `rect[data-rect]` node is added. The next sample starts only after B has seen the previous one.
+- Create: A's page records the time immediately before it calls `click()` on `#add-rectangle`. That button was removed later (addendum D17); the spec now times from the `pointerup` of a Rectangle-tool click in the capture phase, so a new run starts its clock a moment earlier than the numbers above. A `MutationObserver` in B's page records when a `rect[data-rect]` node is added. The next sample starts only after B has seen the previous one.
 - Drag preview: A's page records each `pointermove` in the capture phase. A `MutationObserver` in B's page records each change of a rectangle's `x` attribute. A alternates between two positions 40 px apart so every move changes `x`. Before each move the test waits until 60 ms have passed since A's last move, so the move is not delayed by the client's 50 ms preview throttle and the number reflects delivery, not throttling.
 
 This is browser-to-browser time through LiveView, PubSub and the server, on loopback. It excludes network latency between real machines. The durable commit path (database write) is part of the create scenario, not the preview scenario.

@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs"
 import { dirname } from "node:path"
 import { expect, test, type Page } from "@playwright/test"
 import { createBoard, grabRectangle, openBoard } from "./support/board"
+import { addRectangle, clickAt } from "./support/canvas"
 import { newContext } from "./support/contexts"
 
 const sampleCount = 200
@@ -98,19 +99,29 @@ async function observedTimes(page: Page): Promise<number[]> {
   return page.evaluate(() => window.observed)
 }
 
+async function recordPointerReleases(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    window.emitted = []
+    window.addEventListener(
+      "pointerup",
+      () => {
+        window.emitted.push(performance.timeOrigin + performance.now())
+      },
+      { capture: true },
+    )
+  })
+}
+
 async function measureCreate(pageA: Page, pageB: Page): Promise<number[]> {
   await observeAdditions(pageB)
-  const sentAt: number[] = []
+  await recordPointerReleases(pageA)
+  await pageA.keyboard.press("r")
   for (let index = 0; index < sampleCount + warmupCount; index++) {
-    sentAt.push(
-      await pageA.evaluate(() => {
-        const at = performance.timeOrigin + performance.now()
-        document.querySelector<HTMLElement>("#add-rectangle")?.click()
-        return at
-      }),
-    )
+    await clickAt(pageA, 100 + (index % 10) * 40, 100)
     await waitForObservations(pageB, index + 1)
   }
+  await pageA.keyboard.press("Escape")
+  const sentAt = await pageA.evaluate(() => window.emitted)
   const seenAt = await observedTimes(pageB)
   return sentAt.map((sent, index) => (seenAt[index] ?? Number.NaN) - sent).slice(warmupCount)
 }
@@ -151,7 +162,7 @@ test("@measure collaboration latency between two browsers", async ({ browser }) 
 
     const dragPath = await createBoard(pageA)
     await openBoard(pageB, dragPath)
-    await pageA.locator("#add-rectangle").click()
+    await addRectangle(pageA)
     const dragPreview = await measureDragPreview(pageA, pageB)
 
     const result = { create: summarize(create), dragPreview: summarize(dragPreview) }

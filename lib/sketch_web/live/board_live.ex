@@ -11,8 +11,7 @@ defmodule SketchWeb.BoardLive do
   @max_seed Sketch.Canvas.geometry().max_seed
   @max_group_elements 1000
   @relayed_events SketchWeb.BoardEvents.relayed_events()
-  @ignored_when_malformed Enum.map(SketchWeb.BoardEvents.all(), & &1.event) --
-                            ~w(add-rectangle erase)
+  @ignored_when_malformed Enum.map(SketchWeb.BoardEvents.all(), & &1.event) -- ~w(erase)
   @style_properties Sketch.Canvas.style_properties()
   @style_params Enum.map(@style_properties, &{Atom.to_string(&1), &1})
 
@@ -48,21 +47,6 @@ defmodule SketchWeb.BoardLive do
   end
 
   @impl true
-  def handle_event("add-rectangle", _params, socket) do
-    box =
-      socket.assigns.board_state
-      |> Sketch.Canvas.board_element_count()
-      |> Sketch.Canvas.default_box()
-
-    case create_element(socket, "rectangle", box) do
-      {%{element: _element} = created, socket} ->
-        {:noreply, push_event(socket, "created", created)}
-
-      {_failed, socket} ->
-        {:noreply, socket}
-    end
-  end
-
   def handle_event(
         "create_element",
         %{
@@ -328,14 +312,9 @@ defmodule SketchWeb.BoardLive do
           id="board-header"
           class="relative flex flex-wrap items-center justify-center gap-4 px-4 py-2 min-[960px]:grid min-[960px]:grid-cols-[1fr_auto_1fr]"
         >
-          <button
-            id="add-rectangle"
-            class="btn btn-primary min-[960px]:justify-self-start"
-            phx-click="add-rectangle"
-          >
-            Add rectangle
-          </button>
-          <SketchWeb.Toolbar.toolbar />
+          <div class="min-[960px]:col-start-2">
+            <SketchWeb.Toolbar.toolbar />
+          </div>
           <p class="min-w-0 max-w-full text-sm min-[960px]:justify-self-end min-[960px]:text-right">
             <span id="viewer-name" class="mr-2 whitespace-nowrap">
               You are

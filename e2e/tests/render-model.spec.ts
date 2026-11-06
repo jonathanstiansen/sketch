@@ -1,13 +1,13 @@
 import { expect, test, type Page } from "@playwright/test"
-import { closeSession, openSharedBoard, pressAt, moveTo, type Box } from "./support/canvas"
+import { addRectangle, closeSession, openSharedBoard, pressAt, moveTo, type Box } from "./support/canvas"
 
 const element = "[data-element][data-kind='rectangle']"
 const body = `${element} > rect`
 
-async function addRectangle(pages: Page[]): Promise<void> {
+async function addSharedRectangle(pages: Page[]): Promise<void> {
   const [first] = pages
   if (first === undefined) throw new Error("no page")
-  await first.locator("#add-rectangle").click()
+  await addRectangle(first)
   for (const page of pages) await expect(page.locator(element)).toHaveAttribute("data-version", "0")
 }
 
@@ -41,7 +41,7 @@ test("a rectangle is a translated wrapper: a move changes only the transform and
   const session = await openSharedBoard(browser, "render-model-move")
   const { pageA, pageB } = session
   try {
-    await addRectangle([pageA, pageB])
+    await addSharedRectangle([pageA, pageB])
     const origin = { x: 100, y: 100, width: 120, height: 80 }
     for (const page of [pageA, pageB]) await expectRendered(page, origin)
 
@@ -83,7 +83,7 @@ test("a remote commit mid-drag or mid-resize updates the committed box but never
   const session = await openSharedBoard(browser, "render-model-remote-commit")
   const { pageA, pageB } = session
   try {
-    await addRectangle([pageA, pageB])
+    await addSharedRectangle([pageA, pageB])
 
     await pressAt(pageA, 120, 120)
     await moveTo(pageA, 320, 170)

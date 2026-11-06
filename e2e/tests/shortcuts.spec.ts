@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs"
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test"
 import { createBoard, openBoard } from "./support/board"
+import { addRectangle } from "./support/canvas"
 import { newContext } from "./support/contexts"
 
 const recordingDir = process.env.E2E_RECORD_DIR
@@ -50,8 +51,8 @@ async function canvasPoint(page: Page, x: number, y: number): Promise<{ x: numbe
   return { x: box.x + x, y: box.y + y }
 }
 
-async function addRectangle(session: Session): Promise<void> {
-  await session.pageA.locator("#add-rectangle").click()
+async function addSharedRectangle(session: Session): Promise<void> {
+  await addRectangle(session.pageA)
   await expect(session.pageA.locator(rectangle)).toHaveAttribute("x", "100")
   await expect(session.pageB.locator(rectangle)).toHaveAttribute("x", "100")
 }
@@ -137,7 +138,7 @@ test("2 selects Rectangle; V and 1 return to Selection and dragging still moves"
   const session = await openSharedBoard(browser, "selection")
   const { pageA, pageB } = session
   try {
-    await addRectangle(session)
+    await addSharedRectangle(session)
     for (const back of ["v", "1"]) {
       await pageA.keyboard.press("2")
       await expectTool(pageA, "rectangle")
@@ -163,7 +164,7 @@ test("the Hand tool, Space and the middle button pan the viewport and never move
   const session = await openSharedBoard(browser, "panning")
   const { pageA } = session
   try {
-    await addRectangle(session)
+    await addSharedRectangle(session)
 
     await pageA.keyboard.press("h")
     await dragFromRectangle(pageA, -100, -60)

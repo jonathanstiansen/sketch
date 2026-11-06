@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process"
 import { mkdirSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
-import { createBoard } from "./support/board"
+import { connected, createBoard } from "./support/board"
+import { addRectangle } from "./support/canvas"
 import { newContext } from "./support/contexts"
 
 const repoRoot = new URL("../..", import.meta.url).pathname
@@ -23,7 +24,7 @@ function createBoardWithMix(): string {
 
 async function openBoard(page: Page, path: string) {
   await page.goto(path)
-  await expect(page.locator("#add-rectangle")).toBeVisible()
+  await expect(page.locator(connected)).toBeVisible()
 }
 
 test("a rectangle added in one browser appears live in another and survives reload", async ({
@@ -52,9 +53,9 @@ test("a rectangle added in one browser appears live in another and survives relo
     await openBoard(pageB, boardPath)
     await openBoard(pageC, otherBoardPath)
 
-    await pageA.locator("#add-rectangle").click()
+    await addRectangle(pageA)
     await expect(pageA.locator("[id^='element-'][data-kind='rectangle']")).toHaveCount(1)
-    await pageA.locator("#add-rectangle").click()
+    await addRectangle(pageA, { x: 250, y: 250 })
 
     await expect(pageA.locator("[id^='element-'][data-kind='rectangle']")).toHaveCount(2)
     await expect(pageB.locator("[id^='element-'][data-kind='rectangle']")).toHaveCount(2)

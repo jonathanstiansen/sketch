@@ -122,7 +122,6 @@ defmodule SketchWeb.BoardEvents do
   ]
 
   @durable [
-    %{event: "add-rectangle", writes: :create_element, payload: %{}},
     %{
       event: "create_element",
       writes: :create_element,

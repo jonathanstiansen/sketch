@@ -582,10 +582,6 @@ export class Canvas extends ViewHook {
     this.handleEvent("viewer_left", (payload: unknown) => {
       if (isRecord(payload) && typeof payload.viewer_id === "string") this.forgetViewer(payload.viewer_id)
     })
-    this.handleEvent("created", (payload: unknown) => {
-      const created = isRecord(payload) ? recordedElement(payload.element) : undefined
-      if (created !== undefined) this.record({ type: "create", elements: [created] })
-    })
     this.handleEvent("erased", (payload: unknown) => {
       if (isRecord(payload) && typeof payload.id === "string") this.onErased(payload.id)
     })

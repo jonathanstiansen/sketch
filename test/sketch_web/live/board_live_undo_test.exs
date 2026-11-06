@@ -63,16 +63,6 @@ defmodule SketchWeb.BoardLiveUndoTest do
     assert %{kind: :rectangle, x: 10, y: 20, seed: 7, version: 0} = element
   end
 
-  test "Add rectangle pushes the created element to the clicking view only", ctx do
-    ctx.actor |> element("#add-rectangle") |> render_click()
-
-    assert_push_event(ctx.actor, "created", %{element: element})
-    assert [stored_element] = stored(ctx.board)
-    assert element == Canvas.element_event(stored_element)
-    assert has_element?(ctx.watcher, "#element-#{element.id}")
-    refute_push_event(ctx.watcher, "created", _payload, 100)
-  end
-
   test "an erase replies with every element it erased, as it was", ctx do
     first = create!(ctx.board, %{x: 1})
     second = create!(ctx.board, %{x: 2})
