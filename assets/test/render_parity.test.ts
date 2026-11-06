@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs"
 import { test } from "node:test"
 import { RENDERERS } from "../js/elements/index.ts"
 import { attributeString, type LocalShape, type SvgNode } from "../js/elements/renderer.ts"
-import { ELEMENT_KINDS } from "../js/generated/manifest.ts"
+import { ELEMENT_KINDS, STYLE_DEFAULTS } from "../js/generated/manifest.ts"
 
 interface NormalizedNode {
   tag: string
@@ -13,7 +13,7 @@ interface NormalizedNode {
 }
 
 interface ParityCase {
-  shape: LocalShape
+  shape: Omit<LocalShape, "style"> & { style: Partial<LocalShape["style"]> }
   children: NormalizedNode[]
 }
 
@@ -40,7 +40,8 @@ for (const kind of ELEMENT_KINDS) {
     const cases = fixture[kind] ?? []
     assert.ok(cases.length > 0, `no fixture cases for ${kind}`)
     for (const { shape, children } of cases) {
-      assert.deepEqual(normalize(RENDERERS[kind](shape)), children, JSON.stringify(shape))
+      const styled = { ...shape, style: { ...STYLE_DEFAULTS, ...shape.style } }
+      assert.deepEqual(normalize(RENDERERS[kind](styled)), children, JSON.stringify(shape))
     }
   })
 }
