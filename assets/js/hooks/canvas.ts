@@ -145,7 +145,7 @@ interface Throttled extends PreviewClock {
   pointerId: number
 }
 
-type Grip = { mode: "move" } | { mode: "resize"; corner: Corner } | { mode: "endpoint"; endpoint: Endpoint }
+type Grip = { mode: "resize"; corner: Corner } | { mode: "endpoint"; endpoint: Endpoint }
 
 type Edit = Throttled &
   Grip & {
@@ -185,29 +185,29 @@ interface Member {
   committed: Shape
 }
 
-interface GroupDrag extends Throttled {
-  mode: "group"
+interface Move extends Throttled {
+  mode: "move"
   pressedId: string
   members: Member[]
   grab: Point
   shapes: readonly Shape[]
 }
 
-type Gesture = Edit | Draw | Copy | GroupDrag
+type Gesture = Edit | Draw | Copy | Move
 
 function isEdit(gesture: Gesture): gesture is Edit {
-  return gesture.mode === "move" || gesture.mode === "resize" || gesture.mode === "endpoint"
+  return gesture.mode === "resize" || gesture.mode === "endpoint"
 }
 
 function claimedRects(gesture: Gesture): SVGElement[] {
   if (isEdit(gesture)) return [gesture.rect]
-  return gesture.mode === "group" ? gesture.members.map(({ rect }) => rect) : []
+  return gesture.mode === "move" ? gesture.members.map(({ rect }) => rect) : []
 }
 
 function editedIds(gesture: Gesture | undefined): string[] {
   if (gesture === undefined) return []
   if (isEdit(gesture)) return [gesture.elementId]
-  return gesture.mode === "group" ? gesture.members.map(({ elementId }) => elementId) : []
+  return gesture.mode === "move" ? gesture.members.map(({ elementId }) => elementId) : []
 }
 
 interface Marquee {
@@ -452,8 +452,7 @@ function releaseElement(element: Element): void {
 
 function gripPoint({ box, points }: Shape, grip: Grip): Point {
   if (grip.mode === "resize") return cornerPoint(box, grip.corner)
-  if (grip.mode === "endpoint") return endpointPoint({ box, points }, grip.endpoint) ?? box
-  return box
+  return endpointPoint({ box, points }, grip.endpoint) ?? box
 }
 
 function editedShape(edit: Edit, pointer: Point, canvas: Size): Shape {
@@ -462,8 +461,7 @@ function editedShape(edit: Edit, pointer: Point, canvas: Size): Shape {
     const resized = resizedBox(box, edit.corner, subtract(pointer, edit.grab), canvas)
     return { box: resized, points: scalePoints(points, box, resized) }
   }
-  if (edit.mode === "endpoint") return movedEndpoint(edit.origin, edit.endpoint, subtract(pointer, edit.grab), canvas)
-  return { box: movedBox(box, pointer, edit.grab, canvas), points }
+  return movedEndpoint(edit.origin, edit.endpoint, subtract(pointer, edit.grab), canvas)
 }
 
 const NOTHING = (): void => undefined
@@ -733,16 +731,9 @@ export class Canvas extends ViewHook {
   }
 
   private startMove(event: PointerEvent, rect: SVGElement): void {
-    const elementId = rect.dataset.element
-    if (elementId !== undefined && this.selected.length > 1 && this.selected.includes(elementId)) {
-      this.startGroupMove(event, elementId)
-    } else {
-      this.startEdit(event, rect, { mode: "move" })
-    }
-  }
-
-  private startGroupMove(event: PointerEvent, pressedId: string): void {
-    if (!this.online) return
+    const pressedId = rect.dataset.element
+    if (!this.online || pressedId === undefined) return
+    if (!this.selected.includes(pressedId)) this.select([pressedId])
     event.preventDefault()
     this.el.setPointerCapture(event.pointerId)
     const members = this.selected.flatMap((elementId): Member[] => {
@@ -754,7 +745,7 @@ export class Canvas extends ViewHook {
       return [{ rect, elementId, baseVersion: integerAttribute(rect, "data-version"), origin, committed: committedShape(rect) }]
     })
     this.gesture = {
-      mode: "group",
+      mode: "move",
       pressedId,
       members,
       grab: this.canvasPoint(event),
@@ -1010,8 +1001,8 @@ export class Canvas extends ViewHook {
       this.updateDraw(gesture, pointer)
     } else if (gesture.mode === "copy") {
       this.updateCopy(gesture, pointer)
-    } else if (gesture.mode === "group") {
-      this.updateGroup(gesture, pointer)
+    } else if (gesture.mode === "move") {
+      this.updateMove(gesture, pointer)
     } else {
       this.updateEdit(gesture, pointer)
     }
@@ -1026,19 +1017,19 @@ export class Canvas extends ViewHook {
     })
   }
 
-  private updateGroup(group: GroupDrag, pointer: Point): void {
+  private updateMove(move: Move, pointer: Point): void {
     const moved = movedGroup(
-      group.members.map(({ origin }) => origin),
-      subtract(pointer, group.grab),
+      move.members.map(({ origin }) => origin),
+      subtract(pointer, move.grab),
       this.canvasSize(),
     )
-    group.shapes = moved.shapes
-    group.members.forEach(({ rect }, index) => {
+    move.shapes = moved.shapes
+    move.members.forEach(({ rect }, index) => {
       const shape = moved.shapes[index]
       if (shape !== undefined) this.showShape(rect, shape)
     })
-    this.schedulePreview(group, () => {
-      this.sendPreview(group)
+    this.schedulePreview(move, () => {
+      this.sendPreview(move)
     })
   }
 
@@ -1081,8 +1072,8 @@ export class Canvas extends ViewHook {
       this.finishDraw(gesture)
     } else if (gesture.mode === "copy") {
       this.finishCopy(gesture)
-    } else if (gesture.mode === "group") {
-      void this.finishGroup(gesture)
+    } else if (gesture.mode === "move") {
+      void this.finishMove(gesture)
     } else {
       this.finishEdit(gesture)
     }
@@ -1104,15 +1095,15 @@ export class Canvas extends ViewHook {
       })
   }
 
-  private async finishGroup(group: GroupDrag): Promise<void> {
-    const moved = group.members.flatMap((member, index) => {
-      const shape = group.shapes[index]
+  private async finishMove(move: Move): Promise<void> {
+    const moved = move.members.flatMap((member, index) => {
+      const shape = move.shapes[index]
       return shape === undefined || sameShape(shape, member.origin) ? [] : [{ member, box: shape.box }]
     })
     if (moved.length === 0) {
-      for (const { elementId } of group.members) this.revert(elementId)
-      if (group.seq > 0) this.pushGroupCancel(group)
-      this.select([group.pressedId])
+      for (const { elementId } of move.members) this.revert(elementId)
+      if (move.seq > 0) this.pushMoveCancel(move)
+      this.select([move.pressedId])
       return
     }
     const changes = moved.map(({ member: { elementId, committed }, box }): Change<ElementChange> => ({
@@ -1120,27 +1111,23 @@ export class Canvas extends ViewHook {
       before: { event: "commit", x: committed.box.x, y: committed.box.y },
       after: { event: "commit", x: box.x, y: box.y },
     }))
-    const failed = await this.mutations.commit(changes, group.dragId)
+    const failed = await this.mutations.commit(changes, move.dragId)
     for (const { id } of failed) this.revert(id)
   }
 
-  private pushGroupCancel(group: GroupDrag): void {
-    void pushClientEvent(this, "group_cancel", { drag_id: group.dragId, element_ids: group.members.map(({ elementId }) => elementId) })
+  private pushMoveCancel(move: Move): void {
+    void pushClientEvent(this, "group_cancel", { drag_id: move.dragId, element_ids: move.members.map(({ elementId }) => elementId) })
   }
 
   private finishEdit(edit: Edit): void {
     if (sameShape(edit.shape, edit.origin)) {
       this.revert(edit.elementId)
+      if (edit.seq > 0) void pushClientEvent(this, "drag_cancel", { element_id: edit.elementId, drag_id: edit.dragId })
       return
     }
     const { committed, shape } = edit
-    if (edit.mode === "move") {
-      const before: ElementChange = { event: "commit", x: committed.box.x, y: committed.box.y }
-      void this.commitOne(edit.elementId, before, { event: "commit", x: shape.box.x, y: shape.box.y }, edit.dragId)
-    } else {
-      const before: ElementChange = { event: "commit_shape", box: committed.box, points: committed.points }
-      void this.commitOne(edit.elementId, before, { event: "commit_shape", box: shape.box, points: shape.points }, edit.dragId)
-    }
+    const before: ElementChange = { event: "commit_shape", box: committed.box, points: committed.points }
+    void this.commitOne(edit.elementId, before, { event: "commit_shape", box: shape.box, points: shape.points }, edit.dragId)
   }
 
   private finishDraw(draw: Draw): void {
@@ -1172,8 +1159,8 @@ export class Canvas extends ViewHook {
 
   private cancelGesture(gesture: Gesture): void {
     this.abandonGesture(gesture)
-    if (gesture.mode === "group") {
-      this.pushGroupCancel(gesture)
+    if (gesture.mode === "move") {
+      this.pushMoveCancel(gesture)
     } else if (isEdit(gesture)) {
       void pushClientEvent(this, "drag_cancel", { element_id: gesture.elementId, drag_id: gesture.dragId })
     } else {
@@ -1495,7 +1482,7 @@ export class Canvas extends ViewHook {
         ...gesture.shape.box,
         points: gesture.shape.points,
       })
-    } else if (gesture.mode === "group") {
+    } else if (gesture.mode === "move") {
       const members = gesture.members.flatMap(({ rect, elementId, baseVersion }, index) => {
         const shape = gesture.shapes[index]
         return shape === undefined || !rect.isConnected ? [] : [{ elementId, baseVersion, shape }]

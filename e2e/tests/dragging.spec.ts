@@ -118,6 +118,26 @@ test("a cancelled drag reverts in both browsers and never commits", async ({ bro
   }
 })
 
+test("a drag released where it started reverts the other browser at once, without waiting for the stale timer", async ({
+  browser,
+}) => {
+  const session = await openSharedBoard(browser, "drag-back", (page) => page.clock.install())
+  const { pageA, pageB } = session
+  try {
+    await pageB.clock.pauseAt(Date.now() + 1000)
+    const start = await grabRectangle(pageA)
+    await pageA.mouse.move(start.x + 200, start.y, { steps: 20 })
+    await expect(pageB.locator(rectangle)).toHaveAttribute("x", "300")
+
+    await pageA.mouse.move(start.x, start.y, { steps: 20 })
+    await pageA.mouse.up()
+    await expectPosition(pageA, origin.x, origin.y, "0")
+    await expectPosition(pageB, origin.x, origin.y, "0")
+  } finally {
+    await closeSession(session)
+  }
+})
+
 test("a preview from a vanished dragger reverts after two seconds of silence", async ({
   browser,
 }) => {
