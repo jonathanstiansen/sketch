@@ -235,7 +235,6 @@ export interface ClientEventPayloads {
   readonly "draw_cancel": { readonly drag_id: string }
   readonly "cursor": { readonly seq: number; readonly x: number; readonly y: number }
   readonly "cursor_leave": { readonly seq: number }
-  readonly "add-rectangle": Record<string, never>
   readonly "create_element": { readonly drag_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly sloppiness?: StyleToken<"sloppiness">; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
   readonly "erase": { readonly element_ids: readonly string[] }
   readonly "commit": { readonly drag_id: string; readonly element_id: string; readonly x: number; readonly y: number }

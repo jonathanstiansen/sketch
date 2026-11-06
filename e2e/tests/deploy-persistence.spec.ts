@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import { expect, test } from "@playwright/test"
 import { createBoard, grabRectangle, openBoard } from "./support/board"
+import { addRectangle } from "./support/canvas"
 
 const phase = process.env.DEPLOY_PHASE
 const stateFile = process.env.DEPLOY_STATE_FILE ?? "deploy-state.json"
@@ -19,7 +20,7 @@ test.skip(phase === undefined, "runs only with DEPLOY_PHASE=seed or DEPLOY_PHASE
 test("seed: commit a drag on a new board and record its path", async ({ page }) => {
   test.skip(phase !== "seed", "seed phase only")
   const path = await createBoard(page)
-  await page.locator("#add-rectangle").click()
+  await addRectangle(page)
   const rectangle = page.locator("[data-element][data-kind='rectangle']")
   await expect(rectangle).toHaveAttribute("x", "100")
 

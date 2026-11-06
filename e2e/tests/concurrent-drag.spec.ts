@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
 import { createBoard, grabRectangle, openBoard } from "./support/board"
+import { addRectangle } from "./support/canvas"
 import { newContext } from "./support/contexts"
 
 const recordingDir = process.env.E2E_RECORD_DIR
@@ -42,7 +43,7 @@ test("simultaneous drags of one rectangle converge on the persisted row", async 
 
     const path = await createBoard(pageA)
     await Promise.all([openBoard(pageB, path), openBoard(pageC, path)])
-    await pageA.locator("#add-rectangle").click()
+    await addRectangle(pageA)
     for (const page of [pageA, pageB, pageC]) {
       await expect(page.locator(rectangle)).toHaveAttribute("x", "100")
     }

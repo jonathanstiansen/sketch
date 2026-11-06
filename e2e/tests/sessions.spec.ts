@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs"
 import { expect, test, type Page } from "@playwright/test"
 import { connected } from "./support/board"
+import { addRectangle } from "./support/canvas"
 import { newContext } from "./support/contexts"
 
 const recordingDir = process.env.E2E_RECORD_DIR
@@ -13,7 +14,7 @@ async function createBoard(page: Page): Promise<string> {
   await expect(page.locator(connected)).toBeVisible()
   await page.locator("#new-board").click()
   await expect(page).toHaveURL(boardPath)
-  await expect(page.locator("#add-rectangle")).toBeVisible()
+  await expect(page.locator(connected)).toBeVisible()
   return new URL(page.url()).pathname
 }
 
@@ -41,13 +42,13 @@ test("new boards are distinct, isolated, shareable and persistent", async ({ bro
     await expect(pageA.locator("#board-url")).toContainText(pathA)
 
     await pageC.goto(pathA)
-    await expect(pageC.locator("#add-rectangle")).toBeVisible()
+    await expect(pageC.locator(connected)).toBeVisible()
 
-    await pageA.locator("#add-rectangle").click()
+    await addRectangle(pageA)
     await expect(pageA.locator(rectangles)).toHaveCount(1)
     await expect(pageC.locator(rectangles)).toHaveCount(1)
 
-    await pageA.locator("#add-rectangle").click()
+    await addRectangle(pageA, { x: 250, y: 250 })
     await expect(pageA.locator(rectangles)).toHaveCount(2)
     await expect(pageC.locator(rectangles)).toHaveCount(2)
     await expect(pageB.locator(rectangles)).toHaveCount(0)

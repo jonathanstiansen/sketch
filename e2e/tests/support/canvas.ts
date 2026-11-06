@@ -102,3 +102,9 @@ export async function sketchedStrokeDeviation(page: Page, selector: string, segm
     ...ends.flatMap(({ x1, y1, x2, y2 }) => [x1 - segment.x1, y1 - segment.y1, x2 - segment.x2, y2 - segment.y2].map(Math.abs)),
   )
 }
+
+export async function addRectangle(page: Page, at: { x: number; y: number } = { x: 100, y: 100 }): Promise<void> {
+  await page.keyboard.press("r")
+  await clickAt(page, at.x, at.y)
+  await page.keyboard.press("Escape")
+}

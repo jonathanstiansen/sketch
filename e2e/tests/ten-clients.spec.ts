@@ -1,5 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test"
 import { connected, createBoard, grabRectangle, openBoard, rectangleStates } from "./support/board"
+import { addRectangle } from "./support/canvas"
 import { newContext } from "./support/contexts"
 
 const clientCount = 10
@@ -23,7 +24,8 @@ test("ten concurrent browsers share creates and simultaneous drags", async ({ br
     const creators = [first, pages[3], pages[6], pages[9]]
     for (const [count, creator] of creators.entries()) {
       if (creator === undefined) throw new Error("missing creator")
-      await creator.locator("#add-rectangle").click()
+      const offset = 100 + count * 150
+      await addRectangle(creator, { x: offset, y: offset })
       for (const page of pages) await expect(page.locator(rectangles)).toHaveCount(count + 1)
     }
 

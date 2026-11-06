@@ -400,3 +400,16 @@ Consequences for the earlier decisions:
 - Re-choosing the active drawing tool clears the selection, as choosing another
   drawing tool already did, so a style picked for the next shape never
   restyles the one just drawn and selected.
+
+## D17 — No "Add rectangle" button (2026-11-05)
+
+The header's "Add rectangle" button is removed. Rectangles are created with the
+Rectangle tool (R): a drag draws one, and a click places one of the default size
+at the pointer. This still meets SPEC "Create rectangles" through the same Ash
+`create_element` action.
+
+- The `add-rectangle` board event and its `created` reply push are removed. Every
+  create now comes from the canvas hook, which records its own undo entry from
+  the `create_element` reply.
+- The server no longer picks a cascading position for new rectangles; the
+  pointer chooses it.

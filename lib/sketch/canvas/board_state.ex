@@ -39,9 +39,6 @@ defmodule Sketch.Canvas.BoardState do
   @spec erased?(t(), term()) :: boolean()
   def erased?(%__MODULE__{erased: erased}, id), do: MapSet.member?(erased, id)
 
-  @spec element_count(t()) :: non_neg_integer()
-  def element_count(%__MODULE__{elements: elements}), do: map_size(elements)
-
   defp merge(%{elements: elements} = state, %{id: id, version: version} = event) do
     case elements do
       %{^id => %{version: known}} when known >= version ->
