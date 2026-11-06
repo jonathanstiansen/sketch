@@ -41,7 +41,8 @@ Resolve when drawn.
   resolves bound arrows while their targets move live, from local drags, resizes and remote
   previews, by finding them through `data-start-target` and `data-end-target`.
 - **Binding**: releasing an arrow end, or dragging an endpoint handle, over a shape whose kind has
-  box geometry binds that end at the release point. Releasing it over nothing unbinds it. Moving
+  box geometry, or within a 12 screen pixel margin of its box, binds that end at the release
+  point clamped to the box. Releasing it over nothing unbinds it. Moving
   an arrow without its targets unbinds the ends whose targets stay put, so the arrow goes where it
   was dragged.
 - **Integrity**: a composite foreign key `(board_id, start_target_id)` → `elements (board_id, id)`

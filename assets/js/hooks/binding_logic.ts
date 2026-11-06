@@ -58,8 +58,21 @@ export function resolvedShape(shape: Shape, bindings: Bindings, boxOf: (id: stri
   return ends.every((point) => point !== undefined) ? shapeAround(ends, canvas) : shape
 }
 
-export function boxContains(box: Box, point: Point): boolean {
-  return point.x >= box.x && point.x <= box.x + box.width && point.y >= box.y && point.y <= box.y + box.height
+export const BINDING_MARGIN = 12
+
+export interface Candidate {
+  readonly id: string
+  readonly box: Box
+}
+
+export function boxNear(box: Box, point: Point, margin: number): boolean {
+  return point.x >= box.x - margin && point.x <= box.x + box.width + margin && point.y >= box.y - margin && point.y <= box.y + box.height + margin
+}
+
+export function bindingFor(candidates: readonly Candidate[], point: Point, margin: number): Binding | undefined {
+  const topmostFirst = [...candidates].reverse()
+  const top = topmostFirst.find(({ box }) => boxNear(box, point, 0)) ?? topmostFirst.find(({ box }) => boxNear(box, point, margin))
+  return top === undefined ? undefined : { target: top.id, anchor: anchorFor(point, top.box) }
 }
 
 export function boundTargets(bindings: Bindings): string[] {

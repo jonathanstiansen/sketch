@@ -416,9 +416,11 @@ at the pointer. This still meets SPEC "Create rectangles" through the same Ash
 
 ## D18 — Arrows and lines attach to shapes (2026-11-05, see ADR 0016)
 
-- **Attaching**: releasing an arrow or line end over a rectangle, diamond, ellipse, text or note
-  attaches that end at the release point. Drawing does it for both ends, and dragging an endpoint
-  handle re-attaches or detaches the end it drags.
+- **Attaching**: releasing an arrow or line end over a rectangle, diamond, ellipse, text or note,
+  or within 12 screen pixels of its box, attaches that end at the release point, moved onto the
+  box edge when it was outside. A shape under the pointer wins over one whose margin is. Drawing
+  does it for both ends, and dragging an endpoint handle re-attaches or detaches the end it drags.
+  While an end is dragged, the shape it would attach to is highlighted.
 - **Following**: an attached end follows its shape when anyone moves or resizes the shape, live
   during the drag in every browser, after undo and redo, and after a reload. Moving a shape is
   still one write and one undo step.

@@ -67,7 +67,7 @@ import type { Change, Direction } from "./history_logic"
 import { historyActionFor, isHistoryAction, type ElementChange, type ElementSnapshot } from "./element_history"
 import { BoardMutations } from "./mutations"
 import { labelPoint, type LabelOffset } from "../elements/label"
-import { BINDING_ENDS, anchorFor, bindingsFrom, bindsEnds, bindsTo, boxContains, resolvedShape, type Binding, type BindingEnd, type Bindings } from "./binding_logic"
+import { BINDING_ENDS, BINDING_MARGIN, anchorFor, bindingFor, bindingsFrom, bindsEnds, bindsTo, resolvedShape, type Binding, type BindingEnd, type Bindings, type Candidate } from "./binding_logic"
 import { STYLE_PROPERTIES, TEXT_KINDS, type ClipboardActionId, type ElementKind, type TextKind, type ZoomActionId } from "../generated/manifest"
 import {
   DEFAULT_ZOOM,
@@ -506,6 +506,11 @@ function looseEnds(rect: Element, movedIds: ReadonlySet<string>): [BindingEnd, B
     const binding = bindings[end]
     return binding === undefined || movedIds.has(binding.target) ? [] : [[end, binding] as [BindingEnd, Binding]]
   })
+}
+
+function endsBind(rect: SVGElement): boolean {
+  const kind = rect.dataset.kind
+  return isElementKind(kind) && bindsEnds(kind)
 }
 
 function movedChange({ rect, elementId, committed }: Member, shape: Shape, movedIds: ReadonlySet<string>): Change<ElementChange> {
@@ -1117,6 +1122,7 @@ export class Canvas extends ViewHook {
     }
     edit.shape = editedShape(edit, pointer, this.canvasSize())
     this.showElement(edit.rect, edit.shape)
+    if (edit.mode === "endpoint" && endsBind(edit.rect)) this.showBindingTarget(pointer, edit.elementId)
     this.schedulePreview(edit, () => {
       this.sendPreview(edit)
     })
@@ -1132,6 +1138,7 @@ export class Canvas extends ViewHook {
       draw.shape = this.drawnShape(draw.kind, draw.start, pointer)
     }
     this.showShape(this.draws.shape(draw.dragId, draw.kind, draw.seed, draw.style), draw.shape)
+    if (bindsEnds(draw.kind)) this.showBindingTarget(pointer, draw.dragId)
     this.schedulePreview(draw, () => {
       this.sendPreview(draw)
     })
@@ -1223,8 +1230,7 @@ export class Canvas extends ViewHook {
   }
 
   private rebound(edit: Edit, before: ShapeChange, after: ShapeChange): [ShapeChange, ShapeChange] {
-    const kind = edit.rect.dataset.kind
-    if (edit.mode !== "endpoint" || !isElementKind(kind) || !bindsEnds(kind)) return [before, after]
+    if (edit.mode !== "endpoint" || !endsBind(edit.rect)) return [before, after]
     const end: BindingEnd = edit.endpoint
     const point = endpointPoint(edit.shape, end)
     const next = point === undefined ? undefined : this.bindingAt(point, edit.elementId)
@@ -1564,6 +1570,7 @@ export class Canvas extends ViewHook {
 
   private endGesture(gesture: Gesture): void {
     this.gesture = undefined
+    this.showBindingTarget(undefined, gesture.dragId)
     window.clearTimeout(gesture.previewTimer)
     for (const rect of claimedRects(gesture)) releaseElement(rect)
     if (this.el.hasPointerCapture(gesture.pointerId)) this.el.releasePointerCapture(gesture.pointerId)
@@ -1905,13 +1912,19 @@ export class Canvas extends ViewHook {
   }
 
   private bindingAt(point: Point, except: string): Binding | undefined {
-    const targets = [...this.el.querySelectorAll<SVGElement>("#elements > [data-element]")].filter((rect) => {
+    const candidates = [...this.el.querySelectorAll<SVGElement>("#elements > [data-element]")].flatMap((rect): Candidate[] => {
       const { kind, element: id } = rect.dataset
-      return id !== undefined && id !== except && isElementKind(kind) && bindsTo(kind) && boxContains(renderedBox(rect), point)
+      return id !== undefined && id !== except && isElementKind(kind) && bindsTo(kind) ? [{ id, box: renderedBox(rect) }] : []
     })
-    const top = targets.at(-1)
-    const target = top?.dataset.element
-    return top === undefined || target === undefined ? undefined : { target, anchor: anchorFor(point, renderedBox(top)) }
+    return bindingFor(candidates, point, BINDING_MARGIN / this.zoom)
+  }
+
+  private showBindingTarget(point: Point | undefined, except: string): void {
+    const target = point === undefined ? undefined : this.bindingAt(point, except)?.target
+    for (const rect of this.el.querySelectorAll("#elements > [data-binding-target]")) {
+      if (rect.getAttribute("data-element") !== target) rect.removeAttribute("data-binding-target")
+    }
+    if (target !== undefined) this.elementFor(target)?.setAttribute("data-binding-target", "")
   }
 
   private bindingsAt(shape: Shape, except: string): Bindings {

@@ -414,3 +414,7 @@
   vector-effect: non-scaling-stroke;
   cursor: move;
 }
+
+[data-element][data-binding-target] {
+  filter: drop-shadow(0 0 2px var(--color-secondary)) drop-shadow(0 0 6px var(--color-secondary));
+}

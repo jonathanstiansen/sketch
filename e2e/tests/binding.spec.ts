@@ -103,3 +103,29 @@ test("an arrow moved on its own lets go of the shape, and dragging its end onto 
     await closeSession(session)
   }
 })
+
+test("an arrow end released near a shape, not only inside it, attaches to it, and the shape lights up while the end is over it", async ({ browser }) => {
+  const session = await openSharedBoard(browser, "binding-near")
+  const { pageA, pageB } = session
+  try {
+    await draw(pageA, "r", { x: 100, y: 100 }, { x: 260, y: 200 })
+    await draw(pageA, "o", { x: 400, y: 100 }, { x: 560, y: 200 })
+    const ellipseId = await pageA.locator('#elements > [data-element][data-kind="ellipse"]').getAttribute("data-element")
+
+    await pageA.keyboard.press("a")
+    await pressAt(pageA, 200, 150)
+    await moveTo(pageA, 370, 150)
+    await expect(pageA.locator("[data-binding-target]")).toHaveCount(0)
+    await moveTo(pageA, 392, 150)
+    await expect(pageA.locator("[data-binding-target]")).toHaveAttribute("data-element", ellipseId ?? "")
+    if (evidenceDir !== undefined) await pageA.screenshot({ path: `${evidenceDir}/target-lit-while-dragging.png` })
+    await pageA.mouse.up()
+    await pageA.keyboard.press("Escape")
+
+    await expect(pageA.locator("[data-binding-target]")).toHaveCount(0)
+    for (const page of [pageA, pageB]) await expect(page.locator(arrow)).toHaveAttribute("data-end-target", ellipseId ?? "")
+    await expectArrowStart([pageA, pageB], { x: 200, y: 150 }, { x: 400, y: 150 })
+  } finally {
+    await closeSession(session)
+  }
+})
