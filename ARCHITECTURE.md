@@ -40,7 +40,9 @@ All architecture checks are ExUnit tests in `test/architecture/`, run by `mix te
   `ClientEventPayloads`, so `tsc` rejects an undeclared event or field. The contract refuses a field
   naming selection state at compile time; a scan rejects a raw `pushEvent` outside
   `client_push_paths`, and a parse of `SketchWeb.BoardLive` rejects selection names in its event code
-  (addendum D8).
+  (addendum D8). A second scan rejects pushing a durable event outside `durable_push_paths`: every
+  write goes through `BoardMutations` in `assets/js/hooks/mutations.ts`, which records its undo
+  entry (ADR 0015).
 - **Dependencies (A15)**: the production deps from `mix.exs` and the `dependencies` of
   `assets/package.json` and `e2e/package.json` must equal the allowlist exactly.
 - **TypeScript (A14)**: `tsc` and ESLint run in CI; a test asserts the resolved compiler and ESLint
@@ -121,7 +123,8 @@ ADR 0011 keeps every event a board client pushes in `SketchWeb.BoardEvents`. Add
 2. Its `handle_event` clause in `SketchWeb.BoardLive`, requiring exactly the payload's non-optional
    fields, and a relay through `broadcast_preview`.
 3. `mix sketch.gen.manifest`, so `ClientEventPayloads` has it, then `pushClientEvent(this, event,
-   payload)` on the client. A raw `pushEvent` fails a source scan, and `tsc` rejects an undeclared
+   payload)` on the client; a durable event is pushed only from `BoardMutations` (ADR 0015), which
+   records the undo entry and replays it. A raw `pushEvent` fails a source scan, and `tsc` rejects an undeclared
    event or field, including through a spread or a variable.
 
 The A10 test sends every `example` without further work. Selection state is never declared (addendum

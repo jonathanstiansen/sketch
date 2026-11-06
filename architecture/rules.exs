@@ -298,8 +298,8 @@
       item: 12,
       check: "Every event a board client pushes is declared in SketchWeb.BoardEvents and pushed through the typed pushClientEvent, and selection state appears in no event, payload or broadcast (addendum D8)",
       status: :enforced,
-      verified_by: ["test/architecture/board_events_test.exs", "test/architecture/typescript_policy_test.exs", "assets/js/hooks/client_events.ts"],
-      note: "tsc rejects an undeclared event or field, the contract rejects a field naming selection state at compile time, and a source scan rejects a raw pushEvent outside client_push_paths and selection names in BoardLive's event code"
+      verified_by: ["test/architecture/board_events_test.exs", "test/architecture/typescript_policy_test.exs", "assets/js/hooks/client_events.ts", "assets/js/hooks/mutations.ts"],
+      note: "tsc rejects an undeclared event or field, the contract rejects a field naming selection state at compile time, and a source scan rejects a raw pushEvent outside client_push_paths and selection names in BoardLive's event code; a second scan rejects pushing a durable event (SketchWeb.BoardEvents.durable/0) outside durable_push_paths, so every write goes through the mutation layer that records undo (ADR 0015)"
     }
   ],
   allowlists: %{
@@ -345,6 +345,10 @@
     ],
     client_push_paths: [
       {"assets/js/hooks/client_events.ts", "The one typed wrapper around pushEvent (CI requirement 12)"}
+    ],
+    durable_push_paths: [
+      {"assets/js/hooks/mutations.ts",
+       "The mutation layer: the one place that pushes a durable board event, so every write records its undo entry (ADR 0015, CI requirement 12)"}
     ],
     broadcast_paths: [
       {"lib/sketch_web/live/board_live.ex", "Checked by board_event_violations: only broadcast_preview broadcasts (A10)"}

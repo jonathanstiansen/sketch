@@ -17,6 +17,8 @@ defmodule Sketch.Architecture.BoardEventsTest do
     }
   end
 
+  defp durable_events, do: Enum.map(SketchWeb.BoardEvents.durable(), & &1.event)
+
   defp allowlist(name),
     do: Enum.map(Map.fetch!(ArchitectureCheck.registry()[:allowlists], name), &elem(&1, 0))
 
@@ -169,6 +171,35 @@ defmodule Sketch.Architecture.BoardEventsTest do
                {"client_events", "assets/js/hooks/raw.ts:2"},
                {"client_events", "assets/js/hooks/raw.ts:3"}
              ]
+    end
+
+    test "durable events are pushed only by the mutation layer (ADR 0015)" do
+      violations =
+        ArchitectureCheck.durable_push_violations(
+          File.cwd!(),
+          durable_events(),
+          allowlist(:durable_push_paths)
+        )
+
+      assert violations == [], ArchitectureCheck.format_violations(violations)
+    end
+
+    test "rejects a durable push outside the mutation layer, also across lines" do
+      violations =
+        ArchitectureCheck.durable_push_violations(
+          Path.join(@fixtures, "durable_push"),
+          durable_events(),
+          allowlist(:durable_push_paths)
+        )
+
+      assert violations |> Enum.map(&{&1.rule, &1.subject}) |> Enum.sort() == [
+               {"durable_push", "assets/js/hooks/stray.ts:6"},
+               {"durable_push", "assets/js/hooks/stray.ts:7"}
+             ]
+    end
+
+    test "only the mutation layer may push a durable event" do
+      assert allowlist(:durable_push_paths) == ["assets/js/hooks/mutations.ts"]
     end
 
     test "only the typed wrapper may push and only BoardLive may broadcast" do
