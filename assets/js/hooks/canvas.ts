@@ -437,6 +437,10 @@ function labelBox(element: Element, box: Box): Box | undefined {
   return { x: box.x + x, y: box.y + y, width, height }
 }
 
+function isHandle(name: string | undefined): boolean {
+  return isCorner(name) || isEndpoint(name) || name === "label"
+}
+
 function domBindings(element: Element): Bindings {
   return bindingsFrom(
     BINDING_ENDS.flatMap((end) => {
@@ -729,7 +733,7 @@ export class Canvas extends ViewHook {
       tool: this.tool,
       spaceHeld: this.spaceHeld,
       onElement: rect !== null,
-      onHandle: isCorner(handle) || isEndpoint(handle) || handle === "label",
+      onHandle: isHandle(handle),
       altKey: event.altKey,
       shiftKey: event.shiftKey,
     })
@@ -1298,6 +1302,10 @@ export class Canvas extends ViewHook {
       this.setSpaceHeld(true)
       return
     }
+    this.runKeyActions(event, input)
+  }
+
+  private runKeyActions(event: KeyboardEvent, input: KeyInput): void {
     if (togglesHelp(input)) this.toggleHelp()
     if (editsText(input)) this.editSelectedText(event)
     if (deletesSelection(input)) this.eraseSelected(event)
