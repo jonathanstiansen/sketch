@@ -53,7 +53,8 @@ defmodule SketchWeb.Elements do
   def element(assigns) do
     assigns =
       assign(assigns,
-        children: render_children(assigns.element.kind, local_shape(assigns.element))
+        children: render_children(assigns.element.kind, local_shape(assigns.element)),
+        label: label(assigns.element)
       )
 
     ~H"""
@@ -76,6 +77,10 @@ defmodule SketchWeb.Elements do
       width={@element.width}
       height={@element.height}
       live-points={points_attribute(@element.points)}
+      data-label-x={@label.x}
+      data-label-y={@label.y}
+      label-x={@label.x}
+      label-y={@label.y}
       transform={"translate(#{@element.x} #{@element.y})"}
       class="cursor-grab touch-none"
     >
@@ -113,9 +118,13 @@ defmodule SketchWeb.Elements do
       points: element.points,
       text: element.text,
       seed: element.seed,
-      style: Map.new(Sketch.Canvas.style_properties(), &{&1, Map.fetch!(element, &1)})
+      style: Map.new(Sketch.Canvas.style_properties(), &{&1, Map.fetch!(element, &1)}),
+      label: label(element)
     }
   end
+
+  defp label(%{label_x: x, label_y: y}), do: %{x: x, y: y}
+  defp label(_element), do: Sketch.Canvas.label_default()
 
   defp points_attribute([]), do: nil
   defp points_attribute(points), do: Enum.map_join(points, " ", &"#{&1.x},#{&1.y}")

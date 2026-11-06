@@ -24,7 +24,7 @@ defmodule SketchWeb.ClientManifest do
   export interface KindSpec {
     readonly id: ElementKind
     readonly geometry: "box" | { readonly points: { readonly min: number; readonly max: number } }
-    readonly text: "none" | "optional" | "required"
+    readonly text: "none" | "optional" | "required" | "label"
     readonly drawGesture: "box" | "two_point" | "path" | "click_to_type"
     readonly defaultSize: { readonly width: number; readonly height: number }
     readonly style: readonly StyleProperty[]
@@ -114,6 +114,7 @@ defmodule SketchWeb.ClientManifest do
         "TypedKind",
         for(%{id: id, draw_gesture: :click_to_type} <- specs, do: id)
       ),
+      literal_list("LABEL_KINDS", "LabelKind", Sketch.Canvas.label_kinds()),
       literal_list("BINDING_KINDS", "BindingKind", Sketch.Canvas.binding_kinds()),
       literal_list(
         "BINDING_TARGET_KINDS",

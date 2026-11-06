@@ -21,6 +21,6 @@ defmodule SketchWeb.Elements.Rectangle do
         SketchWeb.HandDrawn.rectangle(width, height, SketchWeb.HandDrawn.pen(shape)),
         style
       )
-    ]
+    ] ++ SketchWeb.ElementRenderer.label(shape)
   end
 end

@@ -8,6 +8,7 @@ export interface LocalShape {
   readonly text: string
   readonly seed: number
   readonly style: ElementStyle
+  readonly label?: { readonly x: number; readonly y: number }
 }
 
 export type AttributeValue = string | number

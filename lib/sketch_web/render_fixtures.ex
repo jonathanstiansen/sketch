@@ -50,6 +50,21 @@ defmodule SketchWeb.RenderFixtures do
     "short\nand a second line that wraps\n\n\tindented"
   ]
   @text_sizes [0, 1, 4000]
+  @label_texts [
+    "a",
+    "two\nlines",
+    "the quick brown fox jumps over the lazy dog",
+    "ünïcødé ñ 中文 😀 𝄞 👩‍💻",
+    "<b>bold</b> & \"quoted\" 'single' &amp; &lt;"
+  ]
+  @label_widths [0, 1, 80, 4000] ++
+                  for(
+                    offset <- [-1, 0, 1],
+                    do:
+                      2 * Sketch.Canvas.geometry().note_padding +
+                        14 * Sketch.Canvas.geometry().char_width + offset
+                  )
+  @label_heights [0, 80, 4000]
   @text_heights [0, 4000]
   @point_paths [:diagonal, :zigzag, :interior]
   @seeds [
@@ -62,6 +77,7 @@ defmodule SketchWeb.RenderFixtures do
   ]
   @max_fixture_points 12
   @styled_shapes 3
+  @label_offsets [%{x: 0, y: 0}, %{x: 1000, y: 1000}, %{x: 250, y: 750}, %{x: 999, y: 1}]
   @style_combinations 6
 
   @spec path() :: Path.t()
@@ -84,6 +100,26 @@ defmodule SketchWeb.RenderFixtures do
     %{geometry: geometry, text: text} =
       Enum.find(Sketch.Canvas.kind_specs(), &(&1.id == kind))
 
+    geometry
+    |> laid_out(text)
+    |> Enum.map(
+      &Map.merge(&1, %{
+        style: Sketch.Canvas.style_defaults(),
+        label: Sketch.Canvas.label_default()
+      })
+    )
+  end
+
+  defp laid_out(geometry, :label) do
+    labels =
+      for width <- @label_widths, height <- @label_heights, text <- @label_texts do
+        %{width: width, height: height, points: [], text: text}
+      end
+
+    laid_out(geometry, :none) ++ with_seeds(labels, geometry, :label)
+  end
+
+  defp laid_out(geometry, text) do
     shapes =
       for width <- widths(text),
           height <- heights(text),
@@ -92,9 +128,22 @@ defmodule SketchWeb.RenderFixtures do
         %{width: width, height: height, points: points, text: text}
       end
 
-    shapes
-    |> with_seeds(geometry, text)
-    |> Enum.map(&Map.put(&1, :style, Sketch.Canvas.style_defaults()))
+    with_seeds(shapes, geometry, text)
+  end
+
+  @doc "The shapes of a labelled kind drawn again with the label moved to the box's corners and off centre."
+  @spec labelled_shapes(atom()) :: [SketchWeb.ElementRenderer.local_shape()]
+  def labelled_shapes(kind) do
+    if kind in Sketch.Canvas.label_kinds() do
+      shapes = kind |> shapes() |> Enum.filter(&(&1.text != ""))
+      spread = Enum.take_every(shapes, max(1, div(length(shapes), @styled_shapes)))
+
+      for shape <- Enum.take(spread, @styled_shapes),
+          label <- @label_offsets,
+          do: %{shape | label: label}
+    else
+      []
+    end
   end
 
   @doc "The shapes and styles the parity fixture also renders in other styles than the default."
@@ -167,19 +216,27 @@ defmodule SketchWeb.RenderFixtures do
   def normalize(nodes), do: Enum.map(nodes, &normalize_node/1)
 
   defp cases(kind) do
-    for shape <- shapes(kind) ++ styled_shapes(kind) do
+    for shape <- shapes(kind) ++ styled_shapes(kind) ++ labelled_shapes(kind) do
       %{
-        "shape" => %{
-          "width" => shape.width,
-          "height" => shape.height,
-          "points" => Enum.map(shape.points, &%{"x" => &1.x, "y" => &1.y}),
-          "text" => shape.text,
-          "seed" => shape.seed,
-          "style" => style_overrides(shape.style)
-        },
+        "shape" =>
+          %{
+            "width" => shape.width,
+            "height" => shape.height,
+            "points" => Enum.map(shape.points, &%{"x" => &1.x, "y" => &1.y}),
+            "text" => shape.text,
+            "seed" => shape.seed,
+            "style" => style_overrides(shape.style)
+          }
+          |> put_label(shape.label),
         "children" => kind |> Elements.render_children(shape) |> normalize()
       }
     end
+  end
+
+  defp put_label(shape, label) do
+    if label == Sketch.Canvas.label_default(),
+      do: shape,
+      else: Map.put(shape, "label", %{"x" => label.x, "y" => label.y})
   end
 
   defp style_overrides(style) do

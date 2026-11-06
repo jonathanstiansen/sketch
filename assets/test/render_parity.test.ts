@@ -4,6 +4,7 @@ import { test } from "node:test"
 import { RENDERERS } from "../js/elements/index.ts"
 import { attributeString, type LocalShape, type SvgNode } from "../js/elements/renderer.ts"
 import { ELEMENT_KINDS, STYLE_DEFAULTS } from "../js/generated/manifest.ts"
+import { DEFAULT_LABEL } from "../js/elements/label.ts"
 
 interface NormalizedNode {
   tag: string
@@ -40,7 +41,7 @@ for (const kind of ELEMENT_KINDS) {
     const cases = fixture[kind] ?? []
     assert.ok(cases.length > 0, `no fixture cases for ${kind}`)
     for (const { shape, children } of cases) {
-      const styled = { ...shape, style: { ...STYLE_DEFAULTS, ...shape.style } }
+      const styled = { ...shape, style: { ...STYLE_DEFAULTS, ...shape.style }, label: shape.label ?? DEFAULT_LABEL }
       assert.deepEqual(normalize(RENDERERS[kind](styled)), children, JSON.stringify(shape))
     }
   })

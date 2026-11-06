@@ -1,3 +1,4 @@
+import { label } from "./label.ts"
 import { half } from "./half.ts"
 import { diamond as sketchedDiamond, pen } from "./hand_drawn.ts"
 import type { Renderer } from "./renderer.ts"
@@ -23,5 +24,6 @@ export const diamond: Renderer = (shape) => {
       },
     },
     sketch(sketchedDiamond(width, height, pen(shape)), style),
+    ...label(shape),
   ]
 }

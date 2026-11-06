@@ -113,7 +113,11 @@ defmodule SketchWeb.BoardLiveClipboardTest do
       %{"kind" => "rectangle", "points" => []} |> Map.put("stroke_color", "magenta"),
       %{"seed" => -1},
       %{"seed" => 2_147_483_648},
-      %{"kind" => "rectangle", "points" => [], "text" => "not on a rectangle"},
+      %{
+        "kind" => "line",
+        "points" => [%{"x" => 0, "y" => 0}, %{"x" => 80, "y" => 40}],
+        "text" => "not on a line"
+      },
       %{"points" => [%{"x" => 0, "y" => 0}]},
       %{"x" => "10"}
     ]

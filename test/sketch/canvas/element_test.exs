@@ -318,6 +318,20 @@ defmodule Sketch.Canvas.ElementTest do
                Canvas.create_element(text(%{text: verbatim, board_id: board.id}))
     end
 
+    defp untexted(attrs) do
+      Map.merge(
+        %{
+          kind: :line,
+          x: 0,
+          y: 0,
+          width: 10,
+          height: 10,
+          points: [%{x: 0, y: 0}, %{x: 10, y: 10}]
+        },
+        attrs
+      )
+    end
+
     test "Ash rejects blank, overlong or misplaced text", %{board: board} do
       max = Geometry.max_text_length()
 
@@ -327,7 +341,7 @@ defmodule Sketch.Canvas.ElementTest do
             text(%{text: String.duplicate("a", max + 1)}),
             text(%{text: String.duplicate("e\u0301", div(max, 2) + 1)}),
             text(%{text: "a\u0000"}),
-            rectangle(%{x: 0, y: 0, text: "x"})
+            untexted(%{text: "x"})
           ] do
         assert {:error, _} = Canvas.create_element(Map.put(attrs, :board_id, board.id)),
                inspect(String.slice(attrs.text, 0..10))
@@ -357,11 +371,17 @@ defmodule Sketch.Canvas.ElementTest do
       board: board
     } do
       element = Canvas.create_element!(text(%{board_id: board.id}))
-      shape = Canvas.create_element!(rectangle(%{x: 0, y: 0, board_id: board.id}))
+      shape = Canvas.create_element!(untexted(%{board_id: board.id}))
       box = %{x: 30, y: 40, width: 120, height: 75, points: []}
 
       assert {:error, _} = Canvas.commit_shape(element.id, board.id, Map.put(box, :text, " "))
-      assert {:error, _} = Canvas.commit_shape(shape.id, board.id, Map.put(box, :text, "x"))
+
+      assert {:error, _} =
+               Canvas.commit_shape(
+                 shape.id,
+                 board.id,
+                 Map.merge(box, %{points: shape.points, text: "x"})
+               )
 
       assert {:ok, %{text: "hello\nworld", version: 1}} =
                Canvas.commit_position(element.id, board.id, %{x: 0, y: 0})
@@ -374,15 +394,16 @@ defmodule Sketch.Canvas.ElementTest do
       for {kind, text, constraint} <- [
             {"text", "", "text_matches_kind"},
             {"text", " \n\t\r", "text_matches_kind"},
-            {"rectangle", "x", "text_matches_kind"},
+            {"line", "x", "text_matches_kind"},
             {"text", String.duplicate("a", max + 1), "text_length"}
           ] do
         assert {:error,
                 %Postgrex.Error{postgres: %{code: :check_violation, constraint: ^constraint}}} =
                  Sketch.Repo.query(
                    """
-                   INSERT INTO elements (kind, x, y, width, height, text, board_id)
-                   VALUES ($1, 0, 0, 10, 10, $2, $3)
+                   INSERT INTO elements (kind, x, y, width, height, text, board_id, points)
+                   VALUES ($1, 0, 0, 10, 10, $2, $3,
+                     CASE WHEN $1 = 'line' THEN ARRAY['{"x":0,"y":0}', '{"x":10,"y":10}']::jsonb[] ELSE '{}' END)
                    """,
                    [kind, text, board_id]
                  ),

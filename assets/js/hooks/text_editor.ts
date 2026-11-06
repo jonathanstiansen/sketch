@@ -12,13 +12,18 @@ export interface TextEditorOptions {
   layout: TextLayout
   maxLength: number
   canvas: Size
-  note?: { frame: Box; padding: number } | undefined
+  note?: { frame: Box; padding: number; centered?: boolean } | undefined
   onInput: (text: string, box: Box) => void
   onCommit: (text: string, box: Box) => void
 }
 
 export function normalizedText(text: string): string {
   return textLines(text).join("\n")
+}
+
+function editorClass(note: TextEditorOptions["note"]): string {
+  if (note === undefined) return "text-editor"
+  return note.centered === true ? "text-editor note-editor label-editor" : "text-editor note-editor"
 }
 
 export class TextEditor {
@@ -32,7 +37,7 @@ export class TextEditor {
     private readonly options: TextEditorOptions,
   ) {
     this.textarea = document.createElement("textarea")
-    this.textarea.className = options.note === undefined ? "text-editor" : "text-editor note-editor"
+    this.textarea.className = editorClass(options.note)
     this.textarea.setAttribute("data-text-editor", "")
     this.textarea.setAttribute("aria-label", "Text")
     this.textarea.spellcheck = false

@@ -52,7 +52,7 @@ import {
   type Styled,
 } from "./selection_logic"
 import { TextEditor, type TextLayout } from "./text_editor"
-import { LIVE_POINTS, SEED, isSeed, randomSeed, styleAttribute, styleOf } from "../elements/dom"
+import { LIVE_LABEL_X, LIVE_LABEL_Y, LIVE_POINTS, SEED, isSeed, labelOf, randomSeed, setLiveLabel, styleAttribute, styleOf } from "../elements/dom"
 import {
   DEFAULT_STYLE,
   isStyleProperty,
@@ -66,6 +66,7 @@ import { StylePanel } from "./style_panel"
 import type { Change, Direction } from "./history_logic"
 import { historyActionFor, isHistoryAction, type ElementChange, type ElementSnapshot } from "./element_history"
 import { BoardMutations } from "./mutations"
+import { labelPoint, type LabelOffset } from "../elements/label"
 import { BINDING_ENDS, anchorFor, bindingsFrom, bindsEnds, bindsTo, boxContains, resolvedShape, type Binding, type BindingEnd, type Bindings } from "./binding_logic"
 import { STYLE_PROPERTIES, TEXT_KINDS, type ClipboardActionId, type ElementKind, type TextKind, type ZoomActionId } from "../generated/manifest"
 import {
@@ -94,9 +95,11 @@ import {
   selectsWhenDrawn,
   keepsSelection,
   drawnKind,
+  editsText,
   escapes,
   isElementKind,
   isPreviewKind,
+  isLabelKind,
   isTextKind,
   isTypedKind,
   isPanKey,
@@ -133,7 +136,7 @@ const HISTORY_STATUS_MS = 3000
 const SELECTED_ATTRIBUTE = "data-selected-element"
 const SELECTED_COUNT_ATTRIBUTE = "data-selected-count"
 const PHX_UPDATE = "phx-update"
-const OBSERVED_ATTRIBUTES = ["x", "y", "width", "height", LIVE_POINTS, ...STYLE_PROPERTIES.map(styleAttribute)]
+const OBSERVED_ATTRIBUTES = ["x", "y", "width", "height", LIVE_POINTS, LIVE_LABEL_X, LIVE_LABEL_Y, ...STYLE_PROPERTIES.map(styleAttribute)]
 const TEXT_KIND_SELECTOR = TEXT_KINDS.map((kind) => `[data-element][data-kind="${kind}"]`).join(", ")
 
 interface PreviewClock {
@@ -147,7 +150,7 @@ interface Throttled extends PreviewClock {
   pointerId: number
 }
 
-type Grip = { mode: "resize"; corner: Corner } | { mode: "endpoint"; endpoint: Endpoint }
+type Grip = { mode: "resize"; corner: Corner } | { mode: "endpoint"; endpoint: Endpoint } | { mode: "label"; start: LabelOffset }
 
 type Edit = Throttled &
   Grip & {
@@ -158,6 +161,7 @@ type Edit = Throttled &
     origin: Shape
     committed: Shape
     shape: Shape
+    label: LabelOffset
   }
 
 interface Draw extends Throttled {
@@ -198,7 +202,7 @@ interface Move extends Throttled {
 type Gesture = Edit | Draw | Copy | Move
 
 function isEdit(gesture: Gesture): gesture is Edit {
-  return gesture.mode === "resize" || gesture.mode === "endpoint"
+  return gesture.mode === "resize" || gesture.mode === "endpoint" || gesture.mode === "label"
 }
 
 function claimedRects(gesture: Gesture): SVGElement[] {
@@ -426,6 +430,13 @@ function snapshotOf(element: SVGElement): ElementSnapshot | undefined {
   return { kind, ...box, points, text: text ?? "", seed, style: styleOf(element) }
 }
 
+function labelBox(element: Element, box: Box): Box | undefined {
+  const text = element.querySelector<SVGTextElement>("[data-label]")
+  if (text === null || !isLabelKind(element.getAttribute("data-kind") ?? undefined)) return undefined
+  const { x, y, width, height } = text.getBBox()
+  return { x: box.x + x, y: box.y + y, width, height }
+}
+
 function domBindings(element: Element): Bindings {
   return bindingsFrom(
     BINDING_ENDS.flatMap((end) => {
@@ -466,11 +477,16 @@ function releaseElement(element: Element): void {
 
 function gripPoint({ box, points }: Shape, grip: Grip): Point {
   if (grip.mode === "resize") return cornerPoint(box, grip.corner)
+  if (grip.mode === "label") {
+    const at = labelPoint(box.width, box.height, grip.start)
+    return { x: box.x + at.x, y: box.y + at.y }
+  }
   return endpointPoint({ box, points }, grip.endpoint) ?? box
 }
 
 function editedShape(edit: Edit, pointer: Point, canvas: Size): Shape {
   const { box, points } = edit.origin
+  if (edit.mode === "label") return edit.origin
   if (edit.mode === "resize") {
     const resized = resizedBox(box, edit.corner, subtract(pointer, edit.grab), canvas)
     return { box: resized, points: scalePoints(points, box, resized) }
@@ -713,7 +729,7 @@ export class Canvas extends ViewHook {
       tool: this.tool,
       spaceHeld: this.spaceHeld,
       onElement: rect !== null,
-      onHandle: isCorner(handle) || isEndpoint(handle),
+      onHandle: isCorner(handle) || isEndpoint(handle) || handle === "label",
       altKey: event.altKey,
       shiftKey: event.shiftKey,
     })
@@ -746,11 +762,29 @@ export class Canvas extends ViewHook {
       resize: () => {
         if (isCorner(handle)) this.editSelected(event, { mode: "resize", corner: handle })
         if (isEndpoint(handle)) this.editSelected(event, { mode: "endpoint", endpoint: handle })
+        if (handle === "label") this.editSelectedLabel(event)
       },
       zoom: NOTHING,
       none: NOTHING,
     }
     handlers[action]()
+  }
+
+  private editSelectedLabel(event: PointerEvent): void {
+    const rect = this.onlySelected()
+    if (rect !== null) this.startEdit(event, rect, { mode: "label", start: labelOf(rect) })
+  }
+
+  private onlySelected(): SVGElement | null {
+    const [only] = this.selected
+    return only === undefined || this.selected.length !== 1 ? null : this.elementFor(only)
+  }
+
+  private editSelectedText(event: KeyboardEvent): void {
+    const rect = this.onlySelected()
+    if (rect === null || !isTextKind(rect.dataset.kind) || this.gesture !== undefined || this.textEditor !== undefined) return
+    event.preventDefault()
+    this.editText(rect)
   }
 
   private editSelected(event: PointerEvent, grip: Grip): void {
@@ -861,6 +895,7 @@ export class Canvas extends ViewHook {
       origin: shape,
       committed,
       shape,
+      label: labelOf(rect),
       seq: 0,
       lastSentAt: -Infinity,
       previewTimer: undefined,
@@ -1070,6 +1105,12 @@ export class Canvas extends ViewHook {
   }
 
   private updateEdit(edit: Edit, pointer: Point): void {
+    if (edit.mode === "label") {
+      edit.label = anchorFor(subtract(pointer, edit.grab), edit.origin.box)
+      setLiveLabel(edit.rect, edit.label)
+      this.showElement(edit.rect, edit.shape)
+      return
+    }
     edit.shape = editedShape(edit, pointer, this.canvasSize())
     this.showElement(edit.rect, edit.shape)
     this.schedulePreview(edit, () => {
@@ -1153,6 +1194,10 @@ export class Canvas extends ViewHook {
   }
 
   private finishEdit(edit: Edit): void {
+    if (edit.mode === "label") {
+      this.finishLabel(edit)
+      return
+    }
     if (sameShape(edit.shape, edit.origin)) {
       this.revert(edit.elementId)
       if (edit.seq > 0) void pushClientEvent(this, "drag_cancel", { element_id: edit.elementId, drag_id: edit.dragId })
@@ -1161,6 +1206,16 @@ export class Canvas extends ViewHook {
     const { committed, shape } = edit
     const [before, after] = this.rebound(edit, { event: "commit_shape", box: committed.box, points: committed.points }, { event: "commit_shape", box: shape.box, points: shape.points })
     void this.commitOne(edit.elementId, before, after, edit.dragId)
+  }
+
+  private finishLabel(edit: Edit & { mode: "label" }): void {
+    const { start, label, committed } = edit
+    if (label.x === start.x && label.y === start.y) {
+      this.revert(edit.elementId)
+      return
+    }
+    const shape = { event: "commit_shape" as const, box: committed.box, points: committed.points }
+    void this.commitOne(edit.elementId, { ...shape, label: start }, { ...shape, label }, edit.dragId)
   }
 
   private rebound(edit: Edit, before: ShapeChange, after: ShapeChange): [ShapeChange, ShapeChange] {
@@ -1180,7 +1235,7 @@ export class Canvas extends ViewHook {
     const { box, points } = draw.dragged
       ? draw.shape
       : { box: clickBox(draw.start, defaultSize(draw.kind), this.canvasSize()), points: [] }
-    if (isTextKind(draw.kind)) {
+    if (isTextKind(draw.kind) && !isLabelKind(draw.kind)) {
       this.openDrawnText(draw, draw.kind, box)
       return
     }
@@ -1244,6 +1299,7 @@ export class Canvas extends ViewHook {
       return
     }
     if (togglesHelp(input)) this.toggleHelp()
+    if (editsText(input)) this.editSelectedText(event)
     if (deletesSelection(input)) this.eraseSelected(event)
     if (escapes(input)) this.escape()
     this.useTool(nextTool(this.tool, input))
@@ -1487,7 +1543,7 @@ export class Canvas extends ViewHook {
       this.selection.showGroup(rects.map(renderedBox))
     } else {
       const { box, points } = renderedShape(only)
-      this.selection.show(box, points, selectionHandles(only.dataset.kind))
+      this.selection.show(box, points, selectionHandles(only.dataset.kind), labelBox(only, box))
     }
   }
 
@@ -1627,6 +1683,8 @@ export class Canvas extends ViewHook {
     if (this.isEditing(elementId)) return
     const rect = this.elementFor(elementId)
     if (rect === null) return
+    rect.removeAttribute(LIVE_LABEL_X)
+    rect.removeAttribute(LIVE_LABEL_Y)
     this.showElement(rect, committedShape(rect), rect.dataset.text ?? "")
   }
 
@@ -1715,7 +1773,7 @@ export class Canvas extends ViewHook {
       layout: this.textLayout(),
       maxLength: integerAttribute(this.el, "data-max-text-length"),
       canvas: this.canvasSize(),
-      note: frame === undefined ? undefined : { frame, padding: this.textLayout().notePadding },
+      note: frame === undefined ? undefined : { frame, padding: this.textLayout().notePadding, centered: isLabelKind(target.kind) },
       onInput: (typed, box) => {
         session.text = typed
         session.box = box

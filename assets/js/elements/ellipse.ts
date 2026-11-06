@@ -1,3 +1,4 @@
+import { label } from "./label.ts"
 import { half } from "./half.ts"
 import { ellipse as sketchedEllipse, pen } from "./hand_drawn.ts"
 import type { Renderer } from "./renderer.ts"
@@ -20,5 +21,6 @@ export const ellipse: Renderer = (shape) => {
       },
     },
     sketch(sketchedEllipse(width, height, pen(shape)), style),
+    ...label(shape),
   ]
 }

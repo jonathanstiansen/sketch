@@ -13,6 +13,10 @@ defmodule Sketch.Canvas.Kind do
 
   `style` lists the `Sketch.Canvas.Style` properties that apply to the kind (ADR 0006); every other
   property keeps its default.
+
+  `text: :label` is optional text drawn as a centred label at an offset the user can drag inside
+  the box (`Sketch.Canvas.Label`); drawing such a kind does not open its editor, Enter or a double
+  click does.
   """
 
   alias Sketch.Canvas.Style
@@ -21,7 +25,7 @@ defmodule Sketch.Canvas.Kind do
   defstruct @enforce_keys
 
   @type geometry :: :box | {:points, Range.t()}
-  @type text :: :none | :optional | :required
+  @type text :: :none | :optional | :required | :label
   @type draw_gesture :: :box | :two_point | :path | :click_to_type
   @type size :: %{width: pos_integer(), height: pos_integer()}
 

@@ -4,6 +4,7 @@ import {
   ELEMENT_KINDS,
   KIND_SPECS,
   POINTER_GESTURES,
+  LABEL_KINDS,
   REQUIRED_TEXT_KINDS,
   TEXT_KINDS,
   TOOLS as TOOL_SPECS,
@@ -35,6 +36,10 @@ export type DrawGesture = (typeof KIND_SPECS)[DrawnKind]["drawGesture"]
 
 export function isElementKind(value: string | null | undefined): value is ElementKind {
   return ELEMENT_KINDS.some((kind) => kind === value)
+}
+
+export function isLabelKind(value: string | undefined): boolean {
+  return LABEL_KINDS.some((kind) => kind === value)
 }
 
 export function isTextKind(value: string | undefined): value is TextKind {
@@ -170,6 +175,10 @@ export function deletesSelection(input: KeyInput): boolean {
 
 export function isPanKey(input: KeyInput): boolean {
   return keyShortcut(input)?.action === "pan"
+}
+
+export function editsText(input: KeyInput): boolean {
+  return keyShortcut(input)?.action === "edit_text"
 }
 
 export function escapes(input: KeyInput): boolean {

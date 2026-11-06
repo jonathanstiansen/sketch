@@ -17,12 +17,13 @@ defmodule SketchWeb.ElementRenderer do
   @type style :: Sketch.Canvas.Style.t()
 
   @type local_shape :: %{
-          width: non_neg_integer(),
-          height: non_neg_integer(),
-          points: [point()],
-          text: String.t(),
-          seed: non_neg_integer(),
-          style: style()
+          required(:width) => non_neg_integer(),
+          required(:height) => non_neg_integer(),
+          required(:points) => [point()],
+          required(:text) => String.t(),
+          required(:seed) => non_neg_integer(),
+          required(:style) => style(),
+          optional(:label) => %{x: non_neg_integer(), y: non_neg_integer()}
         }
 
   @type attribute_value :: String.t() | number()
@@ -137,6 +138,66 @@ defmodule SketchWeb.ElementRenderer do
           {"stroke-linecap", "round"}
         ] ++ attrs
     }
+  end
+
+  @font_size Sketch.Canvas.geometry().font_size
+  @line_height Sketch.Canvas.geometry().line_height
+  @text_baseline Sketch.Canvas.geometry().text_baseline
+  @char_width Sketch.Canvas.geometry().char_width
+  @padding Sketch.Canvas.geometry().note_padding
+
+  @doc """
+  A shape's label (`Sketch.Canvas.Label`): no nodes for empty text, else a nested `svg` that clips
+  to the box holding a `text` whose lines, wrapped like a note's, are centred on the label point.
+  """
+  @spec label(local_shape()) :: [svg_node()]
+  def label(%{text: ""}), do: []
+
+  def label(%{width: width, height: height, text: text, style: style} = shape) do
+    lines = Sketch.Canvas.wrap_text(text, width - 2 * @padding, @char_width)
+
+    block_width =
+      lines |> Enum.map(&length(String.to_charlist(&1))) |> Enum.max() |> Kernel.*(@char_width)
+
+    block_height = length(lines) * @line_height
+    offset = Map.get(shape, :label, Sketch.Canvas.label_default())
+
+    %{x: x, y: y} = Sketch.Canvas.label_placed(width, height, offset, block_width, block_height)
+    top = y - div(block_height, 2) + @text_baseline
+
+    [
+      %{
+        tag: "svg",
+        attrs: [
+          {"data-label-clip", ""},
+          {"x", 0},
+          {"y", 0},
+          {"width", width},
+          {"height", height},
+          {"overflow", "hidden"},
+          {"pointer-events", "none"}
+        ],
+        children: [
+          %{
+            tag: "text",
+            attrs: [
+              {"data-label", ""},
+              {"text-anchor", "middle"},
+              {"font-size", @font_size},
+              {"class", "text-element #{ink_class(style)}"}
+            ],
+            children:
+              Enum.with_index(lines, fn line, index ->
+                %{
+                  tag: "tspan",
+                  attrs: [{"x", x}, {"y", top + index * @line_height}],
+                  text: line
+                }
+              end)
+          }
+        ]
+      }
+    ]
   end
 
   @doc """

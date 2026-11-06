@@ -1,3 +1,4 @@
+import { DEFAULT_LABEL, type LabelOffset } from "./label.ts"
 import type { Box, Point } from "../hooks/canvas_logic.ts"
 import { GEOMETRY, STYLE_PROPERTIES, type StyleProperty } from "../generated/manifest.ts"
 import { attributeString, type Renderer, type SvgNode } from "./renderer.ts"
@@ -88,6 +89,26 @@ export function randomSeed(): number {
   return Math.floor(Math.random() * (GEOMETRY.maxSeed + 1))
 }
 
+export const LIVE_LABEL_X = "label-x"
+export const LIVE_LABEL_Y = "label-y"
+
+function integerOr(value: string | null, fallback: number): number {
+  const parsed = value === null ? Number.NaN : Number(value)
+  return Number.isInteger(parsed) ? parsed : fallback
+}
+
+export function labelOf(wrapper: Element): LabelOffset {
+  return {
+    x: integerOr(wrapper.getAttribute(LIVE_LABEL_X) ?? wrapper.getAttribute("data-label-x"), DEFAULT_LABEL.x),
+    y: integerOr(wrapper.getAttribute(LIVE_LABEL_Y) ?? wrapper.getAttribute("data-label-y"), DEFAULT_LABEL.y),
+  }
+}
+
+export function setLiveLabel(wrapper: Element, { x, y }: LabelOffset): void {
+  wrapper.setAttribute(LIVE_LABEL_X, String(x))
+  wrapper.setAttribute(LIVE_LABEL_Y, String(y))
+}
+
 function seedOf(wrapper: Element): number {
   const seed = Number(wrapper.getAttribute(SEED))
   return isSeed(seed) ? seed : 0
@@ -95,5 +116,5 @@ function seedOf(wrapper: Element): number {
 
 export function renderElement(wrapper: Element, renderer: Renderer, box: Box, points: readonly Point[], text: string): void {
   placeElement(wrapper, box, points)
-  renderNodes(wrapper, renderer({ width: box.width, height: box.height, points, text, seed: seedOf(wrapper), style: styleOf(wrapper) }))
+  renderNodes(wrapper, renderer({ width: box.width, height: box.height, points, text, seed: seedOf(wrapper), style: styleOf(wrapper), label: labelOf(wrapper) }))
 }

@@ -68,7 +68,8 @@ defmodule SketchWeb.BoardLive do
          {:ok, text} <- text(params),
          {:ok, seed} <- seed(params),
          {:ok, style} <- style(params),
-         {:ok, bindings} <- bindings(params, socket.assigns.board_state) do
+         {:ok, bindings} <- bindings(params, socket.assigns.board_state),
+         {:ok, label} <- label(params) do
       shape =
         kind
         |> String.to_existing_atom()
@@ -77,6 +78,7 @@ defmodule SketchWeb.BoardLive do
         |> Map.merge(seed)
         |> Map.merge(style)
         |> Map.merge(bindings)
+        |> Map.merge(label)
 
       {reply, socket} = create_element(socket, kind, shape)
       {:noreply, socket} = broadcast_preview(socket, "draw_end", %{drag_id: drag_id})
@@ -239,11 +241,13 @@ defmodule SketchWeb.BoardLive do
       when is_uuid(element_id) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
     with {:ok, points} <- points(params),
          {:ok, text} <- text(params),
-         {:ok, bindings} <- bindings(params, socket.assigns.board_state) do
+         {:ok, bindings} <- bindings(params, socket.assigns.board_state),
+         {:ok, label} <- label(params) do
       shape =
         %{x: x, y: y, width: width, height: height, points: points}
         |> Map.merge(text)
         |> Map.merge(bindings)
+        |> Map.merge(label)
 
       commit(socket, element_id, drag_id, commit_shape_error(text), fn board_id ->
         Sketch.Canvas.commit_shape(element_id, board_id, shape)
@@ -724,6 +728,14 @@ defmodule SketchWeb.BoardLive do
         socket.assigns.board_state,
         Sketch.Canvas.element_event(element)
       )
+
+  defp label(%{"label" => %{"x" => x, "y" => y}}) when is_integer(x) and is_integer(y) do
+    %{x: label_x, y: label_y} = Sketch.Canvas.label_clamp(%{x: x, y: y})
+    {:ok, %{label_x: label_x, label_y: label_y}}
+  end
+
+  defp label(%{"label" => _malformed}), do: :error
+  defp label(_params), do: {:ok, %{}}
 
   defp bindings(params, board_state) do
     Enum.reduce_while(@binding_ends, {:ok, %{}}, fn end_name, {:ok, fields} ->
