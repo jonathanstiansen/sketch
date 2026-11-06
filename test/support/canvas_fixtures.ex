@@ -1,7 +1,7 @@
 defmodule Sketch.CanvasFixtures do
   @moduledoc "Attributes and generators for test elements."
 
-  alias Sketch.Canvas.{Geometry, Kinds}
+  alias Sketch.Canvas.{Binding, Geometry, Kinds}
 
   @max_generated_size 400
 
@@ -39,16 +39,17 @@ defmodule Sketch.CanvasFixtures do
   def generate_rectangles(board_id, count) do
     Sketch.Canvas.Element
     |> Ash.Generator.changeset_generator(:create,
-      defaults: [
-        board_id: board_id,
-        kind: :rectangle,
-        points: [],
-        text: "",
-        width: StreamData.integer(1..@max_generated_size),
-        height: StreamData.integer(1..@max_generated_size),
-        x: StreamData.integer(0..(Geometry.canvas_width() - @max_generated_size)),
-        y: StreamData.integer(0..(Geometry.canvas_height() - @max_generated_size))
-      ]
+      defaults:
+        [
+          board_id: board_id,
+          kind: :rectangle,
+          points: [],
+          text: "",
+          width: StreamData.integer(1..@max_generated_size),
+          height: StreamData.integer(1..@max_generated_size),
+          x: StreamData.integer(0..(Geometry.canvas_width() - @max_generated_size)),
+          y: StreamData.integer(0..(Geometry.canvas_height() - @max_generated_size))
+        ] ++ Enum.map(Binding.attributes(), &{&1, nil})
     )
     |> Ash.Generator.generate_many(count)
   end

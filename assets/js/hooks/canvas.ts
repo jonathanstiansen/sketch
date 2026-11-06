@@ -6,6 +6,7 @@ import {
   clickBox,
   cornerPoint,
   drawnBox,
+  absolutePoints,
   endpointPoint,
   eraserHits,
   isBlankText,
@@ -65,6 +66,7 @@ import { StylePanel } from "./style_panel"
 import type { Change, Direction } from "./history_logic"
 import { historyActionFor, isHistoryAction, type ElementChange, type ElementSnapshot } from "./element_history"
 import { BoardMutations } from "./mutations"
+import { BINDING_ENDS, anchorFor, bindingsFrom, bindsEnds, bindsTo, boxContains, resolvedShape, type Binding, type BindingEnd, type Bindings } from "./binding_logic"
 import { STYLE_PROPERTIES, TEXT_KINDS, type ClipboardActionId, type ElementKind, type TextKind, type ZoomActionId } from "../generated/manifest"
 import {
   DEFAULT_ZOOM,
@@ -424,6 +426,18 @@ function snapshotOf(element: SVGElement): ElementSnapshot | undefined {
   return { kind, ...box, points, text: text ?? "", seed, style: styleOf(element) }
 }
 
+function domBindings(element: Element): Bindings {
+  return bindingsFrom(
+    BINDING_ENDS.flatMap((end) => {
+      const target = element.getAttribute(`data-${end}-target`)
+      const anchorText = element.getAttribute(`data-${end}-anchor`)
+      if (target === null || anchorText === null) return []
+      const binding: Binding = { target, anchor: integerPair(anchorText) }
+      return [[end, binding] as const]
+    }),
+  )
+}
+
 function setSize(svg: SVGSVGElement, name: "width" | "height", length: number): void {
   if (svg.getAttribute(name) !== String(length)) svg.setAttribute(name, String(length))
 }
@@ -462,6 +476,28 @@ function editedShape(edit: Edit, pointer: Point, canvas: Size): Shape {
     return { box: resized, points: scalePoints(points, box, resized) }
   }
   return movedEndpoint(edit.origin, edit.endpoint, subtract(pointer, edit.grab), canvas)
+}
+
+type ShapeChange = Extract<ElementChange, { event: "commit_shape" }>
+
+function looseEnds(rect: Element, movedIds: ReadonlySet<string>): [BindingEnd, Binding][] {
+  const bindings = domBindings(rect)
+  return BINDING_ENDS.flatMap((end) => {
+    const binding = bindings[end]
+    return binding === undefined || movedIds.has(binding.target) ? [] : [[end, binding] as [BindingEnd, Binding]]
+  })
+}
+
+function movedChange({ rect, elementId, committed }: Member, shape: Shape, movedIds: ReadonlySet<string>): Change<ElementChange> {
+  const loose = looseEnds(rect, movedIds)
+  if (loose.length === 0) {
+    return { id: elementId, before: { event: "commit", x: committed.box.x, y: committed.box.y }, after: { event: "commit", x: shape.box.x, y: shape.box.y } }
+  }
+  return {
+    id: elementId,
+    before: { event: "commit_shape", box: committed.box, points: committed.points, bindings: Object.fromEntries(loose) },
+    after: { event: "commit_shape", box: shape.box, points: shape.points, bindings: Object.fromEntries(loose.map(([end]) => [end, null])) },
+  }
 }
 
 const NOTHING = (): void => undefined
@@ -1026,7 +1062,7 @@ export class Canvas extends ViewHook {
     move.shapes = moved.shapes
     move.members.forEach(({ rect }, index) => {
       const shape = moved.shapes[index]
-      if (shape !== undefined) this.showShape(rect, shape)
+      if (shape !== undefined) this.showElement(rect, shape)
     })
     this.schedulePreview(move, () => {
       this.sendPreview(move)
@@ -1035,7 +1071,7 @@ export class Canvas extends ViewHook {
 
   private updateEdit(edit: Edit, pointer: Point): void {
     edit.shape = editedShape(edit, pointer, this.canvasSize())
-    this.showShape(edit.rect, edit.shape)
+    this.showElement(edit.rect, edit.shape)
     this.schedulePreview(edit, () => {
       this.sendPreview(edit)
     })
@@ -1098,7 +1134,7 @@ export class Canvas extends ViewHook {
   private async finishMove(move: Move): Promise<void> {
     const moved = move.members.flatMap((member, index) => {
       const shape = move.shapes[index]
-      return shape === undefined || sameShape(shape, member.origin) ? [] : [{ member, box: shape.box }]
+      return shape === undefined || sameShape(shape, member.origin) ? [] : [{ member, shape }]
     })
     if (moved.length === 0) {
       for (const { elementId } of move.members) this.revert(elementId)
@@ -1106,11 +1142,8 @@ export class Canvas extends ViewHook {
       this.select([move.pressedId])
       return
     }
-    const changes = moved.map(({ member: { elementId, committed }, box }): Change<ElementChange> => ({
-      id: elementId,
-      before: { event: "commit", x: committed.box.x, y: committed.box.y },
-      after: { event: "commit", x: box.x, y: box.y },
-    }))
+    const movedIds = new Set(move.members.map(({ elementId }) => elementId))
+    const changes = moved.map(({ member, shape }) => movedChange(member, shape, movedIds))
     const failed = await this.mutations.commit(changes, move.dragId)
     for (const { id } of failed) this.revert(id)
   }
@@ -1126,8 +1159,20 @@ export class Canvas extends ViewHook {
       return
     }
     const { committed, shape } = edit
-    const before: ElementChange = { event: "commit_shape", box: committed.box, points: committed.points }
-    void this.commitOne(edit.elementId, before, { event: "commit_shape", box: shape.box, points: shape.points }, edit.dragId)
+    const [before, after] = this.rebound(edit, { event: "commit_shape", box: committed.box, points: committed.points }, { event: "commit_shape", box: shape.box, points: shape.points })
+    void this.commitOne(edit.elementId, before, after, edit.dragId)
+  }
+
+  private rebound(edit: Edit, before: ShapeChange, after: ShapeChange): [ShapeChange, ShapeChange] {
+    const kind = edit.rect.dataset.kind
+    if (edit.mode !== "endpoint" || !isElementKind(kind) || !bindsEnds(kind)) return [before, after]
+    const end: BindingEnd = edit.endpoint
+    const point = endpointPoint(edit.shape, end)
+    const next = point === undefined ? undefined : this.bindingAt(point, edit.elementId)
+    return [
+      { ...before, bindings: { [end]: domBindings(edit.rect)[end] ?? null } },
+      { ...after, bindings: { [end]: next ?? null } },
+    ]
   }
 
   private finishDraw(draw: Draw): void {
@@ -1140,7 +1185,8 @@ export class Canvas extends ViewHook {
       return
     }
     const selectionAtRelease = this.selectionChanges
-    void this.mutations.create({ kind: draw.kind, ...box, points, text: "", seed: draw.seed, style: draw.style }, draw.dragId)
+    const bindings = bindsEnds(draw.kind) ? this.bindingsAt({ box, points }, draw.dragId) : {}
+    void this.mutations.create({ kind: draw.kind, ...box, points, text: "", seed: draw.seed, style: draw.style, bindings }, draw.dragId)
       .then((id) => {
         const untouched = this.selectionChanges === selectionAtRelease
         if (id !== undefined && untouched && selectsWhenDrawn(draw.kind)) this.selectWhenPresent([id])
@@ -1520,7 +1566,7 @@ export class Canvas extends ViewHook {
     this.restartStaleTimer(preview.element_id, () => {
       this.cancelRemoteDrag(preview)
     })
-    this.showShape(rect, { box: preview, points: preview.points }, preview.text)
+    this.showElement(rect, { box: preview, points: preview.points }, preview.text)
   }
 
   private applyRemoteGroup(group: GroupPreview): void {
@@ -1535,7 +1581,7 @@ export class Canvas extends ViewHook {
       this.restartStaleTimer(entry.element_id, () => {
         this.cancelRemoteDrag(ref)
       })
-      this.showShape(rect, { box: entry, points: entry.points })
+      this.showElement(rect, { box: entry, points: entry.points })
     }
   }
 
@@ -1581,7 +1627,7 @@ export class Canvas extends ViewHook {
     if (this.isEditing(elementId)) return
     const rect = this.elementFor(elementId)
     if (rect === null) return
-    this.showShape(rect, committedShape(rect), rect.dataset.text ?? "")
+    this.showElement(rect, committedShape(rect), rect.dataset.text ?? "")
   }
 
   private isEditing(elementId: string): boolean {
@@ -1716,7 +1762,7 @@ export class Canvas extends ViewHook {
       this.revert(target.elementId)
       if (sent) void pushClientEvent(this, "drag_cancel", ref)
     } else {
-      this.showShape(target.element, { box, points: [] }, text)
+      this.showElement(target.element, { box, points: [] }, text)
       const before: ElementChange = { event: "commit_shape", box: target.committed, points: [], text: target.text }
       void this.commitOne(target.elementId, before, { event: "commit_shape", box, points: [], text }, ref.drag_id)
     }
@@ -1770,6 +1816,47 @@ export class Canvas extends ViewHook {
 
   private showShape(element: Element, { box, points }: Shape, text?: string): void {
     setShape(element, box, points, text)
+  }
+
+  private showElement(element: Element, shape: Shape, text?: string): void {
+    this.showShape(element, shape, text)
+    const id = element.getAttribute("data-element")
+    if (id !== null) this.followBindings(id)
+  }
+
+  private followBindings(targetId: string): void {
+    const selector = BINDING_ENDS.map((end) => `#elements > [data-${end}-target="${CSS.escape(targetId)}"]`).join(", ")
+    for (const arrow of this.el.querySelectorAll<SVGElement>(selector)) {
+      const arrowId = arrow.dataset.element
+      if (arrowId === undefined || this.isEditing(arrowId)) continue
+      this.showShape(arrow, resolvedShape(renderedShape(arrow), domBindings(arrow), (id) => this.liveBox(id), this.canvasSize()))
+    }
+  }
+
+  private liveBox(elementId: string): Box | undefined {
+    const rect = this.elementFor(elementId)
+    return rect === null ? undefined : renderedBox(rect)
+  }
+
+  private bindingAt(point: Point, except: string): Binding | undefined {
+    const targets = [...this.el.querySelectorAll<SVGElement>("#elements > [data-element]")].filter((rect) => {
+      const { kind, element: id } = rect.dataset
+      return id !== undefined && id !== except && isElementKind(kind) && bindsTo(kind) && boxContains(renderedBox(rect), point)
+    })
+    const top = targets.at(-1)
+    const target = top?.dataset.element
+    return top === undefined || target === undefined ? undefined : { target, anchor: anchorFor(point, renderedBox(top)) }
+  }
+
+  private bindingsAt(shape: Shape, except: string): Bindings {
+    const ends = absolutePoints(shape)
+    return bindingsFrom(
+      BINDING_ENDS.flatMap((end, index) => {
+        const point = ends[index]
+        const binding = point === undefined ? undefined : this.bindingAt(point, except)
+        return binding === undefined ? [] : [[end, binding] as const]
+      }),
+    )
   }
 
   private canvasPoint(event: PointerEvent): Point {

@@ -413,3 +413,16 @@ at the pointer. This still meets SPEC "Create rectangles" through the same Ash
   the `create_element` reply.
 - The server no longer picks a cascading position for new rectangles; the
   pointer chooses it.
+
+## D18 — Arrows and lines attach to shapes (2026-11-05, see ADR 0016)
+
+- **Attaching**: releasing an arrow or line end over a rectangle, diamond, ellipse, text or note
+  attaches that end at the release point. Drawing does it for both ends, and dragging an endpoint
+  handle re-attaches or detaches the end it drags.
+- **Following**: an attached end follows its shape when anyone moves or resizes the shape, live
+  during the drag in every browser, after undo and redo, and after a reload. Moving a shape is
+  still one write and one undo step.
+- **Letting go**: moving an arrow without the shapes it is attached to detaches those ends.
+  Erasing a shape leaves its arrows where they are, detached; undoing the erase brings the shape
+  back, but not the attachment.
+- **Copying**: copied or duplicated arrows are pasted detached.

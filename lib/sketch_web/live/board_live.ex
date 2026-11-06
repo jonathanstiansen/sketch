@@ -13,6 +13,8 @@ defmodule SketchWeb.BoardLive do
   @relayed_events SketchWeb.BoardEvents.relayed_events()
   @ignored_when_malformed Enum.map(SketchWeb.BoardEvents.all(), & &1.event) -- ~w(erase)
   @style_properties Sketch.Canvas.style_properties()
+  @binding_ends Sketch.Canvas.binding_ends()
+  @anchor_scale Sketch.Canvas.binding_anchor_scale()
   @style_params Enum.map(@style_properties, &{Atom.to_string(&1), &1})
 
   defguardp is_uuid(value) when is_binary(value) and byte_size(value) == 36
@@ -26,6 +28,8 @@ defmodule SketchWeb.BoardLive do
                    y <= @canvas_height
 
   defguardp is_seed(value) when is_integer(value) and value >= 0 and value <= @max_seed
+
+  defguardp is_anchor(value) when is_integer(value) and value >= 0 and value <= @anchor_scale
 
   defguardp is_box(x, y, width, height)
             when is_integer(x) and is_integer(y) and is_integer(width) and is_integer(height) and
@@ -63,7 +67,8 @@ defmodule SketchWeb.BoardLive do
     with {:ok, points} <- points(params),
          {:ok, text} <- text(params),
          {:ok, seed} <- seed(params),
-         {:ok, style} <- style(params) do
+         {:ok, style} <- style(params),
+         {:ok, bindings} <- bindings(params, socket.assigns.board_state) do
       shape =
         kind
         |> String.to_existing_atom()
@@ -71,6 +76,7 @@ defmodule SketchWeb.BoardLive do
         |> Map.merge(text)
         |> Map.merge(seed)
         |> Map.merge(style)
+        |> Map.merge(bindings)
 
       {reply, socket} = create_element(socket, kind, shape)
       {:noreply, socket} = broadcast_preview(socket, "draw_end", %{drag_id: drag_id})
@@ -232,8 +238,12 @@ defmodule SketchWeb.BoardLive do
       )
       when is_uuid(element_id) and is_uuid(drag_id) and is_integer_box(x, y, width, height) do
     with {:ok, points} <- points(params),
-         {:ok, text} <- text(params) do
-      shape = Map.merge(%{x: x, y: y, width: width, height: height, points: points}, text)
+         {:ok, text} <- text(params),
+         {:ok, bindings} <- bindings(params, socket.assigns.board_state) do
+      shape =
+        %{x: x, y: y, width: width, height: height, points: points}
+        |> Map.merge(text)
+        |> Map.merge(bindings)
 
       commit(socket, element_id, drag_id, commit_shape_error(text), fn board_id ->
         Sketch.Canvas.commit_shape(element_id, board_id, shape)
@@ -263,13 +273,13 @@ defmodule SketchWeb.BoardLive do
 
   @impl true
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: element}, socket)
-      when event in ~w(create commit_position commit_shape commit_style) do
+      when event in ~w(create commit_position commit_shape commit_style freeze_ends) do
     case Sketch.Canvas.apply_board_event(socket.assigns.board_state, element) do
       {:changed, board_state, element} ->
         {:noreply,
          socket
          |> assign(:board_state, board_state)
-         |> stream_insert(:elements, element)}
+         |> stream_drawn([element | Sketch.Canvas.board_bound_to(board_state, element.id)])}
 
       {:unchanged, _board_state} ->
         {:noreply, socket}
@@ -541,7 +551,7 @@ defmodule SketchWeb.BoardLive do
     case Sketch.Canvas.create_element(
            Map.merge(shape, %{board_id: socket.assigns.board_id, kind: kind})
          ) do
-      {:ok, element} -> {%{element: Sketch.Canvas.element_event(element)}, socket}
+      {:ok, element} -> {%{element: drawn_event(socket, element)}, socket}
       {:error, _error} -> {%{}, put_flash(socket, :error, "Could not add element")}
     end
   end
@@ -549,7 +559,7 @@ defmodule SketchWeb.BoardLive do
   defp erase_element(element_id, socket) do
     case Sketch.Canvas.erase_element(element_id, socket.assigns.board_id, return_destroyed?: true) do
       {:ok, element} ->
-        {[Sketch.Canvas.element_event(element)],
+        {[drawn_event(socket, element)],
          apply_erase(socket, %{id: element_id, board_id: socket.assigns.board_id})}
 
       {:error, _not_on_this_board} ->
@@ -563,6 +573,7 @@ defmodule SketchWeb.BoardLive do
         socket
         |> assign(:board_state, board_state)
         |> stream_delete_by_dom_id(:elements, element_dom_id(element_id))
+        |> stream_drawn(Sketch.Canvas.board_bound_to(board_state, element_id))
         |> push_event("erased", %{id: element_id})
 
       {:unchanged, _board_state} ->
@@ -679,6 +690,8 @@ defmodule SketchWeb.BoardLive do
       |> Sketch.Canvas.list_elements_for_board!()
       |> Enum.map(&Sketch.Canvas.element_event/1)
 
+    board_state = Sketch.Canvas.new_board_state(elements)
+
     socket
     |> assign(:board_id, board_id)
     |> assign(:viewer, viewer)
@@ -689,7 +702,54 @@ defmodule SketchWeb.BoardLive do
     |> show_viewers(others)
     |> assign(:geometry, Sketch.Canvas.geometry())
     |> assign(:stroke_colors, Sketch.Canvas.style_tokens(:stroke_color))
-    |> assign(:board_state, Sketch.Canvas.new_board_state(elements))
-    |> stream(:elements, elements, dom_id: &element_dom_id(&1.id))
+    |> assign(:board_state, board_state)
+    |> stream(:elements, Enum.map(elements, &Sketch.Canvas.drawn_element(board_state, &1)),
+      dom_id: &element_dom_id(&1.id)
+    )
+  end
+
+  defp stream_drawn(socket, elements) do
+    Enum.reduce(elements, socket, fn element, socket ->
+      stream_insert(
+        socket,
+        :elements,
+        Sketch.Canvas.drawn_element(socket.assigns.board_state, element)
+      )
+    end)
+  end
+
+  defp drawn_event(socket, element),
+    do:
+      Sketch.Canvas.drawn_element(
+        socket.assigns.board_state,
+        Sketch.Canvas.element_event(element)
+      )
+
+  defp bindings(params, board_state) do
+    Enum.reduce_while(@binding_ends, {:ok, %{}}, fn end_name, {:ok, fields} ->
+      case end_binding(Map.fetch(params, "#{end_name}_binding"), board_state) do
+        {:ok, binding} -> {:cont, {:ok, Map.merge(fields, binding_fields(end_name, binding))}}
+        :error -> {:halt, :error}
+      end
+    end)
+  end
+
+  defp end_binding(:error, _board_state), do: {:ok, :unchanged}
+  defp end_binding({:ok, nil}, _board_state), do: {:ok, nil}
+
+  defp end_binding({:ok, %{"target_id" => id, "anchor_x" => x, "anchor_y" => y}}, board_state)
+       when is_uuid(id) and is_anchor(x) and is_anchor(y) do
+    if Sketch.Canvas.board_binding_target?(board_state, id),
+      do: {:ok, %{target: id, anchor_x: x, anchor_y: y}},
+      else: {:ok, nil}
+  end
+
+  defp end_binding(_malformed, _board_state), do: :error
+
+  defp binding_fields(_end_name, :unchanged), do: %{}
+
+  defp binding_fields(end_name, binding) do
+    fields = Sketch.Canvas.binding_fields(end_name)
+    Map.new(fields, fn {key, field} -> {field, binding && Map.fetch!(binding, key)} end)
   end
 end

@@ -74,6 +74,16 @@ export const TYPED_KINDS = ["text"] as const
 
 export type TypedKind = (typeof TYPED_KINDS)[number]
 
+export const BINDING_KINDS = ["arrow", "line"] as const
+
+export type BindingKind = (typeof BINDING_KINDS)[number]
+
+export const BINDING_TARGET_KINDS = ["rectangle", "diamond", "ellipse", "text", "note"] as const
+
+export type BindingTargetKind = (typeof BINDING_TARGET_KINDS)[number]
+
+export const ANCHOR_SCALE = 1000
+
 export interface ToolSpec {
   readonly id: string
   readonly label: string
@@ -235,10 +245,10 @@ export interface ClientEventPayloads {
   readonly "draw_cancel": { readonly drag_id: string }
   readonly "cursor": { readonly seq: number; readonly x: number; readonly y: number }
   readonly "cursor_leave": { readonly seq: number }
-  readonly "create_element": { readonly drag_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly sloppiness?: StyleToken<"sloppiness">; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
+  readonly "create_element": { readonly drag_id: string; readonly end_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly sloppiness?: StyleToken<"sloppiness">; readonly start_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
   readonly "erase": { readonly element_ids: readonly string[] }
   readonly "commit": { readonly drag_id: string; readonly element_id: string; readonly x: number; readonly y: number }
-  readonly "commit_shape": { readonly drag_id: string; readonly element_id: string; readonly height: number; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
+  readonly "commit_shape": { readonly drag_id: string; readonly element_id: string; readonly end_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly height: number; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly start_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
   readonly "commit_style": { readonly element_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly sloppiness?: StyleToken<"sloppiness">; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width"> }
 }
 

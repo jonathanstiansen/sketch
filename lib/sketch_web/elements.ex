@@ -69,6 +69,7 @@ defmodule SketchWeb.Elements do
       data-text={text_attribute(@element.text)}
       data-seed={@element.seed}
       {style_attributes(@element)}
+      {binding_attributes(@element)}
       data-version={@element.version}
       x={@element.x}
       y={@element.y}
@@ -123,6 +124,21 @@ defmodule SketchWeb.Elements do
     Enum.map(Sketch.Canvas.style_properties(), fn property ->
       {"data-#{String.replace(Atom.to_string(property), "_", "-")}",
        Map.fetch!(element, property)}
+    end)
+  end
+
+  defp binding_attributes(element) do
+    Enum.flat_map(Sketch.Canvas.binding_ends(), fn end_name ->
+      %{target: target, anchor_x: anchor_x, anchor_y: anchor_y} =
+        Sketch.Canvas.binding_fields(end_name)
+
+      case element do
+        %{^target => id, ^anchor_x => x, ^anchor_y => y} when is_binary(id) ->
+          [{"data-#{end_name}-target", id}, {"data-#{end_name}-anchor", "#{x},#{y}"}]
+
+        _unbound ->
+          []
+      end
     end)
   end
 

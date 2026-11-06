@@ -1,3 +1,4 @@
+import { BINDING_ENDS, bindingsFrom, type Binding, type BindingEnd, type Bindings } from "./binding_logic.ts"
 import type { Box, Point } from "./canvas_logic.ts"
 import { History, type Recorded } from "./history_logic.ts"
 import { isElementKind } from "./tools.ts"
@@ -12,11 +13,14 @@ export interface ElementSnapshot extends Box {
   readonly text: string
   readonly seed: number
   readonly style: ElementStyle
+  readonly bindings?: Bindings
 }
+
+export type BindingChange = Readonly<Partial<Record<BindingEnd, Binding | null>>>
 
 export type ElementChange =
   | { readonly event: "commit"; readonly x: number; readonly y: number }
-  | { readonly event: "commit_shape"; readonly box: Box; readonly points: readonly Point[]; readonly text?: string }
+  | { readonly event: "commit_shape"; readonly box: Box; readonly points: readonly Point[]; readonly text?: string; readonly bindings?: BindingChange }
   | { readonly event: "commit_style"; readonly property: StyleProperty; readonly value: string }
 
 export type ElementHistory = History<ElementSnapshot, ElementChange>
@@ -41,6 +45,35 @@ function hasBox<T extends Record<string, unknown>>(value: T): value is T & Box {
   return ["x", "y", "width", "height"].every((key) => Number.isInteger(value[key]))
 }
 
+function eventBinding(value: Record<string, unknown>, end: BindingEnd): Binding | undefined {
+  const target = value[`${end}_target_id`]
+  const x = value[`${end}_anchor_x`]
+  const y = value[`${end}_anchor_y`]
+  return typeof target === "string" && typeof x === "number" && typeof y === "number" ? { target, anchor: { x, y } } : undefined
+}
+
+function eventBindings(value: Record<string, unknown>): Bindings {
+  return bindingsFrom(
+    BINDING_ENDS.flatMap((end) => {
+      const binding = eventBinding(value, end)
+      return binding === undefined ? [] : [[end, binding] as const]
+    }),
+  )
+}
+
+function bindingPayload(binding: Binding | null): { target_id: string; anchor_x: number; anchor_y: number } | null {
+  return binding === null ? null : { target_id: binding.target, anchor_x: binding.anchor.x, anchor_y: binding.anchor.y }
+}
+
+function bindingPayloads(bindings: BindingChange): { start_binding?: ReturnType<typeof bindingPayload>; end_binding?: ReturnType<typeof bindingPayload> } {
+  return Object.fromEntries(
+    BINDING_ENDS.flatMap((end) => {
+      const binding = bindings[end]
+      return binding === undefined ? [] : [[`${end}_binding`, bindingPayload(binding)]]
+    }),
+  )
+}
+
 export function recordedElement(value: unknown): Recorded<ElementSnapshot> | undefined {
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.text !== "string") return undefined
   const { kind, points, seed } = value
@@ -58,6 +91,7 @@ export function recordedElement(value: unknown): Recorded<ElementSnapshot> | und
       text: value.text,
       seed,
       style: styleFrom((property) => value[property]),
+      bindings: eventBindings(value),
     },
   }
 }
@@ -67,16 +101,16 @@ export function recordedElements(value: unknown): Recorded<ElementSnapshot>[] {
   return value.flatMap((element) => recordedElement(element) ?? [])
 }
 
-export function createPayload({ kind, x, y, width, height, points, text, seed, style }: ElementSnapshot, dragId: string): ClientEventPayloads["create_element"] {
-  return { kind, drag_id: dragId, x, y, width, height, points, text, seed, ...style }
+export function createPayload({ kind, x, y, width, height, points, text, seed, style, bindings = {} }: ElementSnapshot, dragId: string): ClientEventPayloads["create_element"] {
+  return { kind, drag_id: dragId, x, y, width, height, points, text, seed, ...style, ...bindingPayloads(bindings) }
 }
 
 export function positionPayload(elementId: string, { x, y }: Extract<ElementChange, { event: "commit" }>, dragId: string): ClientEventPayloads["commit"] {
   return { element_id: elementId, drag_id: dragId, x, y }
 }
 
-export function shapePayload(elementId: string, { box, points, text }: Extract<ElementChange, { event: "commit_shape" }>, dragId: string): ClientEventPayloads["commit_shape"] {
-  const shape = { element_id: elementId, drag_id: dragId, ...box, points }
+export function shapePayload(elementId: string, { box, points, text, bindings = {} }: Extract<ElementChange, { event: "commit_shape" }>, dragId: string): ClientEventPayloads["commit_shape"] {
+  const shape = { element_id: elementId, drag_id: dragId, ...box, points, ...bindingPayloads(bindings) }
   return text === undefined ? shape : { ...shape, text }
 }
 
