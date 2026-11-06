@@ -5,7 +5,8 @@ defmodule SketchWeb.BindingFixtures do
   zero-sized to the full canvas, and `Sketch.Canvas.Binding.anchor_for/2` for points on, inside
   and outside a box. The cases come from a fixed random seed plus the edges, so the file only
   changes when the rule does. `assets/test/binding_parity.test.ts` expects the client twin to
-  return the same. `mix sketch.gen.render_fixtures` writes it with the other parity fixtures.
+  return the same. Every map is written with string keys, so the key order does not depend on
+  atom order. `mix sketch.gen.render_fixtures` writes it with the other parity fixtures.
   """
 
   @path "assets/test/fixtures/binding_parity.json"
@@ -33,8 +34,12 @@ defmodule SketchWeb.BindingFixtures do
 
     edges = for box <- @edge_boxes, anchor <- @edge_anchors, do: edge_case(box, anchor)
 
-    resolve = Enum.map_join(edges ++ random, ",\n", &"    #{JSON.encode!(&1)}")
-    anchors = Enum.map_join(anchor_cases(), ",\n", &"    #{JSON.encode!(&1)}")
+    resolve =
+      Enum.map_join(edges ++ random, ",\n", &"    #{&1 |> string_keys() |> JSON.encode!()}")
+
+    anchors =
+      Enum.map_join(anchor_cases(), ",\n", &"    #{&1 |> string_keys() |> JSON.encode!()}")
+
     "{\n  \"resolve\": [\n#{resolve}\n  ],\n  \"anchor_for\": [\n#{anchors}\n  ]\n}\n"
   end
 
@@ -100,11 +105,13 @@ defmodule SketchWeb.BindingFixtures do
     }
   end
 
-  defp wire(arrow) do
-    arrow
-    |> Map.update!(:kind, &Atom.to_string/1)
-    |> Map.new(fn {key, value} -> {Atom.to_string(key), value} end)
-  end
+  defp wire(arrow), do: Map.update!(arrow, :kind, &Atom.to_string/1)
+
+  defp string_keys(map) when is_map(map),
+    do: Map.new(map, fn {key, value} -> {to_string(key), string_keys(value)} end)
+
+  defp string_keys(list) when is_list(list), do: Enum.map(list, &string_keys/1)
+  defp string_keys(value), do: value
 
   defp bind(arrow, _end_name, false, _anchor), do: arrow
 
