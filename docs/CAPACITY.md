@@ -1,6 +1,8 @@
 # Concurrent users (capacity)
 
-**One busy board holds about 80 people comfortably and breaks down between 160 and 240. Many small boards scale much further: 3,000 people on 600 boards stayed under 75 ms p99 at 31% server CPU.** Past that, the load generator and the server competed for the same laptop, so the server's real ceiling is not measured yet.
+**Update (ADR 0018): with cursor batching, one board holds about 240 active people (p99 60 ms) and breaks down near 320.** The tables below are the measurements from before batching; ADR 0018 has the before-and-after comparison.
+
+**Before batching, one busy board held about 80 people comfortably and broke down between 160 and 240. Many small boards scale much further: 3,000 people on 600 boards stayed under 75 ms p99 at 31% server CPU.** Past that, the load generator and the server competed for the same laptop, so the server's real ceiling is not measured yet.
 
 These numbers come from a native `mix release` on one development laptop, with the load generator on the same machine. Treat them as a floor for one node, not a deployment figure.
 
@@ -49,6 +51,7 @@ At 3,000 the generator's own delay reached 75 ms, so part of that latency is the
 
 ## Not covered yet
 
+- **A board past about 300 active people**: still collapses after batching, because the views of a board exchange N × (N − 1) messages. ADR 0018 lists the fixes: a per-board relay (needs a change to A12) or a cap.
 - **The server's real ceiling**: needs the generator on a separate machine, or several.
 - **Boards with content**: each LiveView keeps the board's elements in `BoardState`, so memory per person grows with board size. Every run here used an empty board.
 - **Durable writes under load**: creates, moves and erases go to PostgreSQL through a pool of 10 connections (`POOL_SIZE`). The runs only send cursors.
@@ -76,4 +79,4 @@ node tools/load/load.ts --base-url http://127.0.0.1:4100 \
   --scenario many-boards --users-per-board 5 --steps 100,500,1000,2000 --seconds 15 --out many-boards.jsonl
 ```
 
-`bin/sketch rpc` needs the same release environment variables as the server. Other options: `--cursor-hz` (default 20) and `--join-concurrency` (default 25). To go past one generator's limit, run several processes against the same server, each with its own `--out`; their boards never overlap.
+`bin/sketch rpc` needs the same release environment variables as the server. Each simulated person starts at a random point in the send interval, so senders are not in lockstep. Other options: `--cursor-hz` (default 20) and `--join-concurrency` (default 25). To go past one generator's limit, run several processes against the same server, each with its own `--out`; their boards never overlap.

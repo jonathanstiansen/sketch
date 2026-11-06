@@ -59,7 +59,7 @@ defmodule SketchWeb.BoardLivePresenceTest do
     %{alice: alice, bob: bob} = ctx
     alice_id = own_id(alice)
     render_hook(alice, "cursor", cursor(10, 10, 1))
-    assert_push_event(bob, "cursor", %{viewer_id: ^alice_id})
+    assert_push_event(bob, "cursors", %{cursors: [%{viewer_id: ^alice_id}]})
 
     Process.flag(:trap_exit, true)
     ref = Process.monitor(alice.pid)
@@ -77,7 +77,10 @@ defmodule SketchWeb.BoardLivePresenceTest do
 
     {:ok, carol, _html} = live(conn, ~p"/b/#{board.id}")
 
-    assert_push_event(carol, "cursor", %{viewer_id: ^alice_id, x: 700, y: 800, seq: 4})
+    assert_push_event(carol, "cursors", %{
+      cursors: [%{viewer_id: ^alice_id, x: 700, y: 800, seq: 4}]
+    })
+
     assert has_element?(carol, avatar(alice_id) <> "[data-on-canvas='true']")
   end
 

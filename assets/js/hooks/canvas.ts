@@ -623,13 +623,8 @@ export class Canvas extends ViewHook {
     this.handleEvent("draw_end", (payload: unknown) => {
       if (isRecord(payload) && typeof payload.drag_id === "string") this.endRemoteDraw(payload.drag_id)
     })
-    this.handleEvent("cursor", (payload: unknown) => {
-      if (isRemoteCursor(payload)) this.applyRemoteCursor(payload)
-    })
-    this.handleEvent("cursor_leave", (payload: unknown) => {
-      if (isRecord(payload) && typeof payload.viewer_id === "string" && typeof payload.seq === "number") {
-        this.removeRemoteCursor(payload.viewer_id, payload.seq)
-      }
+    this.handleEvent("cursors", (payload: unknown) => {
+      if (isRecord(payload) && Array.isArray(payload.cursors)) for (const cursor of payload.cursors as unknown[]) this.applyRemoteEntry(cursor)
     })
     this.handleEvent("viewer_left", (payload: unknown) => {
       if (isRecord(payload) && typeof payload.viewer_id === "string") this.forgetViewer(payload.viewer_id)
@@ -698,6 +693,14 @@ export class Canvas extends ViewHook {
     this.cursorTimer = undefined
     const seq = this.cursorSender.leave()
     if (seq !== undefined && this.online) void pushClientEvent(this, "cursor_leave", { seq })
+  }
+
+  private applyRemoteEntry(entry: unknown): void {
+    if (isRemoteCursor(entry)) {
+      this.applyRemoteCursor(entry)
+    } else if (isRecord(entry) && entry.left === true && typeof entry.viewer_id === "string" && typeof entry.seq === "number") {
+      this.removeRemoteCursor(entry.viewer_id, entry.seq)
+    }
   }
 
   private applyRemoteCursor(cursor: RemoteCursor): void {

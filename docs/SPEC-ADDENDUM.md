@@ -219,7 +219,9 @@ other viewers' pointers on the canvas, with a name label, live.
   axis) and a non-negative `seq`, and broadcasts
   `{viewer_id, name, color, x, y, seq}` on the board topic to every other view.
   Leaving the canvas or hiding the tab pushes `cursor_leave` `{seq}`, relayed as
-  `{viewer_id, seq}`; `seq` is one counter per view shared by both events.
+  `{viewer_id, seq, left: true}`; `seq` is one counter per view shared by both events.
+  Each receiving view batches what it receives: it keeps each viewer's latest entry
+  and pushes them as one `cursors` event at most every 16 ms (ADR 0018).
   Cursors are never persisted: they cause no database query (A10).
 - **Receivers** drop a message whose `seq` is not newer than the newest message
   or leave seen for that `viewer_id`, and remove a cursor after 2000 ms without

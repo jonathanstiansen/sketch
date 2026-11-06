@@ -202,9 +202,11 @@ async function runStep(users: number): Promise<StepResult> {
   const clients = await inBatches(users, joinConcurrency, async (index) => {
     const client = new LiveClient()
     client.onPushEvent = (event, payload) => {
-      if (event !== "cursor") return
-      const started = sentAt.get(payload.seq as number)
-      if (started !== undefined) latencies.push(performance.now() - started)
+      const cursors = event === "cursors" ? (payload.cursors as Record<string, unknown>[]) : event === "cursor" ? [payload] : []
+      for (const cursor of cursors) {
+        const started = sentAt.get(cursor.seq as number)
+        if (started !== undefined) latencies.push(performance.now() - started)
+      }
     }
     const started = performance.now()
     await client.join(boards[Math.floor(index / boardSize)] ?? "")
@@ -217,20 +219,24 @@ async function runStep(users: number): Promise<StepResult> {
   let sent = 0
   let expected = 0
   const intervalMs = 1000 / cursorHz
-  const timers = clients.map((client, index) => {
+  const starting = clients.map((client, index) => {
     const peers = Math.min(boardSize, users - Math.floor(index / boardSize) * boardSize) - 1
     let seq = index * seqStride
     let angle = Math.random() * Math.PI * 2
-    return setInterval(() => {
+    const move = (): void => {
       seq += 1
       angle += 0.2
       sentAt.set(seq, performance.now())
       client.pushHook("cursor", { x: Math.round(2000 + 500 * Math.cos(angle)), y: Math.round(2000 + 500 * Math.sin(angle)), seq })
       sent += 1
       expected += peers
-    }, intervalMs)
+    }
+    return new Promise<ReturnType<typeof setInterval>>((resolve) => {
+      setTimeout(() => resolve(setInterval(move, intervalMs)), Math.random() * intervalMs)
+    })
   })
 
+  const timers = await Promise.all(starting)
   const statsPromise = new Promise<Record<string, unknown> | undefined>((resolve) => {
     setTimeout(() => void serverStats().then(resolve), (stepSeconds * 1000) / 2)
   })
