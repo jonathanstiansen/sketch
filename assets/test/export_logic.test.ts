@@ -91,12 +91,16 @@ const candidates = fc.uniqueArray(fc.uuid(), { minLength: 1, maxLength: 10 }).ma
   ids.map((id, index) => ({ id, box: { x: index, y: index, width: 10, height: 10 } })),
 )
 
-void test("only-selected keeps exactly the selected element", () => {
+const candidatesAndSelection = candidates.chain((all) =>
+  fc.tuple(fc.constant(all), fc.subarray(all.map(({ id }) => id), { minLength: 1 })),
+)
+
+void test("only-selected keeps exactly the selected elements, in canvas order", () => {
   fc.assert(
-    fc.property(candidates, fc.nat(), (all, pick) => {
-      const selected = all[pick % all.length]
-      assert.ok(selected !== undefined)
-      assert.deepEqual(includedCandidates(all, { onlySelected: true, selectedId: selected.id }), [selected])
+    fc.property(candidatesAndSelection, ([all, selectedIds]) => {
+      const kept = includedCandidates(all, { onlySelected: true, selectedIds })
+      assert.deepEqual(kept, all.filter(({ id }) => selectedIds.includes(id)))
+      assert.equal(kept.length, selectedIds.length)
     }),
     settings,
   )
@@ -105,8 +109,8 @@ void test("only-selected keeps exactly the selected element", () => {
 void test("without only-selected, or without a selection, every element is kept", () => {
   fc.assert(
     fc.property(candidates, (all) => {
-      assert.deepEqual(includedCandidates(all, { onlySelected: false, selectedId: all[0]?.id }), all)
-      assert.deepEqual(includedCandidates(all, { onlySelected: true, selectedId: undefined }), all)
+      assert.deepEqual(includedCandidates(all, { onlySelected: false, selectedIds: all.map(({ id }) => id) }), all)
+      assert.deepEqual(includedCandidates(all, { onlySelected: true, selectedIds: [] }), all)
     }),
     settings,
   )

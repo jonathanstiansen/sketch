@@ -7,6 +7,14 @@ export type Selection = readonly string[]
 
 export const EMPTY_SELECTION: Selection = []
 
+export function selectionAttribute(selection: Selection): string | undefined {
+  return selection.length === 0 ? undefined : selection.join(" ")
+}
+
+export function selectionFromAttribute(value: string | null): Selection {
+  return value === null ? EMPTY_SELECTION : value.split(" ").filter((id) => id !== "")
+}
+
 export function toggled(selection: Selection, id: string): Selection {
   return selection.includes(id) ? selection.filter((selected) => selected !== id) : [...selection, id]
 }

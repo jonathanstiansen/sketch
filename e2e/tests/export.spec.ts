@@ -221,6 +221,34 @@ async function menuClip(page: Page): Promise<{ x: number; y: number; width: numb
   return { x: left, y: top, width: right - left, height: bottom - top }
 }
 
+test("Only selected exports every selected element when several are selected", async ({ browser }) => {
+  const context = await newExportContext(browser)
+  const page = await context.newPage()
+  try {
+    await sampleBoard(page)
+    await page.keyboard.press("Escape")
+    await clickAt(page, 220, 165)
+    await page.keyboard.down("Shift")
+    await clickAt(page, 480, 180)
+    await page.keyboard.up("Shift")
+    await expect(page.locator("#canvas-viewport")).toHaveAttribute("data-selected-count", "2")
+
+    await openExportMenu(page)
+    const only = page.locator(menu).getByLabel("Only selected")
+    await expect(only).toBeEnabled()
+    await only.check()
+    const selectedIds = ((await page.locator("#canvas-viewport").getAttribute("data-selected-element")) ?? "").split(" ")
+    const selected = (await elementBoxes(page)).filter(({ id }) => selectedIds.includes(id))
+    expect(selected).toHaveLength(2)
+
+    const svg = await summarise(page, (await downloadedBytes(await downloadVia(page, "download_svg"))).toString("utf8"))
+    expect(svg.elementIds).toEqual(selected.map(({ id }) => id))
+    expect(svg.viewBox).toBe(croppedTo(selected))
+  } finally {
+    await context.close()
+  }
+})
+
 test("Shift+Alt+C copies the board to the clipboard as a PNG with the SVG as text", async ({ browser }) => {
   const context = await newExportContext(browser)
   const page = await context.newPage()
