@@ -116,13 +116,13 @@ defmodule SketchWeb.BoardEvents do
     },
     %{
       event: "cursor",
-      relays_as: "cursor",
+      relays_as: "cursors",
       payload: %{x: :integer, y: :integer, seq: :integer},
       example: %{"x" => 10, "y" => 20, "seq" => 1}
     },
     %{
       event: "cursor_leave",
-      relays_as: "cursor_leave",
+      relays_as: "cursors",
       payload: %{seq: :integer},
       example: %{"seq" => 2}
     }

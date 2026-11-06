@@ -10,6 +10,7 @@ defmodule SketchWeb.BoardLive do
   @max_text_bytes Sketch.Canvas.geometry().max_text_length * 4
   @max_seed Sketch.Canvas.geometry().max_seed
   @max_group_elements 1000
+  @cursor_batch_ms 16
   @relayed_events SketchWeb.BoardEvents.relayed_events()
   @ignored_when_malformed Enum.map(SketchWeb.BoardEvents.all(), & &1.event) -- ~w(erase)
   @style_properties Sketch.Canvas.style_properties()
@@ -194,14 +195,14 @@ defmodule SketchWeb.BoardLive do
     socket
     |> track_on_canvas(true)
     |> assign(:cursor, cursor)
-    |> broadcast_preview("cursor", cursor)
+    |> broadcast_preview("cursors", cursor)
   end
 
   def handle_event("cursor_leave", %{"seq" => seq}, socket) when is_seq(seq) do
     socket
     |> track_on_canvas(false)
     |> assign(:cursor, nil)
-    |> broadcast_preview("cursor_leave", %{viewer_id: socket.assigns.viewer.id, seq: seq})
+    |> broadcast_preview("cursors", %{viewer_id: socket.assigns.viewer.id, seq: seq, left: true})
   end
 
   def handle_event("erase", %{"element_ids" => element_ids}, socket) when is_list(element_ids) do
@@ -311,6 +312,12 @@ defmodule SketchWeb.BoardLive do
     |> show_viewers(joined)
     |> share_cursor_with(arrived)
   end
+
+  def handle_info(%Phoenix.Socket.Broadcast{event: "cursors", payload: cursor}, socket) do
+    {:noreply, queue_cursor(socket, cursor)}
+  end
+
+  def handle_info(:flush_cursors, socket), do: {:noreply, flush_cursors(socket)}
 
   def handle_info(%Phoenix.Socket.Broadcast{event: event, payload: payload}, socket)
       when event in @relayed_events do
@@ -670,11 +677,54 @@ defmodule SketchWeb.BoardLive do
   end
 
   defp share_cursor_with(%{assigns: %{cursor: %{} = cursor}} = socket, [_arrived | _more]),
-    do: broadcast_preview(socket, "cursor", cursor)
+    do: broadcast_preview(socket, "cursors", cursor)
 
   defp share_cursor_with(socket, _arrived), do: {:noreply, socket}
 
   defp viewer_dom_id(viewer_id), do: "viewer-#{viewer_id}"
+
+  defp queue_cursor(socket, %{viewer_id: viewer_id} = cursor) do
+    pending = Map.update(pending_cursors(socket), viewer_id, cursor, &later_cursor(&1, cursor))
+
+    socket
+    |> put_private(:pending_cursors, pending)
+    |> schedule_cursor_flush()
+  end
+
+  defp schedule_cursor_flush(%{private: %{cursor_flush_scheduled: true}} = socket), do: socket
+  defp schedule_cursor_flush(socket), do: flush_cursors_in(socket, cursor_batch_wait(socket))
+
+  defp flush_cursors_in(socket, wait) when wait <= 0, do: flush_cursors(socket)
+
+  defp flush_cursors_in(socket, wait) do
+    Process.send_after(self(), :flush_cursors, wait)
+    put_private(socket, :cursor_flush_scheduled, true)
+  end
+
+  defp pending_cursors(socket), do: Map.get(socket.private, :pending_cursors, %{})
+
+  defp later_cursor(%{seq: held} = current, %{seq: arriving}) when held > arriving, do: current
+  defp later_cursor(_current, arriving), do: arriving
+
+  defp cursor_batch_wait(socket) do
+    case socket.private[:cursors_flushed_at] do
+      nil -> 0
+      flushed_at -> flushed_at + @cursor_batch_ms - System.monotonic_time(:millisecond)
+    end
+  end
+
+  defp flush_cursors(socket) do
+    cursors = socket |> pending_cursors() |> Map.values()
+
+    socket
+    |> put_private(:pending_cursors, %{})
+    |> put_private(:cursor_flush_scheduled, false)
+    |> put_private(:cursors_flushed_at, System.monotonic_time(:millisecond))
+    |> push_cursors(cursors)
+  end
+
+  defp push_cursors(socket, []), do: socket
+  defp push_cursors(socket, cursors), do: push_event(socket, "cursors", %{cursors: cursors})
 
   defp initials(name) do
     name |> String.split() |> Enum.map_join(&String.first/1)

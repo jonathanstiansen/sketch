@@ -8,11 +8,11 @@ defmodule Sketch.ArchitectureFixtures.BoardLive do
   def handle_event("poke", _params, socket), do: {:noreply, socket}
 
   def handle_event("cursor", %{"x" => x}, socket) do
-    broadcast_preview(socket, "cursor", %{x: x})
+    broadcast_preview(socket, "cursors", %{x: x})
   end
 
   def handle_event("commit", %{"element_id" => id}, socket) do
-    socket |> broadcast_preview("cursor", %{id: id})
+    socket |> broadcast_preview("cursors", %{id: id})
   end
 
   def handle_event("sneak", %{"selected" => selected}, socket) do

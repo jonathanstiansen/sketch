@@ -29,6 +29,12 @@ defmodule SketchWeb.BoardLiveDragTest do
     on_exit(fn -> :telemetry.detach(handler_id) end)
   end
 
+  defp cursor_seqs_until_leave(view, seqs \\ []) do
+    assert_push_event(view, "cursors", %{cursors: [entry]})
+    seqs = [entry.seq | seqs]
+    if Map.get(entry, :left), do: Enum.reverse(seqs), else: cursor_seqs_until_leave(view, seqs)
+  end
+
   defp preview(rectangle, seq, x) do
     %{
       "element_id" => rectangle.id,
@@ -96,14 +102,16 @@ defmodule SketchWeb.BoardLiveDragTest do
 
       render_hook(dragger, "cursor_leave", %{"seq" => 51})
 
-      assert_push_event(watcher, "cursor", %{seq: 1, x: 101, y: 200})
-      assert_push_event(watcher, "cursor", %{seq: 50, x: 150})
-      assert_push_event(watcher, "cursor_leave", %{seq: 51})
+      assert_push_event(watcher, "cursors", %{cursors: [%{seq: 1, x: 101, y: 200}]})
+      seqs = cursor_seqs_until_leave(watcher)
+      assert List.last(seqs) == 51
+      assert seqs == Enum.sort(seqs)
+      assert length(seqs) < 50
 
       render(dragger)
       render(watcher)
       refute_received {:repo_query, _pid, _query}
-      refute_push_event(dragger, "cursor", %{})
+      refute_push_event(dragger, "cursors", %{})
     end
 
     test "a commit writes exactly one update and broadcasts the next version", ctx do
@@ -142,12 +150,11 @@ defmodule SketchWeb.BoardLiveDragTest do
     render_hook(dragger, "cursor_leave", %{"seq" => 2})
 
     assert_push_event(watcher, "preview", %{x: 300})
-    assert_push_event(watcher, "cursor", %{x: 300, y: 300})
-    assert_push_event(watcher, "cursor_leave", %{seq: 2})
+    assert_push_event(watcher, "cursors", %{cursors: [%{x: 300, y: 300}]})
+    assert_push_event(watcher, "cursors", %{cursors: [%{seq: 2, left: true}]})
     render(outsider)
     refute_push_event(outsider, "preview", %{})
-    refute_push_event(outsider, "cursor", %{})
-    refute_push_event(outsider, "cursor_leave", %{})
+    refute_push_event(outsider, "cursors", %{})
   end
 
   test "invalid preview, cancel and commit payloads are ignored", ctx do
