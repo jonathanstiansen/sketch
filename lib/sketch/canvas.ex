@@ -72,6 +72,38 @@ defmodule Sketch.Canvas do
 
   defdelegate default_box(element_count), to: Sketch.Canvas.Geometry
 
+  @doc "The kinds whose ends may be bound to another element (ADR 0016)."
+  defdelegate binding_kinds, to: Sketch.Canvas.Binding, as: :kinds
+
+  @doc "The kinds the client binds an arrow end to (ADR 0016)."
+  defdelegate binding_target_kinds, to: Sketch.Canvas.Binding, as: :target_kinds
+
+  defdelegate binding_anchor_scale, to: Sketch.Canvas.Binding, as: :anchor_scale
+
+  defdelegate binding_ends, to: Sketch.Canvas.Binding, as: :ends
+
+  defdelegate binding_fields(end_name), to: Sketch.Canvas.Binding, as: :fields
+
+  @doc "The anchor of a point on a target's box, in per mille (ADR 0016)."
+  defdelegate binding_anchor_for(point, box), to: Sketch.Canvas.Binding, as: :anchor_for
+
+  @doc "The ids an element's ends are bound to (ADR 0016)."
+  defdelegate binding_targets(element), to: Sketch.Canvas.Binding, as: :targets
+
+  @doc "An element as drawn, its bound ends on their targets' current boxes (ADR 0016)."
+  defdelegate resolve_binding(element, box_of), to: Sketch.Canvas.Binding, as: :resolve
+
+  @doc "An element as drawn on a board state: its bound ends on their targets (ADR 0016)."
+  defdelegate drawn_element(board_state, element), to: Sketch.Canvas.BoardState, as: :drawn
+
+  defdelegate board_bound_to(board_state, element_id),
+    to: Sketch.Canvas.BoardState,
+    as: :bound_to
+
+  defdelegate board_binding_target?(board_state, element_id),
+    to: Sketch.Canvas.BoardState,
+    as: :binding_target?
+
   defdelegate fit_shape(kind, box, points), to: Sketch.Canvas.Geometry
 
   defdelegate point_kinds, to: Sketch.Canvas.Geometry

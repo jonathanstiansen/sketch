@@ -114,6 +114,13 @@ defmodule SketchWeb.ClientManifest do
         "TypedKind",
         for(%{id: id, draw_gesture: :click_to_type} <- specs, do: id)
       ),
+      literal_list("BINDING_KINDS", "BindingKind", Sketch.Canvas.binding_kinds()),
+      literal_list(
+        "BINDING_TARGET_KINDS",
+        "BindingTargetKind",
+        Sketch.Canvas.binding_target_kinds()
+      ),
+      "export const ANCHOR_SCALE = #{Sketch.Canvas.binding_anchor_scale()}\n",
       @tool_spec_interface,
       tools(),
       "export type ToolId = (typeof TOOLS)[number][\"id\"]\n",
@@ -339,6 +346,7 @@ defmodule SketchWeb.ClientManifest do
   defp field_type(:points), do: "readonly { readonly x: number; readonly y: number }[]"
   defp field_type({:style_token, property}), do: "StyleToken<#{string(property)}>"
   defp field_type({:list, type}), do: "readonly #{field_type(type)}[]"
+  defp field_type({:nullable, type}), do: "#{field_type(type)} | null"
   defp field_type(payload) when is_map(payload), do: payload_type(payload)
 
   defp context_overlaps do

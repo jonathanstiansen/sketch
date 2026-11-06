@@ -21,6 +21,10 @@ defmodule Sketch.Canvas.BoardState do
           erased: MapSet.t(term())
         }
 
+  alias Sketch.Canvas.Binding
+
+  @target_kinds Binding.target_kinds()
+
   defstruct elements: %{}, erased: MapSet.new()
 
   @spec new([event()]) :: t()
@@ -38,6 +42,25 @@ defmodule Sketch.Canvas.BoardState do
 
   @spec erased?(t(), term()) :: boolean()
   def erased?(%__MODULE__{erased: erased}, id), do: MapSet.member?(erased, id)
+
+  @doc "An element as drawn: its bound ends on their targets' boxes in this state (ADR 0016)."
+  @spec drawn(t(), element_event()) :: element_event()
+  def drawn(%__MODULE__{elements: elements}, element),
+    do: Binding.resolve(element, &box(Map.get(elements, &1)))
+
+  @doc "The elements with an end bound to `id`."
+  @spec bound_to(t(), term()) :: [element_event()]
+  def bound_to(%__MODULE__{elements: elements}, id),
+    do: for({_id, element} <- elements, id in Binding.targets(element), do: element)
+
+  @doc "Whether `id` is an element in this state that an arrow end may be bound to."
+  @spec binding_target?(t(), term()) :: boolean()
+  def binding_target?(%__MODULE__{elements: elements}, id) do
+    match?(%{kind: kind} when kind in @target_kinds, Map.get(elements, id))
+  end
+
+  defp box(nil), do: nil
+  defp box(element), do: Map.take(element, [:x, :y, :width, :height])
 
   defp merge(%{elements: elements} = state, %{id: id, version: version} = event) do
     case elements do

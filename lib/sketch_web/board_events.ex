@@ -28,6 +28,12 @@ defmodule SketchWeb.BoardEvents do
            &{&1, {:optional, {:style_token, &1}}}
          )
   @live_shape %{points: {:optional, :points}, text: {:optional, :string}}
+  @bindings Map.new(
+              Sketch.Canvas.binding_ends(),
+              &{:"#{&1}_binding",
+               {:optional,
+                {:nullable, %{target_id: :string, anchor_x: :integer, anchor_y: :integer}}}}
+            )
 
   @example_box %{"x" => 10, "y" => 20, "width" => 120, "height" => 80}
 
@@ -129,6 +135,7 @@ defmodule SketchWeb.BoardEvents do
         @box
         |> Map.merge(@live_shape)
         |> Map.merge(@style)
+        |> Map.merge(@bindings)
         |> Map.merge(%{kind: :kind, drag_id: :string, seed: {:optional, :integer}})
     },
     %{event: "erase", writes: :erase_element, payload: %{element_ids: {:list, :string}}},
@@ -140,7 +147,11 @@ defmodule SketchWeb.BoardEvents do
     %{
       event: "commit_shape",
       writes: :commit_shape,
-      payload: Map.merge(@box, Map.merge(@live_shape, %{element_id: :string, drag_id: :string}))
+      payload:
+        @box
+        |> Map.merge(@live_shape)
+        |> Map.merge(@bindings)
+        |> Map.merge(%{element_id: :string, drag_id: :string})
     },
     %{
       event: "commit_style",
@@ -149,7 +160,7 @@ defmodule SketchWeb.BoardEvents do
     }
   ]
 
-  @durable_broadcasts ~w(create commit_position commit_shape commit_style erase)
+  @durable_broadcasts ~w(create commit_position commit_shape commit_style freeze_ends erase)
 
   @presence_broadcasts ~w(presence_diff)
 

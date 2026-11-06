@@ -6,7 +6,8 @@ defmodule Mix.Tasks.Sketch.Gen.RenderFixtures do
   `assets/test/fixtures/wrap_parity.json` from the server text wrapping, for the client parity
   tests (ADR 0004), and `assets/test/fixtures/random_parity.json` from the hand-drawn random
   source and number formatting (ADR 0005), and `assets/test/fixtures/shortcut_parity.json` from the
-  shortcut conflict model (A23).
+  shortcut conflict model (A23), and `assets/test/fixtures/binding_parity.json` from the arrow
+  binding resolver (ADR 0016).
 
       mix sketch.gen.render_fixtures          # write the files
       mix sketch.gen.render_fixtures --check  # fail if a committed file differs
@@ -14,7 +15,14 @@ defmodule Mix.Tasks.Sketch.Gen.RenderFixtures do
   use Mix.Task
 
   alias Mix.Sketch.GeneratedFile
-  alias SketchWeb.{RandomFixtures, RenderFixtures, ShortcutFixtures, WrapFixtures}
+
+  alias SketchWeb.{
+    BindingFixtures,
+    RandomFixtures,
+    RenderFixtures,
+    ShortcutFixtures,
+    WrapFixtures
+  }
 
   @requirements ["compile"]
 
@@ -24,7 +32,8 @@ defmodule Mix.Tasks.Sketch.Gen.RenderFixtures do
           {RenderFixtures.path(), RenderFixtures.render()},
           {WrapFixtures.path(), WrapFixtures.render()},
           {RandomFixtures.path(), RandomFixtures.render()},
-          {ShortcutFixtures.path(), ShortcutFixtures.render()}
+          {ShortcutFixtures.path(), ShortcutFixtures.render()},
+          {BindingFixtures.path(), BindingFixtures.render()}
         ] do
       GeneratedFile.run(args, path, contents, "sketch.gen.render_fixtures")
     end

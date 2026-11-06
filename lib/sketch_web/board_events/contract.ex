@@ -3,8 +3,8 @@ defmodule SketchWeb.BoardEvents.Contract do
   Validates the event declarations of `SketchWeb.BoardEvents` at compile time.
 
   A payload is a map of field name to type. A type is `:integer`, `:string`, `:kind`, `:points`,
-  `{:style_token, property}`, `{:list, type}`, a nested payload, or `{:optional, type}` at the top
-  of a field. `mix sketch.gen.manifest` turns these into `ClientEventPayloads`, the type of every
+  `{:style_token, property}`, `{:list, type}`, a nested payload, `{:nullable, type}` for a value
+  the client may send as `null`, or `{:optional, type}` at the top of a field. `mix sketch.gen.manifest` turns these into `ClientEventPayloads`, the type of every
   client push, so a field that is not declared here cannot be pushed.
 
   It raises a `CompileError` when an event repeats, an entry is malformed, an example does not fit
@@ -72,6 +72,7 @@ defmodule SketchWeb.BoardEvents.Contract do
   defp validate_type!(type, _entry) when type in @scalars, do: :ok
   defp validate_type!({:style_token, property}, _entry) when is_atom(property), do: :ok
   defp validate_type!({:list, type}, entry), do: validate_type!(type, entry)
+  defp validate_type!({:nullable, type}, entry), do: validate_type!(type, entry)
   defp validate_type!(payload, entry) when is_map(payload), do: validate_payload!(payload, entry)
   defp validate_type!(type, entry), do: malformed!(entry, "has unknown type #{inspect(type)}")
 
@@ -108,6 +109,7 @@ defmodule SketchWeb.BoardEvents.Contract do
   defp fits?(value, {:style_token, _property}), do: is_binary(value)
   defp fits?(value, :points), do: is_list(value)
   defp fits?(value, {:list, type}), do: is_list(value) and Enum.all?(value, &fits?(&1, type))
+  defp fits?(value, {:nullable, type}), do: is_nil(value) or fits?(value, type)
 
   defp fits?(value, payload) when is_map(payload),
     do: is_nil(example_problem(value, payload))

@@ -7,6 +7,9 @@ defmodule Sketch.Canvas.Element do
   changes; a property that does not apply to the kind keeps its default (ADR 0006).
   `version` is the server-ordered tag of the whole element (ADR 0001); each commit action writes only
   its own attributes and increments it.
+  A line or arrow end may be bound to another element on the board (ADR 0016): it stores the
+  target and an anchor in per mille of the target's box, and is drawn there whatever the stored
+  points say. Erasing a target first freezes the ends bound to it with `freeze_ends`.
   `erase` hard-deletes it and publishes `%{id, board_id}`, a tombstone every client applies over any version.
   """
   use Ash.Resource,
@@ -15,7 +18,8 @@ defmodule Sketch.Canvas.Element do
     data_layer: AshPostgres.DataLayer,
     notifiers: [Ash.Notifier.PubSub]
 
-  alias Sketch.Canvas.{Geometry, Kinds, Style}
+  alias Sketch.Canvas.{Binding, Geometry, Kinds, Style}
+  alias Sketch.Canvas.Changes.FreezeBoundEnds
   alias Sketch.Canvas.Validations.{FitsCanvas, PointsFitShape, TextFitsKind}
 
   @canvas_width Geometry.canvas_width()
@@ -27,8 +31,10 @@ defmodule Sketch.Canvas.Element do
   @max_text_length Geometry.max_text_length()
   @max_seed Geometry.max_seed()
   @style_properties Style.properties()
+  @binding_attributes Binding.attributes()
+  @unbindable_kinds @kinds -- Binding.kinds()
   @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :text, :seed] ++
-                  @style_properties ++ [:version]
+                  @style_properties ++ @binding_attributes ++ [:version]
   @unstyled_kinds Map.new(@style_properties, &{&1, @kinds -- Kinds.styled_by(&1)})
 
   # The CHECK constraints were generated with the point kinds in this order; listing them in
@@ -56,6 +62,22 @@ defmodule Sketch.Canvas.Element do
                          "#{property} = '#{default}' OR kind IN (#{styled})"}
                       ]
                     end)
+  @sql_binding_kinds Enum.map_join(Binding.kinds(), ", ", &"'#{&1}'")
+  @sql_binding_checks Enum.flat_map(Binding.ends(), fn end_name ->
+                        %{target: target, anchor_x: ax, anchor_y: ay} = Binding.fields(end_name)
+                        scale = Binding.anchor_scale()
+
+                        [
+                          {target, "#{end_name}_binding_fits_kind",
+                           "#{target} IS NULL OR kind IN (#{@sql_binding_kinds})"},
+                          {target, "#{end_name}_binding_has_anchor",
+                           "#{target} IS NULL OR (#{ax} IS NOT NULL AND #{ay} IS NOT NULL)"},
+                          {target, "#{end_name}_binding_not_self",
+                           "#{target} IS NULL OR #{target} <> id"},
+                          {ax, "#{end_name}_anchor_in_range",
+                           "(#{ax} IS NULL OR #{ax} BETWEEN 0 AND #{scale}) AND (#{ay} IS NULL OR #{ay} BETWEEN 0 AND #{scale})"}
+                        ]
+                      end)
   @sql_point_outside String.trim(~S"""
                      $[*] ? (@.type() != "object" || !exists(@.x) || !exists(@.y) ||
                        @.x.type() != "number" || @.y.type() != "number" ||
@@ -71,6 +93,31 @@ defmodule Sketch.Canvas.Element do
 
     references do
       reference :board, on_delete: :delete, index?: true
+    end
+
+    foreign_key_names Enum.map(Binding.ends(), fn end_name ->
+                        {Binding.fields(end_name).target, "elements_#{end_name}_target_fkey",
+                         "must be an element on the same board"}
+                      end)
+
+    custom_statements do
+      statement :elements_board_id_id_index do
+        up "CREATE UNIQUE INDEX elements_board_id_id_index ON elements (board_id, id);"
+        down "DROP INDEX elements_board_id_id_index;"
+      end
+
+      for end_name <- Binding.ends() do
+        statement :"elements_#{end_name}_target_fkey" do
+          up "ALTER TABLE elements ADD CONSTRAINT elements_#{end_name}_target_fkey FOREIGN KEY (board_id, #{end_name}_target_id) REFERENCES elements (board_id, id) ON DELETE SET NULL (#{end_name}_target_id);"
+
+          down "ALTER TABLE elements DROP CONSTRAINT elements_#{end_name}_target_fkey;"
+        end
+
+        statement :"elements_#{end_name}_target_index" do
+          up "CREATE INDEX elements_#{end_name}_target_id_index ON elements (#{end_name}_target_id);"
+          down "DROP INDEX elements_#{end_name}_target_id_index;"
+        end
+      end
     end
 
     check_constraints do
@@ -109,6 +156,10 @@ defmodule Sketch.Canvas.Element do
       for {property, name, check} <- @sql_style_checks do
         check_constraint property, name, check: check
       end
+
+      for {attribute, name, check} <- @sql_binding_checks do
+        check_constraint attribute, name, check: check
+      end
     end
   end
 
@@ -117,7 +168,7 @@ defmodule Sketch.Canvas.Element do
 
     create :create do
       accept [:kind, :x, :y, :width, :height, :points, :text, :seed, :board_id] ++
-               @style_properties
+               @style_properties ++ @binding_attributes
     end
 
     update :commit_position do
@@ -126,8 +177,13 @@ defmodule Sketch.Canvas.Element do
     end
 
     update :commit_shape do
-      accept [:x, :y, :width, :height, :points, :text]
+      accept [:x, :y, :width, :height, :points, :text] ++ @binding_attributes
       require_attributes [:x, :y, :width, :height]
+      change atomic_update(:version, expr(version + 1))
+    end
+
+    update :freeze_ends do
+      accept [:x, :y, :width, :height, :points] ++ @binding_attributes
       change atomic_update(:version, expr(version + 1))
     end
 
@@ -136,7 +192,20 @@ defmodule Sketch.Canvas.Element do
       change atomic_update(:version, expr(version + 1))
     end
 
-    destroy :erase
+    destroy :erase do
+      require_atomic? false
+      change FreezeBoundEnds
+    end
+
+    read :bound_to do
+      argument :board_id, :uuid, allow_nil?: false
+      argument :target_id, :uuid, allow_nil?: false
+
+      filter expr(
+               board_id == ^arg(:board_id) and
+                 (start_target_id == ^arg(:target_id) or end_target_id == ^arg(:target_id))
+             )
+    end
 
     read :list_for_board do
       argument :board_id, :uuid, allow_nil?: false
@@ -153,6 +222,7 @@ defmodule Sketch.Canvas.Element do
     publish :commit_position, [:board_id], transform: &__MODULE__.event_payload/1
     publish :commit_shape, [:board_id], transform: &__MODULE__.event_payload/1
     publish :commit_style, [:board_id], transform: &__MODULE__.event_payload/1
+    publish :freeze_ends, [:board_id], transform: &__MODULE__.event_payload/1
     publish :erase, [:board_id], transform: &__MODULE__.erase_payload/1
   end
 
@@ -168,6 +238,18 @@ defmodule Sketch.Canvas.Element do
 
     validate {PointsFitShape, kinds: @kinds}
     validate {TextFitsKind, kinds: @kinds}
+
+    for end_name <- Binding.ends() do
+      %{target: target, anchor_x: anchor_x, anchor_y: anchor_y} = Binding.fields(end_name)
+
+      validate absent(target),
+        where: [attribute_in(:kind, @unbindable_kinds)],
+        message: "only a line or arrow end can be bound"
+
+      validate present([anchor_x, anchor_y]),
+        where: [present(target)],
+        message: "a bound end needs an anchor"
+    end
 
     for {property, [_ | _] = kinds} <- @unstyled_kinds do
       validate attribute_equals(property, Style.default(property)),
@@ -227,6 +309,19 @@ defmodule Sketch.Canvas.Element do
         allow_nil?: false,
         default: Style.default(property),
         public?: true
+    end
+
+    for end_name <- Binding.ends() do
+      %{target: target, anchor_x: anchor_x, anchor_y: anchor_y} = Binding.fields(end_name)
+
+      attribute target, :uuid, allow_nil?: true, public?: true
+
+      for anchor <- [anchor_x, anchor_y] do
+        attribute anchor, :integer,
+          allow_nil?: true,
+          public?: true,
+          constraints: [min: 0, max: Binding.anchor_scale()]
+      end
     end
 
     attribute :version, :integer,
