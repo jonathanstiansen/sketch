@@ -9,11 +9,13 @@ defmodule SketchWeb.RenderFixtures do
   wide: twice the note padding plus 0 to 3 and 14 character widths, each also one pixel narrower
   and wider, so a note's lines break around every boundary, including widths narrower than both
   paddings together. A box kind without text renders every shape with each fixture seed, including
-  0 and the largest; point and text kinds, which already have many shapes per box, take the seeds
-  in turn (ADR 0005). Every shape is drawn in the default style, and three shapes spread over the
+  0 and the largest; point and text kinds, which already have many shapes per box, take the seed
+  their shape hashes to, so adding a shape leaves the other shapes' seeds alone (ADR 0005). Every shape is drawn in the default style, and three shapes spread over the
   kind's shapes are also drawn in a sample of styles (ADR 0006): each token of each property that
   applies to the kind on its own, and a few combinations that change every applicable property at
   once; the full product would make the file several times larger for little more coverage.
+  A case lists only the style tokens that differ from the registry defaults, so adding a
+  property whose default draws as before leaves every existing case unchanged.
   Every map has string keys, so the JSON key order is the same on every run.
   `assets/test/render_parity.test.ts` feeds the same shapes to the client renderers and expects
   the same trees. A node's text is the unescaped
@@ -141,11 +143,7 @@ defmodule SketchWeb.RenderFixtures do
   end
 
   defp with_seeds(shapes, _geometry, _text) do
-    shapes
-    |> Enum.with_index()
-    |> Enum.map(fn {shape, index} ->
-      Map.put(shape, :seed, Enum.at(@seeds, rem(index, length(@seeds))))
-    end)
+    Enum.map(shapes, &Map.put(&1, :seed, Enum.at(@seeds, :erlang.phash2(&1, length(@seeds)))))
   end
 
   defp widths(:none), do: @sizes
@@ -177,13 +175,18 @@ defmodule SketchWeb.RenderFixtures do
           "points" => Enum.map(shape.points, &%{"x" => &1.x, "y" => &1.y}),
           "text" => shape.text,
           "seed" => shape.seed,
-          "style" =>
-            Map.new(shape.style, fn {property, token} ->
-              {Atom.to_string(property), Atom.to_string(token)}
-            end)
+          "style" => style_overrides(shape.style)
         },
         "children" => kind |> Elements.render_children(shape) |> normalize()
       }
+    end
+  end
+
+  defp style_overrides(style) do
+    defaults = Sketch.Canvas.style_defaults()
+
+    for {property, token} <- style, token != defaults[property], into: %{} do
+      {Atom.to_string(property), Atom.to_string(token)}
     end
   end
 
