@@ -193,7 +193,7 @@ void test("each rule the server enforces is checked before paste", () => {
     { stroke_color: "magenta" },
     { fill_color: 1 },
     { stroke_width: null },
-    { text: "not allowed on a rectangle" },
+    { kind: "line", points: [{ x: 0, y: 0 }, { x: 10, y: 10 }], text: "not allowed on a line" },
     { points: [{ x: 0, y: 0 }] },
     { kind: "arrow", points: [{ x: 0, y: 0 }] },
     { kind: "arrow", points: [{ x: 0, y: 0 }, { x: 9, y: 0 }] },

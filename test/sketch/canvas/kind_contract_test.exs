@@ -92,7 +92,8 @@ defmodule Sketch.Canvas.KindContractTest do
   end
 
   defp well_formed?(%Kind{geometry: geometry, text: text, default_size: size} = spec) do
-    geometry_ok?(geometry) and text in [:none, :optional, :required] and Kind.consistent?(spec) and
+    geometry_ok?(geometry) and text in [:none, :optional, :required, :label] and
+      Kind.consistent?(spec) and
       Kind.style_known?(spec) and
       positive_integer?(size.width) and positive_integer?(size.height)
   end

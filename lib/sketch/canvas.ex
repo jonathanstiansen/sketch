@@ -84,6 +84,22 @@ defmodule Sketch.Canvas do
 
   defdelegate binding_fields(end_name), to: Sketch.Canvas.Binding, as: :fields
 
+  @doc "The kinds whose text is a label at a draggable offset."
+  defdelegate label_kinds, to: Sketch.Canvas.Label, as: :kinds
+
+  defdelegate label_default, to: Sketch.Canvas.Label, as: :default
+
+  @doc "A label offset clamped into its box."
+  defdelegate label_clamp(offset), to: Sketch.Canvas.Label, as: :clamp
+
+  @doc "The point of a label offset in a box, relative to the box origin."
+  defdelegate label_point(width, height, offset), to: Sketch.Canvas.Label, as: :point
+
+  @doc "Where a label's text block is centred so it stays inside the box when it fits."
+  defdelegate label_placed(width, height, offset, block_width, block_height),
+    to: Sketch.Canvas.Label,
+    as: :placed
+
   @doc "The anchor of a point on a target's box, in per mille (ADR 0016)."
   defdelegate binding_anchor_for(point, box), to: Sketch.Canvas.Binding, as: :anchor_for
 

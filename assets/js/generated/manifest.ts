@@ -41,16 +41,16 @@ export const DASH_ARRAYS = {
 export interface KindSpec {
   readonly id: ElementKind
   readonly geometry: "box" | { readonly points: { readonly min: number; readonly max: number } }
-  readonly text: "none" | "optional" | "required"
+  readonly text: "none" | "optional" | "required" | "label"
   readonly drawGesture: "box" | "two_point" | "path" | "click_to_type"
   readonly defaultSize: { readonly width: number; readonly height: number }
   readonly style: readonly StyleProperty[]
 }
 
 export const KIND_SPECS = {
-  rectangle: { id: "rectangle", geometry: "box", text: "none", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] },
-  diamond: { id: "diamond", geometry: "box", text: "none", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] },
-  ellipse: { id: "ellipse", geometry: "box", text: "none", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] },
+  rectangle: { id: "rectangle", geometry: "box", text: "label", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] },
+  diamond: { id: "diamond", geometry: "box", text: "label", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] },
+  ellipse: { id: "ellipse", geometry: "box", text: "label", drawGesture: "box", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "fill_color", "stroke_width", "stroke_style", "sloppiness"] },
   arrow: { id: "arrow", geometry: { points: { min: 2, max: 2 } }, text: "none", drawGesture: "two_point", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "stroke_width", "stroke_style", "sloppiness"] },
   freedraw: { id: "freedraw", geometry: { points: { min: 2, max: 500 } }, text: "none", drawGesture: "path", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "stroke_width", "stroke_style"] },
   line: { id: "line", geometry: { points: { min: 2, max: 2 } }, text: "none", drawGesture: "two_point", defaultSize: { width: 120, height: 80 }, style: ["stroke_color", "stroke_width", "stroke_style", "sloppiness"] },
@@ -62,7 +62,7 @@ export const POINT_KINDS = ["arrow", "freedraw", "line"] as const
 
 export type PointKind = (typeof POINT_KINDS)[number]
 
-export const TEXT_KINDS = ["text", "note"] as const
+export const TEXT_KINDS = ["rectangle", "diamond", "ellipse", "text", "note"] as const
 
 export type TextKind = (typeof TEXT_KINDS)[number]
 
@@ -73,6 +73,10 @@ export type RequiredTextKind = (typeof REQUIRED_TEXT_KINDS)[number]
 export const TYPED_KINDS = ["text"] as const
 
 export type TypedKind = (typeof TYPED_KINDS)[number]
+
+export const LABEL_KINDS = ["rectangle", "diamond", "ellipse"] as const
+
+export type LabelKind = (typeof LABEL_KINDS)[number]
 
 export const BINDING_KINDS = ["arrow", "line"] as const
 
@@ -154,7 +158,7 @@ export type FocusContext = (typeof FOCUS_CONTEXTS)[number]
 
 export const CONTEXT_OVERLAPS: readonly (readonly [FocusContext, FocusContext])[] = []
 
-export const SHORTCUT_GROUPS = ["tool", "history", "clipboard", "selection", "zoom", "export", "canvas", "editor"] as const
+export const SHORTCUT_GROUPS = ["tool", "history", "clipboard", "selection", "shape_text", "zoom", "export", "canvas", "editor"] as const
 
 export type ShortcutGroup = (typeof SHORTCUT_GROUPS)[number]
 
@@ -193,6 +197,7 @@ export const SHORTCUTS = [
   { group: "clipboard", action: "cut", contexts: ["canvas"], chords: [{ key: ["x"], code: null, mod: "command", shift: false, alt: false, modifiers: "exact" }] },
   { group: "clipboard", action: "paste", contexts: ["canvas"], chords: [{ key: ["v"], code: null, mod: "command", shift: false, alt: false, modifiers: "exact" }] },
   { group: "selection", action: "select_all", contexts: ["canvas"], chords: [{ key: ["a"], code: null, mod: "command", shift: false, alt: false, modifiers: "exact" }] },
+  { group: "shape_text", action: "edit_text", contexts: ["canvas"], chords: [{ key: ["enter"], code: null, mod: "none", shift: false, alt: false, modifiers: "exact" }] },
   { group: "zoom", action: "zoom_out", contexts: ["canvas", "editor"], chords: [{ key: ["-", "_"], code: null, mod: "command", shift: null, alt: false, modifiers: "exact" }] },
   { group: "zoom", action: "zoom_in", contexts: ["canvas", "editor"], chords: [{ key: ["=", "+"], code: null, mod: "command", shift: null, alt: false, modifiers: "exact" }] },
   { group: "zoom", action: "zoom_reset", contexts: ["canvas", "editor"], chords: [{ key: ["0"], code: null, mod: "command", shift: null, alt: false, modifiers: "exact" }] },
@@ -245,10 +250,10 @@ export interface ClientEventPayloads {
   readonly "draw_cancel": { readonly drag_id: string }
   readonly "cursor": { readonly seq: number; readonly x: number; readonly y: number }
   readonly "cursor_leave": { readonly seq: number }
-  readonly "create_element": { readonly drag_id: string; readonly end_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly sloppiness?: StyleToken<"sloppiness">; readonly start_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
+  readonly "create_element": { readonly drag_id: string; readonly end_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly fill_color?: StyleToken<"fill_color">; readonly height: number; readonly kind: ElementKind; readonly label?: { readonly x: number; readonly y: number }; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly seed?: number; readonly sloppiness?: StyleToken<"sloppiness">; readonly start_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width">; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
   readonly "erase": { readonly element_ids: readonly string[] }
   readonly "commit": { readonly drag_id: string; readonly element_id: string; readonly x: number; readonly y: number }
-  readonly "commit_shape": { readonly drag_id: string; readonly element_id: string; readonly end_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly height: number; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly start_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
+  readonly "commit_shape": { readonly drag_id: string; readonly element_id: string; readonly end_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly height: number; readonly label?: { readonly x: number; readonly y: number }; readonly points?: readonly { readonly x: number; readonly y: number }[]; readonly start_binding?: { readonly anchor_x: number; readonly anchor_y: number; readonly target_id: string } | null; readonly text?: string; readonly width: number; readonly x: number; readonly y: number }
   readonly "commit_style": { readonly element_id: string; readonly fill_color?: StyleToken<"fill_color">; readonly sloppiness?: StyleToken<"sloppiness">; readonly stroke_color?: StyleToken<"stroke_color">; readonly stroke_style?: StyleToken<"stroke_style">; readonly stroke_width?: StyleToken<"stroke_width"> }
 }
 

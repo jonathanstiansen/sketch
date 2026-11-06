@@ -18,7 +18,7 @@ defmodule Sketch.Canvas.Element do
     data_layer: AshPostgres.DataLayer,
     notifiers: [Ash.Notifier.PubSub]
 
-  alias Sketch.Canvas.{Binding, Geometry, Kinds, Style}
+  alias Sketch.Canvas.{Binding, Geometry, Kinds, Label, Style}
   alias Sketch.Canvas.Changes.FreezeBoundEnds
   alias Sketch.Canvas.Validations.{FitsCanvas, PointsFitShape, TextFitsKind}
 
@@ -32,9 +32,12 @@ defmodule Sketch.Canvas.Element do
   @max_seed Geometry.max_seed()
   @style_properties Style.properties()
   @binding_attributes Binding.attributes()
+  @label_defaults %{label_x: Label.default().x, label_y: Label.default().y}
+  @label_attributes Map.keys(@label_defaults)
+  @unlabelled_kinds @kinds -- Label.kinds()
   @unbindable_kinds @kinds -- Binding.kinds()
   @event_fields [:id, :board_id, :kind, :x, :y, :width, :height, :text, :seed] ++
-                  @style_properties ++ @binding_attributes ++ [:version]
+                  @style_properties ++ @binding_attributes ++ @label_attributes ++ [:version]
   @unstyled_kinds Map.new(@style_properties, &{&1, @kinds -- Kinds.styled_by(&1)})
 
   # The CHECK constraints were generated with the point kinds in this order; listing them in
@@ -78,6 +81,8 @@ defmodule Sketch.Canvas.Element do
                            "(#{ax} IS NULL OR #{ax} BETWEEN 0 AND #{scale}) AND (#{ay} IS NULL OR #{ay} BETWEEN 0 AND #{scale})"}
                         ]
                       end)
+  @sql_label_kinds Enum.map_join(Label.kinds(), ", ", &"'#{&1}'")
+  @sql_label_default Label.default()
   @sql_point_outside String.trim(~S"""
                      $[*] ? (@.type() != "object" || !exists(@.x) || !exists(@.y) ||
                        @.x.type() != "number" || @.y.type() != "number" ||
@@ -160,6 +165,13 @@ defmodule Sketch.Canvas.Element do
       for {attribute, name, check} <- @sql_binding_checks do
         check_constraint attribute, name, check: check
       end
+
+      check_constraint :label_x, "label_in_box",
+        check: "label_x BETWEEN 0 AND #{Label.scale()} AND label_y BETWEEN 0 AND #{Label.scale()}"
+
+      check_constraint :label_x, "label_fits_kind",
+        check:
+          "(label_x = #{@sql_label_default.x} AND label_y = #{@sql_label_default.y}) OR kind IN (#{@sql_label_kinds})"
     end
   end
 
@@ -168,7 +180,7 @@ defmodule Sketch.Canvas.Element do
 
     create :create do
       accept [:kind, :x, :y, :width, :height, :points, :text, :seed, :board_id] ++
-               @style_properties ++ @binding_attributes
+               @style_properties ++ @binding_attributes ++ @label_attributes
     end
 
     update :commit_position do
@@ -177,7 +189,9 @@ defmodule Sketch.Canvas.Element do
     end
 
     update :commit_shape do
-      accept [:x, :y, :width, :height, :points, :text] ++ @binding_attributes
+      accept [:x, :y, :width, :height, :points, :text] ++
+               @binding_attributes ++ @label_attributes
+
       require_attributes [:x, :y, :width, :height]
       change atomic_update(:version, expr(version + 1))
     end
@@ -251,6 +265,12 @@ defmodule Sketch.Canvas.Element do
         message: "a bound end needs an anchor"
     end
 
+    for attribute <- @label_attributes do
+      validate attribute_equals(attribute, Map.fetch!(@label_defaults, attribute)),
+        where: [attribute_in(:kind, @unlabelled_kinds)],
+        message: "only a labelled shape has a label offset"
+    end
+
     for {property, [_ | _] = kinds} <- @unstyled_kinds do
       validate attribute_equals(property, Style.default(property)),
         where: [attribute_in(:kind, kinds)],
@@ -322,6 +342,14 @@ defmodule Sketch.Canvas.Element do
           public?: true,
           constraints: [min: 0, max: Binding.anchor_scale()]
       end
+    end
+
+    for attribute <- @label_attributes do
+      attribute attribute, :integer,
+        allow_nil?: false,
+        default: Map.fetch!(@label_defaults, attribute),
+        public?: true,
+        constraints: [min: 0, max: Label.scale()]
     end
 
     attribute :version, :integer,

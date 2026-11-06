@@ -20,7 +20,14 @@ export type BindingChange = Readonly<Partial<Record<BindingEnd, Binding | null>>
 
 export type ElementChange =
   | { readonly event: "commit"; readonly x: number; readonly y: number }
-  | { readonly event: "commit_shape"; readonly box: Box; readonly points: readonly Point[]; readonly text?: string; readonly bindings?: BindingChange }
+  | {
+      readonly event: "commit_shape"
+      readonly box: Box
+      readonly points: readonly Point[]
+      readonly text?: string
+      readonly bindings?: BindingChange
+      readonly label?: { readonly x: number; readonly y: number }
+    }
   | { readonly event: "commit_style"; readonly property: StyleProperty; readonly value: string }
 
 export type ElementHistory = History<ElementSnapshot, ElementChange>
@@ -109,8 +116,8 @@ export function positionPayload(elementId: string, { x, y }: Extract<ElementChan
   return { element_id: elementId, drag_id: dragId, x, y }
 }
 
-export function shapePayload(elementId: string, { box, points, text, bindings = {} }: Extract<ElementChange, { event: "commit_shape" }>, dragId: string): ClientEventPayloads["commit_shape"] {
-  const shape = { element_id: elementId, drag_id: dragId, ...box, points, ...bindingPayloads(bindings) }
+export function shapePayload(elementId: string, { box, points, text, bindings = {}, label }: Extract<ElementChange, { event: "commit_shape" }>, dragId: string): ClientEventPayloads["commit_shape"] {
+  const shape = { element_id: elementId, drag_id: dragId, ...box, points, ...bindingPayloads(bindings), ...(label === undefined ? {} : { label }) }
   return text === undefined ? shape : { ...shape, text }
 }
 

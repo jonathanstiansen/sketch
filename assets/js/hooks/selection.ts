@@ -67,7 +67,7 @@ function placeHandle(rect: SVGRectElement, { x, y }: Point, size: number): void 
 }
 
 type Shown =
-  | { mode: "single"; box: Box; points: readonly Point[]; handles: SelectionHandles }
+  | { mode: "single"; box: Box; points: readonly Point[]; handles: SelectionHandles; label: Box | undefined }
   | { mode: "group"; boxes: readonly Box[] }
 
 function outlineBox(box: Box, gap: number): Box {
@@ -78,6 +78,7 @@ export class SelectionOverlay {
   private readonly outline: SVGRectElement
   private readonly corners: Map<Corner, SVGRectElement>
   private readonly endpoints: Map<Endpoint, SVGRectElement>
+  private readonly labelHandle = svgRect({ "data-handle": "label", class: "selection-label-handle" })
   private zoom = 1
   private shown: Shown | undefined
 
@@ -90,25 +91,30 @@ export class SelectionOverlay {
   setZoom(zoom: number): void {
     this.zoom = zoom
     const shown = this.shown
-    if (shown?.mode === "single") this.show(shown.box, shown.points, shown.handles)
+    if (shown?.mode === "single") this.show(shown.box, shown.points, shown.handles, shown.label)
     if (shown?.mode === "group") this.showGroup(shown.boxes)
   }
 
-  show(box: Box, points: readonly Point[], handles: SelectionHandles): void {
-    this.shown = { mode: "single", box, points, handles }
+  show(box: Box, points: readonly Point[], handles: SelectionHandles, label?: Box): void {
+    this.shown = { mode: "single", box, points, handles, label }
     if (handles === "endpoints" && points.length > 0) {
       this.showEndpoints(box, points)
     } else {
       this.showBox(box, handles === "corners" ? [...this.corners.values()] : [])
+    }
+    if (label === undefined) {
+      this.labelHandle.remove()
+    } else {
+      setBox(this.labelHandle, label)
+      if (this.labelHandle.parentNode !== this.layer) this.layer.append(this.labelHandle)
     }
   }
 
   private showBox(box: Box, handles: SVGRectElement[]): void {
     setBox(this.outline, outlineBox(box, this.gap()))
     for (const [corner, rect] of this.corners) placeHandle(rect, cornerPoint(box, corner), this.handleSize())
-    if (this.outline.parentNode !== this.layer || this.layer.childElementCount !== handles.length + 1) {
-      this.layer.replaceChildren(this.outline, ...handles)
-    }
+    const children = [this.outline, ...handles]
+    if (children.some((child, index) => this.layer.children[index] !== child)) this.layer.replaceChildren(...children)
   }
 
   private showEndpoints(box: Box, points: readonly Point[]): void {

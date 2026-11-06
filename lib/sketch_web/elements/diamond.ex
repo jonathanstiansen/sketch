@@ -26,6 +26,6 @@ defmodule SketchWeb.Elements.Diamond do
         SketchWeb.HandDrawn.diamond(width, height, SketchWeb.HandDrawn.pen(shape)),
         style
       )
-    ]
+    ] ++ SketchWeb.ElementRenderer.label(shape)
   end
 end

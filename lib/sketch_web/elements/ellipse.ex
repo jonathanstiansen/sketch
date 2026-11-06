@@ -23,6 +23,6 @@ defmodule SketchWeb.Elements.Ellipse do
         SketchWeb.HandDrawn.ellipse(width, height, SketchWeb.HandDrawn.pen(shape)),
         style
       )
-    ]
+    ] ++ SketchWeb.ElementRenderer.label(shape)
   end
 end

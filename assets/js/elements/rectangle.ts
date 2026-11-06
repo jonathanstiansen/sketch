@@ -1,3 +1,4 @@
+import { label } from "./label.ts"
 import { pen, rectangle as sketchedRectangle } from "./hand_drawn.ts"
 import type { Renderer } from "./renderer.ts"
 import { sketch } from "./segments.ts"
@@ -11,5 +12,6 @@ export const rectangle: Renderer = (shape) => {
       attrs: { x: 0, y: 0, width, height, stroke: "transparent", "stroke-width": 2, class: fillClass(style) },
     },
     sketch(sketchedRectangle(width, height, pen(shape)), style),
+    ...label(shape),
   ]
 }

@@ -426,3 +426,14 @@ at the pointer. This still meets SPEC "Create rectangles" through the same Ash
   Erasing a shape leaves its arrows where they are, detached; undoing the erase brings the shape
   back, but not the attachment.
 - **Copying**: copied or duplicated arrows are pasted detached.
+
+## D19 — Text inside shapes (2026-11-05, see ADR 0017)
+
+- **Typing**: with one rectangle, diamond or ellipse selected, Enter (or a double click) opens a
+  text editor over it. The text is centred, wraps to the shape's width and is clipped to it.
+  Drawing the shape does not open the editor.
+- **Moving the text**: a selected shape with text shows a handle over the text. Dragging it moves
+  the text anywhere inside the shape, never outside. Dragging the shape elsewhere moves the shape
+  with its text.
+- **Everything else**: the text moves, resizes, undoes, copies, pastes and erases with its shape.
+  Other viewers see it once it is committed.

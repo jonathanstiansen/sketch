@@ -28,6 +28,7 @@ defmodule SketchWeb.BoardEvents do
            &{&1, {:optional, {:style_token, &1}}}
          )
   @live_shape %{points: {:optional, :points}, text: {:optional, :string}}
+  @label %{label: {:optional, %{x: :integer, y: :integer}}}
   @bindings Map.new(
               Sketch.Canvas.binding_ends(),
               &{:"#{&1}_binding",
@@ -136,6 +137,7 @@ defmodule SketchWeb.BoardEvents do
         |> Map.merge(@live_shape)
         |> Map.merge(@style)
         |> Map.merge(@bindings)
+        |> Map.merge(@label)
         |> Map.merge(%{kind: :kind, drag_id: :string, seed: {:optional, :integer}})
     },
     %{event: "erase", writes: :erase_element, payload: %{element_ids: {:list, :string}}},
@@ -151,6 +153,7 @@ defmodule SketchWeb.BoardEvents do
         @box
         |> Map.merge(@live_shape)
         |> Map.merge(@bindings)
+        |> Map.merge(@label)
         |> Map.merge(%{element_id: :string, drag_id: :string})
     },
     %{

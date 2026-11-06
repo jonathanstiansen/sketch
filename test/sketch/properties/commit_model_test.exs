@@ -162,11 +162,13 @@ defmodule Sketch.Properties.CommitModelTest do
       String.replace(text, [" ", "\t", "\n", "\r"], "") != ""
   end
 
-  defp text_fits?(:note, text) do
-    length(String.codepoints(text)) <= @max_text_length and not String.contains?(text, "\u0000")
+  defp text_fits?(kind, text) do
+    if kind in Geometry.text_kinds(),
+      do:
+        length(String.codepoints(text)) <= @max_text_length and
+          not String.contains?(text, "\u0000"),
+      else: text == ""
   end
-
-  defp text_fits?(_kind, text), do: text == ""
 
   defp initial_shape(kind, box) when kind in [:arrow, :freedraw, :line],
     do: %{points: [%{x: 0, y: 0}, %{x: box.width, y: box.height}]}
