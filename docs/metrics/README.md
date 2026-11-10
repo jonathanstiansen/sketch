@@ -22,3 +22,16 @@ node tools/complexity/trend.ts backfill
 ```
 
 `record` measures only the current working tree and stores it under `HEAD`.
+
+## Complexity change on each PR
+
+CI comments on every PR with the mean, p90, maximum and over-limit count for each language, base against head, and lists every function that is new or got more complex and now scores 6 or more. The same comment carries the result of the TypeScript gate (`tools/complexity/check.py`).
+
+GitHub does not let CI comment on a PR from a fork. To post the report there, or to see it before pushing, run it locally:
+
+```sh
+node tools/complexity/report.ts            # print the report for the current branch's PR
+node tools/complexity/report.ts --post     # also post or update the PR comment with your gh login
+```
+
+It compares `HEAD` with its merge base on the PR's base branch; `--base REF`, `--head REF` and `--pr NUMBER` override that. A local post replaces the CI comment's text until CI next runs, and carries only the complexity table, not the gate result.

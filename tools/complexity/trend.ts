@@ -1,15 +1,9 @@
-import { execFileSync } from "node:child_process"
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { measure as measureTypeScript } from "./typescript.ts"
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { git, languages, measureCommits, measureRoots, stats, type Language, type Measurement } from "./measure.ts"
 
 const csvPath = "docs/metrics/complexity.csv"
 const svgPath = "docs/metrics/complexity.svg"
 const header = "commit,date,language,functions,mean,p90,max,over_limit"
-const limits = { Elixir: 9, TypeScript: 10 } as const
-type Language = keyof typeof limits
-const languages = Object.keys(limits) as Language[]
 const colors: Record<Language, string> = { Elixir: "#7c5cbf", TypeScript: "#2f74c0" }
 
 interface Snapshot {
@@ -23,52 +17,13 @@ interface Snapshot {
   overLimit: number
 }
 
-interface Checkout {
-  commit: string
-  date: string
-  root: string
-}
-
-function git(...args: string[]): string {
-  return execFileSync("git", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).trim()
-}
-
 function commitDate(commit: string): string {
   return git("show", "-s", "--format=%cI", commit)
 }
 
-function summarise(commit: string, date: string, language: Language, complexities: number[]): Snapshot {
-  const sorted = [...complexities].sort((a, b) => a - b)
-  const total = sorted.reduce((sum, value) => sum + value, 0)
-  const at = (share: number): number => sorted[Math.max(0, Math.ceil(share * sorted.length) - 1)] ?? 0
-  return {
-    commit,
-    date,
-    language,
-    functions: sorted.length,
-    mean: sorted.length === 0 ? 0 : Math.round((total / sorted.length) * 100) / 100,
-    p90: at(0.9),
-    max: at(1),
-    overLimit: sorted.filter((value) => value > limits[language]).length,
-  }
-}
-
-function measureElixir(roots: string[]): Map<string, number[]> {
-  const output = execFileSync("mix", ["run", "--no-start", "tools/complexity/elixir.exs", ...roots], {
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  })
-  const lines = output.split("\n").filter((line) => line.startsWith("{"))
-  const results = lines.map((line) => JSON.parse(line) as { root: string; complexities: number[] })
-  return new Map(results.map(({ root, complexities }) => [root, complexities]))
-}
-
-function measureCheckouts(checkouts: Checkout[]): Snapshot[] {
-  const elixir = measureElixir(checkouts.map(({ root }) => root))
-  return checkouts.flatMap(({ commit, date, root }) => [
-    summarise(commit, date, "Elixir", elixir.get(root) ?? []),
-    summarise(commit, date, "TypeScript", measureTypeScript(root)),
-  ])
+function snapshots(commit: string, measurement: Measurement): Snapshot[] {
+  const date = commitDate(commit)
+  return languages.map((language) => ({ commit, date, language, ...stats(language, measurement[language]) }))
 }
 
 function readSnapshots(): Snapshot[] {
@@ -192,30 +147,10 @@ function write(snapshots: Snapshot[]): void {
   writeFileSync(svgPath, renderSvg(snapshots))
 }
 
-function extract(commit: string, into: string): Checkout {
-  const root = join(into, commit)
-  mkdirSync(root)
-  const paths = ["lib", "assets/js"].filter((path) => {
-    try {
-      execFileSync("git", ["cat-file", "-e", `${commit}:${path}`], { stdio: "ignore" })
-      return true
-    } catch {
-      return false
-    }
-  })
-  if (paths.length > 0) {
-    const archive = execFileSync("git", ["archive", "--format=tar", commit, "--", ...paths], {
-      maxBuffer: 256 * 1024 * 1024,
-    })
-    execFileSync("tar", ["-x", "-C", root], { input: archive })
-  }
-  return { commit, date: commitDate(commit), root }
-}
-
 function record(): void {
   const commit = git("rev-parse", "--short=7", "HEAD")
-  const fresh = measureCheckouts([{ commit, date: commitDate("HEAD"), root: process.cwd() }])
-  write(merge(readSnapshots(), fresh))
+  const measured = measureRoots([process.cwd()]).get(process.cwd())
+  if (measured !== undefined) write(merge(readSnapshots(), snapshots(commit, measured)))
 }
 
 function backfill(): void {
@@ -224,13 +159,8 @@ function backfill(): void {
   const missing = git("rev-list", "--first-parent", "--reverse", "--abbrev-commit", "--abbrev=7", "HEAD")
     .split("\n")
     .filter((commit) => !known.has(commit))
-  const scratch = mkdtempSync(join(tmpdir(), "complexity-"))
-  try {
-    const checkouts = missing.map((commit) => extract(commit, scratch))
-    write(merge(existing, measureCheckouts(checkouts)))
-  } finally {
-    rmSync(scratch, { recursive: true, force: true })
-  }
+  const fresh = [...measureCommits(missing)].flatMap(([commit, measured]) => snapshots(commit, measured))
+  write(merge(existing, fresh))
 }
 
 const commands: Record<string, () => void> = { record, backfill }

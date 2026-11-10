@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs"
 import { createRequire } from "node:module"
 import { join, relative } from "node:path"
 import type TypeScript from "typescript"
+import type { FunctionMeasure } from "./measure.ts"
 
 const require = createRequire(new URL("../../assets/package.json", import.meta.url))
 const ts = require("typescript") as typeof TypeScript
@@ -57,11 +58,34 @@ function functionComplexity(fn: TypeScript.FunctionLikeDeclaration): number {
   return complexity
 }
 
-function fileComplexities(path: string): number[] {
+function ownName(node: TypeScript.Node): string | undefined {
+  const named = node as { name?: TypeScript.Node }
+  if (named.name !== undefined && !ts.isComputedPropertyName(named.name)) return named.name.getText()
+  if (ts.isConstructorDeclaration(node)) return "constructor"
+  const parent = node.parent as TypeScript.Node | undefined
+  const namesFunction =
+    parent !== undefined &&
+    (ts.isVariableDeclaration(parent) || ts.isPropertyAssignment(parent) || ts.isPropertyDeclaration(parent))
+  return namesFunction ? parent.name.getText() : undefined
+}
+
+function qualifiedName(fn: TypeScript.FunctionLikeDeclaration): string {
+  const names: string[] = [ownName(fn) ?? "(anonymous)"]
+  for (let node = fn.parent as TypeScript.Node | undefined; node !== undefined; node = node.parent) {
+    const name = isFunction(node) || ts.isClassLike(node) ? ownName(node) : undefined
+    if (name !== undefined) names.unshift(name)
+  }
+  return names.join(".")
+}
+
+function fileFunctions(path: string, file: string): FunctionMeasure[] {
   const source = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true)
-  const found: number[] = []
+  const found: FunctionMeasure[] = []
   const visit = (node: TypeScript.Node): void => {
-    if (isFunction(node) && node.body !== undefined) found.push(functionComplexity(node))
+    if (isFunction(node) && node.body !== undefined) {
+      const line = source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1
+      found.push({ file, name: qualifiedName(node), line, complexity: functionComplexity(node) })
+    }
     ts.forEachChild(node, visit)
   }
   visit(source)
@@ -79,6 +103,6 @@ function sourceFiles(root: string): string[] {
   }
 }
 
-export function measure(root: string): number[] {
-  return sourceFiles(root).flatMap(fileComplexities)
+export function measure(root: string): FunctionMeasure[] {
+  return sourceFiles(root).flatMap((path) => fileFunctions(path, relative(root, path)))
 }
