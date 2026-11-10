@@ -17,6 +17,8 @@ the highest version seen and ignore lower ones.
 Canvas is 4000 × 4000; rectangles are a constant 120 × 80.
 `x` in `0..3880`, `y` in `0..3920`. Ash attribute constraints plus a PostgreSQL
 CHECK constraint (via `check_constraints` in the AshPostgres `postgres` block).
+Previews use the same bounds: receivers drop a preview whose `x` or `y` is outside
+them. Previews are never persisted, so A08 is unaffected.
 
 ## D2 — Previews carry the base version
 

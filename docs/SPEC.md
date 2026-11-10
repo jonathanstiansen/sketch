@@ -186,7 +186,7 @@ Introduce intentional violations to prove checks fail.
 
 ### Gate 1 — First end-to-end collaboration tracer
 
-Use one seeded board, already identified by a UUID and board-scoped URL.
+Use one seeded board, already identified by a UUID and board-scoped URL, for the tracer's manual run. Automated E2E tests create a board per test (addendum D7).
 
 Create rectangles through an Ash action.
 
@@ -204,7 +204,7 @@ Verify:
 - Two boards have distinct URLs and identifiers.
 - Rectangle creation is scoped to the selected board.
 - Subscribers to another board receive no unrelated board events.
-- Cross-board rectangle updates are rejected.
+- Cross-board rectangle updates are rejected: `commit_position` runs against the board the client is subscribed to, and a rectangle id from another board is refused.
 - Reloading a board preserves its state.
 - Invalid board URLs do not silently create boards.
 
@@ -272,7 +272,7 @@ Use deterministic test setup and assertions based on observed state, rather than
 
 ## 9. Architectural change policy
 
-Store approved invariants in `ARCHITECTURE.md`, with a machine-readable list of enforced rules and their tests.
+Store approved invariants in `ARCHITECTURE.md`. The machine-readable registry of enforced rules and their tests lives in `architecture/rules.exs`.
 
 Keep agent instructions and framework usage rules synchronized using UsageRules.
 

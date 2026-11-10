@@ -35,8 +35,9 @@ carry `base_version`, so they never override a newer commit.
 
 ## Consequences
 
-Each position behaves as a last-write-wins register, which is itself a
-state-based CRDT whose merge is "highest version wins", with the server as the
-single ordering authority. Concurrent drags can visually disagree until the
+Each position behaves as a last-write-wins register. Its merge rule ("highest
+version wins") is the same one a state-based CRDT uses, but the design is not a
+CRDT: the server is the single ordering authority, so replicas never merge.
+Concurrent drags can visually disagree until the
 next commit, as the spec permits. Revisit if offline editing, multi-node
 deployment or richer shared structures (text, groups) are added.
