@@ -1,0 +1,72 @@
+name: Complexity trend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: complexity-trend
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  ELIXIR_VERSION: "1.20.4"
+  OTP_VERSION: "29.1.2"
+  NODE_VERSION: "24"
+  MIX_ENV: test
+  UPDATE_BRANCH: complexity-trend-update
+
+jobs:
+  record:
+    name: Record complexity of main
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
+          version-type: strict
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: assets/package-lock.json
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: mix-${{ runner.os }}-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-test-${{ hashFiles('mix.lock') }}
+      - run: mix deps.get --check-locked
+      - run: npm ci --prefix assets
+      - name: Measure every commit on main not yet recorded
+        run: node tools/complexity/trend.ts backfill
+      - name: Merge the updated trend into main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- docs/metrics; then
+            echo "Trend already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$UPDATE_BRANCH"
+          git add docs/metrics
+          git commit -m "Record complexity trend for ${GITHUB_SHA::7}"
+          git push --force origin "$UPDATE_BRANCH"
+          if ! gh pr view "$UPDATE_BRANCH" --json state --jq '.state' | grep -q OPEN; then
+            gh pr create --base main --head "$UPDATE_BRANCH" \
+              --title "Record complexity trend" \
+              --body "Adds the complexity of the latest commits on main to docs/metrics. Opened by the Complexity trend workflow."
+          fi
+          gh pr merge "$UPDATE_BRANCH" --squash --delete-branch
